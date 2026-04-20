@@ -1,0 +1,119 @@
+name: Deploy para Vercel
+
+on:
+  push:
+    branches:
+      - main        # deploy em produção
+      - staging     # deploy em preview
+  pull_request:
+    branches:
+      - main        # preview de cada PR
+
+jobs:
+  # ──────────────────────────────────────────
+  # 1. Testes e verificações antes do deploy
+  # ──────────────────────────────────────────
+  verificar:
+    name: Lint + TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Checar tipos TypeScript
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+  # ──────────────────────────────────────────
+  # 2. Deploy em produção (branch main)
+  # ──────────────────────────────────────────
+  deploy-producao:
+    name: Deploy → Produção
+    runs-on: ubuntu-latest
+    needs: verificar
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull configurações da Vercel
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy em produção
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "✅ Deploy em produção: $URL"
+
+  # ──────────────────────────────────────────
+  # 3. Preview automático para cada PR
+  # ──────────────────────────────────────────
+  deploy-preview:
+    name: Deploy → Preview (PR)
+    runs-on: ubuntu-latest
+    needs: verificar
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull configurações da Vercel
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy preview
+        id: preview
+        run: |
+          URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Comentar URL do preview no PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 Preview do deploy\n\n**URL:** ${{ steps.preview.outputs.url }}\n\n_Atualizado em: ${new Date().toLocaleString('pt-BR')}_`
+            })
