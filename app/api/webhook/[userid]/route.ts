@@ -61,29 +61,34 @@ function validarPayload(body: unknown): ResultadoValidacao {
     ? (categoriaRaw as Categoria)
     : 'Outros'
 
-  const tipo: 'debito' | 'credito' = p.tipo === 'credito' || p.valor > 0 ? 'credito' : 'debito'
+  const tipo: 'debito' | 'credito' =
+    p.tipo === 'credito' || (typeof p.valor === 'number' && p.valor > 0) ? 'credito' : 'debito'
 
   return {
     ok: true,
     data: {
       descricao: p.descricao.trim().slice(0, 255),
-      valor: parseFloat(p.valor.toFixed(2)),
+      valor: parseFloat((p.valor as number).toFixed(2)),
       data_hora: p.data_hora,
       tipo,
       categoria,
-      referencia_externa: typeof p.referencia_externa === 'string'
-        ? p.referencia_externa.slice(0, 128)
-        : undefined,
+      referencia_externa:
+        typeof p.referencia_externa === 'string'
+          ? p.referencia_externa.slice(0, 128)
+          : undefined,
     },
   }
 }
 
+// Next.js 16 — params é uma Promise, precisa de await
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userid: string }> }
 ) {
   const startTime = Date.now()
-  const { userId } = params
+
+  // await nos params (obrigatório no Next.js 16+)
+  const { userid: userId } = await params
 
   if (!userId || !/^[a-zA-Z0-9_-]{8,64}$/.test(userId)) {
     return NextResponse.json({ error: 'userId inválido' }, { status: 400 })
