@@ -4,27 +4,29 @@ interface GranaUpLogoProps {
   mode?: 'full' | 'icon' | 'compact'
 }
 
-export default function GranaUpLogo({ mode = 'full' }: GranaUpLogoProps) {
-
-  const Velocimetro = () => (
+// Declarado fora do componente — evita erro de criação durante render
+function Velocimetro({ size }: { size: number }) {
+  return (
     <img
       src="/velocimetro.jpg"
       alt="GranaUp"
       style={{
-        width: mode === 'icon' ? 36 : 48,
-        height: mode === 'icon' ? 36 : 48,
+        width: size,
+        height: size,
         objectFit: 'cover',
         borderRadius: 10,
         flexShrink: 0,
       }}
     />
   )
+}
 
-  if (mode === 'icon') return <Velocimetro />
+export default function GranaUpLogo({ mode = 'full' }: GranaUpLogoProps) {
+  if (mode === 'icon') return <Velocimetro size={36} />
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <Velocimetro />
+      <Velocimetro size={mode === 'full' ? 48 : 38} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 
         {/* GranaUp */}
@@ -54,8 +56,8 @@ export default function GranaUpLogo({ mode = 'full' }: GranaUpLogoProps) {
           }}>
             <div style={{ width: 12, height: 1, background: '#4ade80' }} />
             <span style={{ color: 'rgba(255,255,255,0.75)' }}>Poupe.</span>
-            <span style={{ color: '#4ade80', fontWeight: 600 }}> Evolua.</span>
-            <span style={{ color: 'rgba(255,255,255,0.75)' }}> Conquiste.</span>
+            <span style={{ color: '#4ade80', fontWeight: 600 }}>&nbsp;Evolua.</span>
+            <span style={{ color: 'rgba(255,255,255,0.75)' }}>&nbsp;Conquiste.</span>
             <div style={{ width: 12, height: 1, background: '#4ade80' }} />
           </div>
         )}
