@@ -442,7 +442,7 @@ export default function Dashboard() {
 
 // ─── Chat IA ─────────────────────────────────────────────────────────────────
 function ChatIA({ transacoes, saldo, despesas }: { transacoes: Transacao[], saldo: number, despesas: number }) {
-  const [msgs, setMsgs]     = useState([{ de: 'ia' as const, texto: `Olá! Analisei suas finanças. Tenho ${transacoes.length > 0 ? 'alguns insights interessantes' : 'poucas transações ainda — conecte o webhook para análises mais precisas'}. Como posso ajudar?` }])
+  const [msgs, setMsgs]     = useState<{ de: 'ia' | 'user'; texto: string }[]>([{ de: 'ia', texto: `Olá! Analisei suas finanças. Tenho ${transacoes.length > 0 ? 'alguns insights interessantes' : 'poucas transações ainda — conecte o webhook para análises mais precisas'}. Como posso ajudar?` }])
   const [input, setInput]   = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -582,7 +582,7 @@ function formatData(iso: string) {
 }
 
 function gerarInsights(transacoes: Transacao[], saldo: number) {
-  const insights = []
+  const insights: { texto: string; icon: string; cor: string; bg: string }[] = []
   if (transacoes.length === 0) return insights
 
   const despesas = transacoes.filter(t => t.tipo === 'debito')
