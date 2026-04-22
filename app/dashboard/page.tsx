@@ -141,7 +141,7 @@ export default function Dashboard() {
             { id: 'inicio',   label: 'Início',       icon: 'M3 9l4-4 4 4 4-4' },
             { id: 'gastos',   label: 'Gastos',       icon: 'M2 4h10M2 7h7M2 10h5', href: '/dashboard/gastos' },
             { id: 'metas',    label: 'Metas',        icon: 'M7 1l1.5 4H13l-4 3 1.5 4L7 10l-4 2.5L4.5 8 .5 5H5z', href: '/dashboard/metas' },
-            { id: 'ia',       label: 'Assistente IA', icon: 'M2 7a5 5 0 0 1 10 0' },
+            { id: 'ia',       label: 'Assistente IA', icon: 'M2 7a5 5 0 0 1 10 0', href: '/dashboard/ia' },
             { id: 'evolucao', label: 'Evolução',     icon: 'M2 10l3-3 3 3 4-6' },
           ].map(item => (
             <button key={item.id} onClick={() => ('href' in item && item.href) ? router.push(item.href) : setPaginaAtiva(item.id)} style={{
