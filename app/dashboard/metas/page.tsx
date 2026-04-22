@@ -80,7 +80,11 @@ export default function MetasPage() {
     setLoading(false)
   }
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    carregar()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function salvarMeta(e: React.FormEvent) {
     e.preventDefault()

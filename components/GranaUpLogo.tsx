@@ -1,22 +1,19 @@
 'use client'
 
+import Image from 'next/image'
+
 interface GranaUpLogoProps {
   mode?: 'full' | 'icon' | 'compact'
 }
 
-// Declarado fora do componente — evita erro de criação durante render
 function Velocimetro({ size }: { size: number }) {
   return (
-    <img
+    <Image
       src="/velocimetro.jpg"
       alt="GranaUp"
-      style={{
-        width: size,
-        height: size,
-        objectFit: 'cover',
-        borderRadius: 10,
-        flexShrink: 0,
-      }}
+      width={size}
+      height={size}
+      style={{ objectFit: 'cover', borderRadius: 10, flexShrink: 0 }}
     />
   )
 }
