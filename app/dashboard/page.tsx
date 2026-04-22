@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import GranaUpLogo from '@/components/GranaUpLogo'
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 interface Transacao {
@@ -130,25 +131,8 @@ export default function Dashboard() {
         flexShrink: 0,
       }}>
         {/* Logo */}
-        <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: sidebarAberta ? 'flex-start' : 'center', overflow: 'hidden' }}>
-          {sidebarAberta ? (
-            /* Logo completo quando sidebar aberta */
-            <img
-              src="/logo.png"
-              alt="GranaUp"
-              style={{ width: '100%', maxWidth: 160, height: 52, objectFit: 'contain', objectPosition: 'left center' }}
-            />
-          ) : (
-            /* Só o velocímetro (lado esquerdo do logo) quando fechada */
-            <div style={{
-              width: 32, height: 32, overflow: 'hidden', flexShrink: 0,
-              backgroundImage: 'url(/logo.png)',
-              backgroundSize: '420%',
-              backgroundPosition: '8% center',
-              backgroundRepeat: 'no-repeat',
-              borderRadius: 6,
-            }} />
-          )}
+        <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <GranaUpLogo mode={sidebarAberta ? 'full' : 'icon'} />
         </div>
 
         {/* Nav */}
@@ -573,11 +557,9 @@ Responda em português, de forma direta, amigável e com no máximo 3 linhas. Us
 // ─── Tela de carregamento ─────────────────────────────────────────────────────
 function Carregando() {
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.8 5.2H16L11.5 10l1.8 5.2L9 12.5l-4.3 2.7 1.8-5.2L2 7.2h5.2L9 2z" fill="#4ade80"/></svg>
-      </div>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando GranaUp...</div>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+      <GranaUpLogo mode="compact" />
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando...</div>
     </div>
   )
 }
