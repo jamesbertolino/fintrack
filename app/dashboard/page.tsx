@@ -131,9 +131,7 @@ export default function Dashboard() {
       }}>
         {/* Logo */}
         <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.3 3.8H12L9 7l1 3.5L7 8.5 4 10.5 5 7 2 4.8h3.7L7 1z" fill="#4ade80"/></svg>
-          </div>
+          <img src="/logo.png" alt="GranaUp" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
           {sidebarAberta && (
             <div>
               <div style={{ fontSize: 15, fontWeight: 500, color: '#fff', letterSpacing: -.3 }}>Grana<span style={{ color: '#4ade80' }}>Up</span></div>

@@ -102,16 +102,7 @@ export default function LoginPage() {
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: 'rgba(74,222,128,0.15)',
-            border: '1px solid rgba(74,222,128,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M10 2l1.8 5H17l-4 2.9 1.5 4.6L10 12l-4.5 2.5 1.5-4.6L3 7h5.2L10 2z" fill="#4ade80"/>
-            </svg>
-          </div>
+          <img src="/logo.png" alt="GranaUp" style={{ width: 42, height: 42, objectFit: 'contain' }} />
           <div>
             <div style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: -0.5 }}>
               Grana<span style={{ color: '#4ade80' }}>Up</span>
