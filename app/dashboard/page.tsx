@@ -130,13 +130,24 @@ export default function Dashboard() {
         flexShrink: 0,
       }}>
         {/* Logo */}
-        <div style={{ padding: '1.25rem 1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="/logo.png" alt="GranaUp" style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
-          {sidebarAberta && (
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 500, color: '#fff', letterSpacing: -.3 }}>Grana<span style={{ color: '#4ade80' }}>Up</span></div>
-              <div style={{ fontSize: 9, color: 'rgba(74,222,128,.5)', letterSpacing: '.08em' }}>POUPE. EVOLUA.</div>
-            </div>
+        <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: sidebarAberta ? 'flex-start' : 'center', overflow: 'hidden' }}>
+          {sidebarAberta ? (
+            /* Logo completo quando sidebar aberta */
+            <img
+              src="/logo.png"
+              alt="GranaUp"
+              style={{ width: '100%', maxWidth: 160, height: 52, objectFit: 'contain', objectPosition: 'left center' }}
+            />
+          ) : (
+            /* Só o velocímetro (lado esquerdo do logo) quando fechada */
+            <div style={{
+              width: 32, height: 32, overflow: 'hidden', flexShrink: 0,
+              backgroundImage: 'url(/logo.png)',
+              backgroundSize: '420%',
+              backgroundPosition: '8% center',
+              backgroundRepeat: 'no-repeat',
+              borderRadius: 6,
+            }} />
           )}
         </div>
 

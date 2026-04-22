@@ -101,16 +101,8 @@ export default function LoginPage() {
         padding: '2.5rem',
       }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo.png" alt="GranaUp" style={{ width: 42, height: 42, objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 500, color: '#fff', letterSpacing: -0.5 }}>
-              Grana<span style={{ color: '#4ade80' }}>Up</span>
-            </div>
-            <div style={{ fontSize: 9, color: 'rgba(74,222,128,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              Poupe. Evolua. Conquiste.
-            </div>
-          </div>
+        <div>
+          <img src="/logo.png" alt="GranaUp" style={{ width: 220, height: 72, objectFit: 'contain', objectPosition: 'left center' }} />
         </div>
 
         {/* Hero */}
