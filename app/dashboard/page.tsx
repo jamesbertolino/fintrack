@@ -96,6 +96,7 @@ export default function Dashboard() {
   }, [supabase, router])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarDados()
 
     // Realtime — atualiza ao vivo quando webhook chega
