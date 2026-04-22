@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Criado em runtime (não no build) — evita erro "supabaseUrl is required" no build da Vercel
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 const CATEGORIAS_VALIDAS = [
   'Alimentação',
@@ -36,34 +39,26 @@ function validarPayload(body: unknown): ResultadoValidacao {
   if (!body || typeof body !== 'object') {
     return { ok: false, erro: 'Payload deve ser um objeto JSON' }
   }
-
   const p = body as Record<string, unknown>
-
   if (!p.descricao || typeof p.descricao !== 'string' || p.descricao.trim() === '') {
     return { ok: false, erro: 'Campo "descricao" é obrigatório e deve ser uma string' }
   }
-
   if (p.valor === undefined || p.valor === null || typeof p.valor !== 'number' || isNaN(p.valor)) {
     return { ok: false, erro: 'Campo "valor" é obrigatório e deve ser um número' }
   }
-
   if (!p.data_hora || typeof p.data_hora !== 'string') {
     return { ok: false, erro: 'Campo "data_hora" é obrigatório (formato ISO 8601)' }
   }
-
   const dataValida = new Date(p.data_hora)
   if (isNaN(dataValida.getTime())) {
     return { ok: false, erro: 'Campo "data_hora" inválido — use formato ISO 8601' }
   }
-
   const categoriaRaw = typeof p.categoria === 'string' ? p.categoria : ''
   const categoria: Categoria = CATEGORIAS_VALIDAS.includes(categoriaRaw as Categoria)
     ? (categoriaRaw as Categoria)
     : 'Outros'
-
   const tipo: 'debito' | 'credito' =
     p.tipo === 'credito' || (typeof p.valor === 'number' && p.valor > 0) ? 'credito' : 'debito'
-
   return {
     ok: true,
     data: {
@@ -80,14 +75,12 @@ function validarPayload(body: unknown): ResultadoValidacao {
   }
 }
 
-// Next.js 16 — params é uma Promise, precisa de await
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ userid: string }> }
 ) {
+  const supabase = getSupabase()
   const startTime = Date.now()
-
-  // await nos params (obrigatório no Next.js 16+)
   const { userid: userId } = await params
 
   if (!userId || !/^[a-zA-Z0-9_-]{8,64}$/.test(userId)) {
@@ -112,7 +105,7 @@ export async function POST(
     .single()
 
   if (configError || !webhookConfig) {
-    await registrarLog(userId, null, 401, 'Token inválido', Date.now() - startTime)
+    await registrarLog(supabase, userId, null, 401, 'Token inválido', Date.now() - startTime)
     return NextResponse.json(
       { error: 'Token inválido ou webhook não encontrado' },
       { status: 401 }
@@ -147,7 +140,7 @@ export async function POST(
   try {
     body = await request.json()
   } catch {
-    await registrarLog(userId, null, 400, 'JSON inválido', Date.now() - startTime)
+    await registrarLog(supabase, userId, null, 400, 'JSON inválido', Date.now() - startTime)
     return NextResponse.json(
       { error: 'Corpo da requisição não é um JSON válido' },
       { status: 400 }
@@ -157,7 +150,7 @@ export async function POST(
   const validacao = validarPayload(body)
 
   if (!validacao.ok) {
-    await registrarLog(userId, null, 422, validacao.erro, Date.now() - startTime)
+    await registrarLog(supabase, userId, null, 422, validacao.erro, Date.now() - startTime)
     return NextResponse.json({ error: validacao.erro }, { status: 422 })
   }
 
@@ -170,15 +163,9 @@ export async function POST(
       .eq('user_id', userId)
       .eq('referencia_externa', payload.referencia_externa)
       .maybeSingle()
-
     if (existente) {
       return NextResponse.json(
-        {
-          ok: true,
-          duplicata: true,
-          message: 'Transação já registrada anteriormente',
-          transaction_id: existente.id,
-        },
+        { ok: true, duplicata: true, message: 'Transação já registrada', transaction_id: existente.id },
         { status: 200 }
       )
     }
@@ -200,19 +187,13 @@ export async function POST(
     .single()
 
   if (insertError) {
-    console.error('[webhook] Erro ao inserir transação:', insertError)
-    await registrarLog(userId, null, 500, insertError.message, Date.now() - startTime)
-    return NextResponse.json(
-      { error: 'Erro interno ao salvar transação' },
-      { status: 500 }
-    )
+    console.error('[webhook] Erro ao inserir:', insertError)
+    await registrarLog(supabase, userId, null, 500, insertError.message, Date.now() - startTime)
+    return NextResponse.json({ error: 'Erro interno ao salvar transação' }, { status: 500 })
   }
 
-  await registrarLog(userId, transaction.id, 200, null, Date.now() - startTime)
-
-  verificarAlertas(userId, transaction).catch((err) =>
-    console.error('[webhook] Erro ao verificar alertas:', err)
-  )
+  await registrarLog(supabase, userId, transaction.id, 200, null, Date.now() - startTime)
+  verificarAlertas(supabase, userId, transaction).catch(console.error)
 
   return NextResponse.json(
     {
@@ -228,6 +209,7 @@ export async function POST(
 }
 
 async function registrarLog(
+  supabase: ReturnType<typeof getSupabase>,
   userId: string,
   transactionId: string | null,
   status: number,
@@ -244,6 +226,7 @@ async function registrarLog(
 }
 
 async function verificarAlertas(
+  supabase: ReturnType<typeof getSupabase>,
   userId: string,
   transaction: { id: string; valor: number; categoria: string; tipo: string }
 ) {
@@ -264,15 +247,13 @@ async function verificarAlertas(
         user_id: userId,
         tipo: 'sugestao_meta',
         titulo: 'Receita recebida',
-        mensagem: `${transaction.categoria} +R$ ${Math.abs(transaction.valor).toFixed(2)} — deseja alocar para uma meta?`,
+        mensagem: `+R$ ${Math.abs(transaction.valor).toFixed(2)} — deseja alocar para uma meta?`,
         transaction_id: transaction.id,
       })
       continue
     }
-
     if (regra.tipo === 'limite_categoria' && transaction.tipo === 'debito') {
       if (transaction.categoria !== regra.categoria) continue
-
       const { data: soma } = await supabase
         .from('transactions')
         .select('valor')
@@ -280,16 +261,14 @@ async function verificarAlertas(
         .eq('categoria', regra.categoria)
         .eq('tipo', 'debito')
         .gte('data_hora', inicioMes)
-
       const totalGasto = soma?.reduce((acc, t) => acc + Math.abs(t.valor), 0) ?? 0
       const pct = regra.limite > 0 ? (totalGasto / regra.limite) * 100 : 0
-
       if (pct >= regra.threshold_pct) {
         await supabase.from('notifications').insert({
           user_id: userId,
           tipo: 'limite_categoria',
           titulo: `${transaction.categoria}: ${Math.round(pct)}% do limite`,
-          mensagem: `Você gastou R$ ${totalGasto.toFixed(2)} de R$ ${regra.limite.toFixed(2)} em ${transaction.categoria} este mês.`,
+          mensagem: `Você gastou R$ ${totalGasto.toFixed(2)} de R$ ${regra.limite.toFixed(2)} este mês.`,
           transaction_id: transaction.id,
         })
       }
