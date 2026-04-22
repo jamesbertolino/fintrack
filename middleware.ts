@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createMiddlewareClient } from '@/lib/supabase'
+import { createMiddlewareClient } from '@/lib/supabase-middleware'
 
-// Rotas que não precisam de autenticação
 const ROTAS_PUBLICAS = ['/login', '/cadastro', '/', '/sobre', '/precos']
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request })
   const supabase = createMiddlewareClient(request, response)
 
-  // Atualizar a sessão (obrigatório para manter cookies atualizados)
   const { data: { user } } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
   const isPublic = ROTAS_PUBLICAS.some(r => pathname.startsWith(r))
   const isApi    = pathname.startsWith('/api')
 
-  // Redirecionar para login se não autenticado e rota protegida
   if (!user && !isPublic && !isApi) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -23,7 +20,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirecionar para dashboard se já autenticado e tentando acessar /login
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
