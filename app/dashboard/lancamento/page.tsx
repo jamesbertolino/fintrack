@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
 
 interface Transacao {
   id: string
@@ -60,17 +59,8 @@ export default function LancamentoPage() {
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
 
-  useEffect(() => {
-    carregarHistorico()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Ajustar categoria padrão ao trocar tipo
-  useEffect(() => {
-    setCategoria(tipo === 'debito' ? 'Alimentação' : 'Salário')
-  }, [tipo])
-
-  async function carregarHistorico() {
+  // useCallback declarado ANTES do useEffect que o chama
+  const carregarHistorico = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -82,10 +72,20 @@ export default function LancamentoPage() {
       .limit(15)
 
     if (data) setHistorico(data)
+  }, [supabase, router])
+
+  useEffect(() => {
+    carregarHistorico()
+  }, [carregarHistorico])
+
+  // Trocar tipo e categoria juntos — sem useEffect
+  function handleSetTipo(t: 'debito' | 'credito') {
+    setTipo(t)
+    setCategoria(t === 'debito' ? 'Alimentação' : 'Salário')
   }
 
   function aplicarAtalho(atalho: typeof ATALHOS[0]) {
-    setTipo(atalho.tipo as 'debito' | 'credito')
+    handleSetTipo(atalho.tipo as 'debito' | 'credito')
     setDescricao(atalho.label)
     setCategoria(atalho.cat)
   }
@@ -112,7 +112,7 @@ export default function LancamentoPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const payload = {
+    const { error } = await supabase.from('transactions').insert({
       user_id: user.id,
       descricao: descricao.trim(),
       valor: tipo === 'debito' ? -v : v,
@@ -120,15 +120,9 @@ export default function LancamentoPage() {
       categoria,
       data_hora: new Date(dataHora).toISOString(),
       origem: 'manual',
-    }
+    })
 
-    const { error } = await supabase.from('transactions').insert(payload)
-
-    if (error) {
-      setErro('Erro ao salvar: ' + error.message)
-      setSalvando(false)
-      return
-    }
+    if (error) { setErro('Erro ao salvar: ' + error.message); setSalvando(false); return }
 
     setSalvando(false)
     setSucesso(true)
@@ -151,67 +145,46 @@ export default function LancamentoPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
 
-      {/* Topbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Dashboard
-          </button>
-          <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Lançamento</span>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 12 }}>
+        <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Dashboard
+        </button>
+        <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
+        <span style={{ fontSize: 15, fontWeight: 500 }}>Lançamento</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 0, minHeight: 'calc(100vh - 53px)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', minHeight: 'calc(100vh - 53px)' }}>
 
-        {/* ── Formulário ── */}
+        {/* Formulário */}
         <div style={{ borderRight: '1px solid #1a3a1a', padding: '1.5rem', overflowY: 'auto' }}>
 
-          {/* Toggle Despesa / Receita */}
           <div style={{ display: 'flex', background: 'rgba(0,0,0,.4)', border: '1px solid #1a3a1a', borderRadius: 12, padding: 4, marginBottom: '1.5rem' }}>
             {(['debito', 'credito'] as const).map(t => (
-              <button key={t} onClick={() => setTipo(t)} style={{
+              <button key={t} onClick={() => handleSetTipo(t)} style={{
                 flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer',
                 fontWeight: 600, fontSize: 13, transition: 'all .2s',
-                background: tipo === t
-                  ? t === 'debito' ? 'rgba(239,68,68,.2)' : 'rgba(22,163,74,.2)'
-                  : 'transparent',
-                color: tipo === t
-                  ? t === 'debito' ? '#f87171' : '#4ade80'
-                  : 'rgba(255,255,255,.3)',
-                borderBottom: tipo === t
-                  ? `2px solid ${t === 'debito' ? '#f87171' : '#4ade80'}`
-                  : '2px solid transparent',
+                background: tipo === t ? (t === 'debito' ? 'rgba(239,68,68,.2)' : 'rgba(22,163,74,.2)') : 'transparent',
+                color: tipo === t ? (t === 'debito' ? '#f87171' : '#4ade80') : 'rgba(255,255,255,.3)',
+                borderBottom: tipo === t ? `2px solid ${t === 'debito' ? '#f87171' : '#4ade80'}` : '2px solid transparent',
               }}>
                 {t === 'debito' ? '↓ Despesa' : '↑ Receita'}
               </button>
             ))}
           </div>
 
-          {/* Campo valor — destaque */}
           <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Valor</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               <span style={{ fontSize: 22, color: 'rgba(255,255,255,.3)', fontWeight: 300 }}>R$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={valor}
-                onChange={e => setValor(formatarValor(e.target.value))}
-                placeholder="0,00"
-                style={{
-                  background: 'transparent', border: 'none', outline: 'none',
-                  fontSize: 42, fontWeight: 700, textAlign: 'center',
-                  color: tipo === 'debito' ? '#f87171' : '#4ade80',
-                  width: 220,
-                }}
+              <input type="text" inputMode="numeric" value={valor}
+                onChange={e => setValor(formatarValor(e.target.value))} placeholder="0,00"
+                style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 42, fontWeight: 700, textAlign: 'center', color: tipo === 'debito' ? '#f87171' : '#4ade80', width: 220 }}
               />
             </div>
             <div style={{ height: 2, background: tipo === 'debito' ? 'rgba(248,113,113,.3)' : 'rgba(74,222,128,.3)', borderRadius: 1, margin: '8px auto 0', width: 200 }} />
           </div>
 
-          {/* Atalhos rápidos */}
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Atalhos rápidos</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -221,27 +194,18 @@ export default function LancamentoPage() {
                   background: descricao === a.label ? `${CORES[a.cat]}22` : 'rgba(255,255,255,.04)',
                   color: descricao === a.label ? CORES[a.cat] || '#fff' : 'rgba(255,255,255,.5)',
                   fontSize: 11, cursor: 'pointer', transition: 'all .15s',
-                }}>
-                  {a.label}
-                </button>
+                }}>{a.label}</button>
               ))}
             </div>
           </div>
 
           <form onSubmit={salvar}>
-            {/* Descrição */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Descrição</label>
-              <input
-                value={descricao}
-                onChange={e => setDescricao(e.target.value)}
-                placeholder="Ex: Almoço, Gasolina, Netflix..."
-                required
-                style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
-              />
+              <input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Almoço, Gasolina, Netflix..." required
+                style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
 
-            {/* Categoria */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Categoria</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -251,31 +215,19 @@ export default function LancamentoPage() {
                     background: categoria === c ? `${CORES[c] || '#4ade80'}18` : 'transparent',
                     color: categoria === c ? CORES[c] || '#4ade80' : 'rgba(255,255,255,.4)',
                     fontSize: 11, cursor: 'pointer', transition: 'all .15s', fontWeight: categoria === c ? 500 : 400,
-                  }}>
-                    {c}
-                  </button>
+                  }}>{c}</button>
                 ))}
               </div>
             </div>
 
-            {/* Data e hora */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data e hora</label>
-              <input
-                type="datetime-local"
-                value={dataHora}
-                onChange={e => setDataHora(e.target.value)}
-                style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
-              />
+              <input type="datetime-local" value={dataHora} onChange={e => setDataHora(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
 
-            {/* Recorrente */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem', padding: '10px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, cursor: 'pointer' }}
-              onClick={() => setRecorrente(!recorrente)}>
-              <div style={{
-                width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${recorrente ? '#16a34a' : '#1a3a1a'}`,
-                background: recorrente ? '#16a34a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s',
-              }}>
+            <div onClick={() => setRecorrente(!recorrente)} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem', padding: '10px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, cursor: 'pointer' }}>
+              <div style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${recorrente ? '#16a34a' : '#1a3a1a'}`, background: recorrente ? '#16a34a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>
                 {recorrente && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 4,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
               </div>
               <div>
@@ -284,12 +236,7 @@ export default function LancamentoPage() {
               </div>
             </div>
 
-            {/* Erro */}
-            {erro && (
-              <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erro}</div>
-            )}
-
-            {/* Sucesso */}
+            {erro && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erro}</div>}
             {sucesso && (
               <div style={{ background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -302,21 +249,18 @@ export default function LancamentoPage() {
               background: tipo === 'debito' ? 'rgba(239,68,68,.2)' : '#16a34a',
               border: `1px solid ${tipo === 'debito' ? 'rgba(239,68,68,.4)' : '#16a34a'}`,
               borderRadius: 10, color: tipo === 'debito' ? '#f87171' : '#fff',
-              fontSize: 14, fontWeight: 600, cursor: salvando ? 'default' : 'pointer',
-              opacity: salvando ? 0.6 : 1, transition: 'all .15s',
+              fontSize: 14, fontWeight: 600, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1, transition: 'all .15s',
             }}>
               {salvando ? 'Salvando...' : `Lançar ${tipo === 'debito' ? 'despesa' : 'receita'}${valor ? ' de R$ ' + valor : ''}`}
             </button>
           </form>
         </div>
 
-        {/* ── Histórico recente ── */}
+        {/* Histórico */}
         <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500 }}>Lançamentos recentes</div>
-            <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>
-              ver todos os gastos →
-            </button>
+            <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>
           </div>
 
           {historico.length === 0 ? (
@@ -327,47 +271,25 @@ export default function LancamentoPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {historico.map(t => (
-                <div key={t.id} style={{
-                  background: '#111', border: '1px solid #1a3a1a', borderRadius: 10,
-                  padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12,
-                  transition: 'border-color .15s',
-                }}
+                <div key={t.id} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}
                   onMouseEnter={e => (e.currentTarget.style.borderColor = '#1a5a1a')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a3a1a')}
                 >
-                  {/* Ícone categoria */}
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                    background: `${CORES[t.categoria] || '#6b7280'}18`,
-                    border: `1px solid ${CORES[t.categoria] || '#6b7280'}33`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${CORES[t.categoria] || '#6b7280'}18`, border: `1px solid ${CORES[t.categoria] || '#6b7280'}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280' }} />
                   </div>
-
-                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</span>
                       {t.origem === 'manual' && <span style={{ fontSize: 9, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.35)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>manual</span>}
                       {t.origem === 'webhook' && <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>
-                      {t.categoria} · {fmtData(t.data_hora)}
-                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{t.categoria} · {fmtData(t.data_hora)}</div>
                   </div>
-
-                  {/* Valor */}
                   <div style={{ fontSize: 14, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
                     {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
                   </div>
-
-                  {/* Deletar */}
-                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id} style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'rgba(255,255,255,.2)', padding: 4, flexShrink: 0,
-                    opacity: deletando === t.id ? 0.4 : 1, transition: 'color .15s',
-                  }}
+                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 4, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}
                     onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
                     onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.2)')}
                   >
