@@ -195,7 +195,11 @@ export default function Dashboard() {
               <span style={{ fontSize: 11, color: '#4ade80' }}>webhook ativo</span>
             </div>
             <SinoNotificacoes />
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, color: '#fff' }}>
+            <div
+              onClick={() => router.push('/dashboard/perfil')}
+              style={{ width: 30, height: 30, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, color: '#fff', cursor: 'pointer' }}
+              title="Meu perfil"
+            >
               {profile?.nome?.[0]?.toUpperCase() || 'U'}
             </div>
           </div>
