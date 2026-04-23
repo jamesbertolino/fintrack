@@ -139,6 +139,7 @@ export default function Dashboard() {
         <nav style={{ flex: 1, padding: '0.75rem 0' }}>
           {[
             { id: 'inicio',   label: 'Início',       icon: 'M3 9l4-4 4 4 4-4' },
+            { id: 'lancamento', label: 'Lançamento', icon: 'M6 1v12M1 6h10', href: '/dashboard/lancamento' },
             { id: 'gastos',   label: 'Gastos',       icon: 'M2 4h10M2 7h7M2 10h5', href: '/dashboard/gastos' },
             { id: 'metas',    label: 'Metas',        icon: 'M7 1l1.5 4H13l-4 3 1.5 4L7 10l-4 2.5L4.5 8 .5 5H5z', href: '/dashboard/metas' },
             { id: 'ia',       label: 'Assistente IA', icon: 'M2 7a5 5 0 0 1 10 0', href: '/dashboard/ia' },
