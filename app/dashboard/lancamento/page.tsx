@@ -40,6 +40,35 @@ function fmtBRL(v: number) {
   return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function dataLocalParaInput(timezone: string): string {
+  const agora = new Date()
+  const local = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).format(agora)
+  return local.replace(' ', 'T').slice(0, 16)
+}
+
+function inputParaUTC(dataLocal: string, timezone: string): string {
+  const [data, hora] = dataLocal.split('T')
+  const [ano, mes, dia] = data.split('-').map(Number)
+  const [h, min] = hora.split(':').map(Number)
+
+  const dataObj = new Date(Date.UTC(ano, mes - 1, dia, h, min))
+  const formatter = new Intl.DateTimeFormat('en', {
+    timeZone: timezone,
+    timeZoneName: 'shortOffset',
+  })
+  const parts = formatter.formatToParts(dataObj)
+  const offset = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+0'
+  const match = offset.match(/GMT([+-]\d+)(?::(\d+))?/)
+  const horas = match ? parseInt(match[1]) : 0
+  const mins  = match ? parseInt(match[2] || '0') : 0
+  const offsetMs = (horas * 60 + (horas < 0 ? -mins : mins)) * 60000
+  return new Date(dataObj.getTime() - offsetMs).toISOString()
+}
+
 export default function LancamentoPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -49,13 +78,27 @@ export default function LancamentoPage() {
   const [valor, setValor]           = useState('')
   const [descricao, setDescricao]   = useState('')
   const [categoria, setCategoria]   = useState('Alimentação')
-  const [dataHora, setDataHora]     = useState(() => new Date().toISOString().slice(0, 16))
+  const [dataHora, setDataHora]     = useState('')
+  const [timezone, setTimezone]     = useState('America/Sao_Paulo')
   const [recorrente, setRecorrente] = useState(false)
   const [salvando, setSalvando]     = useState(false)
   const [erro, setErro]             = useState('')
   const [sucesso, setSucesso]       = useState(false)
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
+
+  // Busca timezone do perfil e inicializa o campo de data/hora corretamente
+  useEffect(() => {
+    const client = createClient()
+    client.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      client.from('profiles').select('timezone').eq('id', user.id).single().then(({ data }) => {
+        const tz = data?.timezone || 'America/Sao_Paulo'
+        setTimezone(tz)
+        setDataHora(dataLocalParaInput(tz))
+      })
+    })
+  }, [])
 
   // useCallback declarado ANTES do useEffect que o chama
   const carregarHistorico = useCallback(async () => {
@@ -117,7 +160,7 @@ export default function LancamentoPage() {
       valor: tipo === 'debito' ? -v : v,
       tipo,
       categoria,
-      data_hora: new Date(dataHora).toISOString(),
+      data_hora: inputParaUTC(dataHora, timezone),
       origem: 'manual',
     })
 
@@ -127,7 +170,7 @@ export default function LancamentoPage() {
     setSucesso(true)
     setValor('')
     setDescricao('')
-    setDataHora(new Date().toISOString().slice(0, 16))
+    setDataHora(dataLocalParaInput(timezone))
     carregarHistorico()
     setTimeout(() => setSucesso(false), 2500)
   }
