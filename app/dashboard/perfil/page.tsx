@@ -8,6 +8,7 @@ interface Profile {
   id: string
   nome: string
   sobrenome: string
+  whatsapp: string
   plano: string
   created_at: string
 }
@@ -33,7 +34,7 @@ export default function PerfilPage() {
   const [tokenVisivel, setTokenVis] = useState(false)
   const [copiado, setCopiado]       = useState(false)
 
-  const [form, setForm] = useState({ nome: '', sobrenome: '' })
+  const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '' })
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
 
   const carregar = useCallback(async () => {
@@ -49,7 +50,7 @@ export default function PerfilPage() {
 
     if (prof) {
       setProfile(prof)
-      setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '' })
+      setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '' })
     }
     if (wh) setWebhook(wh)
     setLoading(false)
@@ -72,6 +73,7 @@ export default function PerfilPage() {
     const { error } = await supabase.from('profiles').update({
       nome: form.nome.trim(),
       sobrenome: form.sobrenome.trim(),
+      whatsapp: form.whatsapp.replace(/\D/g, '') || null,
     }).eq('id', user.id)
 
     setSalvando(false)
@@ -215,6 +217,19 @@ export default function PerfilPage() {
                 <div>
                   <label style={labelStyle}>Sobrenome</label>
                   <input value={form.sobrenome} onChange={e => setForm(p => ({ ...p, sobrenome: e.target.value }))} placeholder="Seu sobrenome" style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>WhatsApp</label>
+                <input
+                  value={form.whatsapp}
+                  onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))}
+                  placeholder="5511999999999 (DDI + DDD + número)"
+                  type="tel"
+                  style={inputStyle}
+                />
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
+                  Número autorizado a enviar mensagens e receber alertas via WhatsApp. Formato: <strong style={{color: 'rgba(255,255,255,.5)'}}>5511999999999</strong>
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
