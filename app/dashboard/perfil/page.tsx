@@ -9,6 +9,8 @@ interface Profile {
   nome: string
   sobrenome: string
   whatsapp: string
+  timezone: string
+  idioma: string
   plano: string
   created_at: string
 }
@@ -34,7 +36,7 @@ export default function PerfilPage() {
   const [tokenVisivel, setTokenVis] = useState(false)
   const [copiado, setCopiado]       = useState(false)
 
-  const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '' })
+  const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
 
   const carregar = useCallback(async () => {
@@ -50,7 +52,7 @@ export default function PerfilPage() {
 
     if (prof) {
       setProfile(prof)
-      setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '' })
+      setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
     }
     if (wh) setWebhook(wh)
     setLoading(false)
@@ -74,6 +76,8 @@ export default function PerfilPage() {
       nome: form.nome.trim(),
       sobrenome: form.sobrenome.trim(),
       whatsapp: form.whatsapp.replace(/\D/g, '') || null,
+      timezone: form.timezone,
+      idioma: form.idioma,
     }).eq('id', user.id)
 
     setSalvando(false)
@@ -230,6 +234,63 @@ export default function PerfilPage() {
                 />
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
                   Número autorizado a enviar mensagens e receber alertas via WhatsApp. Formato: <strong style={{color: 'rgba(255,255,255,.5)'}}>5511999999999</strong>
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>Idioma</label>
+                <select
+                  value={form.idioma}
+                  onChange={e => setForm(p => ({ ...p, idioma: e.target.value }))}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                >
+                  <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+                  <option value="en-US">🇺🇸 English (US)</option>
+                  <option value="es-ES">🇪🇸 Español</option>
+                </select>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>Fuso horário (Timezone)</label>
+                <select
+                  value={form.timezone}
+                  onChange={e => setForm(p => ({ ...p, timezone: e.target.value }))}
+                  style={{ ...inputStyle, cursor: 'pointer' }}
+                >
+                  <optgroup label="Brasil">
+                    <option value="America/Sao_Paulo">🇧🇷 Brasília (GMT-3)</option>
+                    <option value="America/Manaus">🇧🇷 Manaus (GMT-4)</option>
+                    <option value="America/Belem">🇧🇷 Belém (GMT-3)</option>
+                    <option value="America/Fortaleza">🇧🇷 Fortaleza (GMT-3)</option>
+                    <option value="America/Recife">🇧🇷 Recife (GMT-3)</option>
+                    <option value="America/Noronha">🇧🇷 Fernando de Noronha (GMT-2)</option>
+                    <option value="America/Porto_Velho">🇧🇷 Porto Velho (GMT-4)</option>
+                    <option value="America/Boa_Vista">🇧🇷 Boa Vista (GMT-4)</option>
+                    <option value="America/Rio_Branco">🇧🇷 Rio Branco (GMT-5)</option>
+                  </optgroup>
+                  <optgroup label="América do Sul">
+                    <option value="America/Argentina/Buenos_Aires">🇦🇷 Buenos Aires (GMT-3)</option>
+                    <option value="America/Santiago">🇨🇱 Santiago (GMT-3)</option>
+                    <option value="America/Lima">🇵🇪 Lima (GMT-5)</option>
+                    <option value="America/Bogota">🇨🇴 Bogotá (GMT-5)</option>
+                  </optgroup>
+                  <optgroup label="América do Norte">
+                    <option value="America/New_York">🇺🇸 New York (GMT-5)</option>
+                    <option value="America/Chicago">🇺🇸 Chicago (GMT-6)</option>
+                    <option value="America/Denver">🇺🇸 Denver (GMT-7)</option>
+                    <option value="America/Los_Angeles">🇺🇸 Los Angeles (GMT-8)</option>
+                    <option value="America/Toronto">🇨🇦 Toronto (GMT-5)</option>
+                  </optgroup>
+                  <optgroup label="Europa">
+                    <option value="Europe/Lisbon">🇵🇹 Lisboa (GMT+0)</option>
+                    <option value="Europe/London">🇬🇧 Londres (GMT+0)</option>
+                    <option value="Europe/Paris">🇫🇷 Paris (GMT+1)</option>
+                    <option value="Europe/Berlin">🇩🇪 Berlin (GMT+1)</option>
+                  </optgroup>
+                  <optgroup label="UTC">
+                    <option value="UTC">🌍 UTC (GMT+0)</option>
+                  </optgroup>
+                </select>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
+                  Usado para exibir datas e horas corretamente no app e nas mensagens WhatsApp.
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
