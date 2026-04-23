@@ -75,6 +75,7 @@ export default function LancamentoPage() {
   }, [supabase, router])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarHistorico()
   }, [carregarHistorico])
 

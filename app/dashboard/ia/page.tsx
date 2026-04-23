@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
+
 
 interface Mensagem {
   role: 'user' | 'assistant'
@@ -49,7 +49,6 @@ export default function IAPage() {
       }])
       setHorarios([fmtHora(new Date())])
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     init()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
