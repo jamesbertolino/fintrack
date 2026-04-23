@@ -49,6 +49,7 @@ export default function NotificacoesPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
 
     // Realtime — novas notificações chegam ao vivo
