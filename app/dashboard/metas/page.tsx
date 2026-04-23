@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import GranaUpLogo from '@/components/GranaUpLogo'
+import { usePerfil } from '@/hooks/usePerfil'
 
 interface Meta {
   id: string
@@ -52,6 +53,7 @@ function PctBar({ pct, cor = '#4ade80' }: { pct: number; cor?: string }) {
 export default function MetasPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { fmtMes } = usePerfil()
 
   const [metas, setMetas]         = useState<Meta[]>([])
   const [alertas, setAlertas]     = useState<AlertaRegra[]>([])
@@ -276,7 +278,7 @@ export default function MetasPage() {
                         {m.prazo && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
                             <span style={{ color: 'rgba(255,255,255,.4)' }}>Prazo</span>
-                            <span style={{ color: '#fff' }}>{new Date(m.prazo).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</span>
+                            <span style={{ color: '#fff' }}>{fmtMes(m.prazo)}</span>
                           </div>
                         )}
                       </div>

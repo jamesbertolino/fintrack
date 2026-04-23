@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { usePerfil } from '@/hooks/usePerfil'
 
 interface Transacao {
   id: string
@@ -61,6 +62,7 @@ function fmtBRL(v: number) {
 export default function EvolucaoPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { fmtDataHora } = usePerfil()
 
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
   const [metas, setMetas]           = useState<Meta[]>([])
@@ -372,7 +374,7 @@ export default function EvolucaoPage() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, color: '#fff' }}>{h.desc}</div>
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
-                    {new Date(h.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {fmtDataHora(h.data)}
                   </div>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: h.cor }}>+{h.xp} XP</div>

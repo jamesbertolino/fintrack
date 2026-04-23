@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import GranaUpLogo from '@/components/GranaUpLogo'
+import { usePerfil } from '@/hooks/usePerfil'
 
 interface Transacao {
   id: string
@@ -32,17 +33,10 @@ function fmtBRL(v: number) {
   return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function fmtData(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function fmtMes(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-}
-
 export default function GastosPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { fmtData, fmtMes } = usePerfil()
 
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
   const [loading, setLoading]       = useState(true)

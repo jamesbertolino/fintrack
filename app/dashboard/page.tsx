@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import GranaUpLogo from '@/components/GranaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
+import { usePerfil } from '@/hooks/usePerfil'
 
 interface Transacao {
   id: string
@@ -46,6 +47,7 @@ function calcularNivel(xp: number) {
 export default function Dashboard() {
   const router = useRouter()
   const supabase = createClient()
+  const { fmtData, timezone, idioma } = usePerfil()
 
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
@@ -216,7 +218,7 @@ export default function Dashboard() {
                   Olá, {profile?.nome || 'usuário'} 👋
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
-                  {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {new Intl.DateTimeFormat(idioma, { weekday: 'long', day: 'numeric', month: 'long', timeZone: timezone }).format(new Date())}
                 </div>
               </div>
 
@@ -291,7 +293,7 @@ export default function Dashboard() {
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {formatData(t.data_hora)}</div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
                         {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
@@ -377,10 +379,6 @@ export default function Dashboard() {
 
 function formatBRL(val: number) {
   return 'R$ ' + Math.abs(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function formatData(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
 function gerarInsights(transacoes: Transacao[], saldo: number) {

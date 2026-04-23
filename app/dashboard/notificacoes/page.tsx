@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { usePerfil } from '@/hooks/usePerfil'
 
 interface Notificacao {
   id: string
@@ -21,7 +22,7 @@ const ICONES: Record<string, { emoji: string; cor: string; bg: string }> = {
   default:          { emoji: '🔔', cor: '#4ade80', bg: 'rgba(74,222,128,.1)' },
 }
 
-function fmtTempo(iso: string) {
+function fmtTempo(iso: string, fmtData: (iso: string) => string) {
   const diff = Date.now() - new Date(iso).getTime()
   const min  = Math.floor(diff / 60000)
   const h    = Math.floor(diff / 3600000)
@@ -30,12 +31,13 @@ function fmtTempo(iso: string) {
   if (min < 60) return `há ${min}min`
   if (h < 24)   return `há ${h}h`
   if (d < 7)    return `há ${d}d`
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  return fmtData(iso)
 }
 
 export default function NotificacoesPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { fmtData } = usePerfil()
 
   const [notifs, setNotifs]     = useState<Notificacao[]>([])
   const [loading, setLoading]   = useState(true)
@@ -206,7 +208,7 @@ export default function NotificacoesPage() {
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.5, marginBottom: 5 }}>
                       {n.mensagem}
                     </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{fmtTempo(n.created_at)}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{fmtTempo(n.created_at, fmtData)}</div>
                   </div>
 
                   {/* Ações */}

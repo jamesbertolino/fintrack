@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { usePerfil } from '@/hooks/usePerfil'
 
 interface Transacao {
   id: string
@@ -39,13 +40,10 @@ function fmtBRL(v: number) {
   return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function fmtData(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
-
 export default function LancamentoPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { fmtDataHora } = usePerfil()
 
   const [tipo, setTipo]             = useState<'debito' | 'credito'>('debito')
   const [valor, setValor]           = useState('')
@@ -285,7 +283,7 @@ export default function LancamentoPage() {
                       {t.origem === 'manual' && <span style={{ fontSize: 9, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.35)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>manual</span>}
                       {t.origem === 'webhook' && <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{t.categoria} · {fmtData(t.data_hora)}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{t.categoria} · {fmtDataHora(t.data_hora)}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
                     {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}

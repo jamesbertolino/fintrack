@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   const userIds = [...new Set(alertas.map(a => a.user_id))]
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, nome, whatsapp')
+    .select('id, nome, whatsapp, timezone, idioma')
     .in('id', userIds)
     .not('whatsapp', 'is', null)
 
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       id: a.id,
       numero: perfilMap[a.user_id].whatsapp,
       nome: perfilMap[a.user_id].nome,
-      mensagem: formatarMensagem(a.tipo, a.titulo, a.mensagem),
+      mensagem: formatarMensagem(a.tipo, a.titulo, a.mensagem, perfilMap[a.user_id].timezone, perfilMap[a.user_id].idioma),
     }))
 
   return NextResponse.json({ alertas: formatados })
@@ -65,9 +65,13 @@ export async function PATCH(request: NextRequest) {
   return NextResponse.json({ ok: true, enviados: ids.length })
 }
 
-function formatarMensagem(tipo: string, titulo: string, mensagem: string) {
+function formatarMensagem(tipo: string, titulo: string, mensagem: string, timezone = 'America/Sao_Paulo', idioma = 'pt-BR') {
   const emojis: Record<string, string> = {
     sugestao_meta: '💰', limite_categoria: '⚠️', marco_meta: '🎯', fim_mes: '📅',
   }
-  return `${emojis[tipo] || '🔔'} *${titulo}*\n\n${mensagem}\n\n_GranaUp • ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}_`
+  const hora = new Intl.DateTimeFormat(idioma, {
+    hour: '2-digit', minute: '2-digit', timeZone: timezone,
+  }).format(new Date())
+  return `${emojis[tipo] || '🔔'} *${titulo}*\n\n${mensagem}\n\n_GranaUp • ${hora}_`
 }
+
