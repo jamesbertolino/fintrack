@@ -115,7 +115,8 @@ export default function Dashboard() {
     { id: 'metas',       label: 'Metas',          icon: 'M7 1l1.5 4H13l-4 3 1.5 4L7 10l-4 2.5L4.5 8 .5 5H5z', href: '/dashboard/metas' },
     { id: 'ia',          label: 'Assistente IA',  icon: 'M2 7a5 5 0 0 1 10 0',          href: '/dashboard/ia' },
     { id: 'notificacoes',label: 'Notificações',   icon: 'M7 2a4 4 0 00-4 4v2l-1 1v1h10v-1l-1-1V6a4 4 0 00-4-4zM5.5 12a1.5 1.5 0 003 0', href: '/dashboard/notificacoes' },
-    { id: 'evolucao',    label: 'Evolução',       icon: 'M2 10l3-3 3 3 4-6' },
+    //{ id: 'evolucao',    label: 'Evolução',       icon: 'M2 10l3-3 3 3 4-6' },
+    { id: 'evolucao', label: 'Evolução', icon: 'M2 10l3-3 3 3 4-6', href: '/dashboard/evolucao' },
   ]
 
   return (
