@@ -9,7 +9,7 @@ function getSupabase() {
 }
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Outros']
-const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || 'granaup-n8n-secret'
+const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || 'granaup-secret-2026'
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-n8n-secret')

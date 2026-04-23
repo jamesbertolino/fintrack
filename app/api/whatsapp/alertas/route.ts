@@ -8,7 +8,7 @@ function getSupabase() {
   )
 }
 
-const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || 'granaup-n8n-secret'
+const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || 'granaup-secret-2026'
 
 export async function GET(request: NextRequest) {
   const secret = request.headers.get('x-n8n-secret')
