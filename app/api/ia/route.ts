@@ -32,8 +32,7 @@ Usuário: ${profile?.nome || 'usuário'}
 Plano: ${profile?.plano || 'free'}
 
 === DADOS FINANCEIROS REAIS ===
-Total de transações analisadas: ${transacoes?.length || 0}
-
+Total de transações: ${transacoes?.length || 0}
 Receitas totais: R$ ${receitas.toFixed(2)}
 Despesas totais: R$ ${despesas.toFixed(2)}
 Saldo atual: R$ ${saldo.toFixed(2)}
@@ -57,45 +56,81 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
 - Encoraje hábitos financeiros saudáveis
 `
 
-  try {
-    const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ resposta: 'Chave da API não configurada. Adicione ANTHROPIC_API_KEY nas variáveis de ambiente da Vercel.' })
+  const messages = [
+    ...(historico || []),
+    { role: 'user', content: mensagem }
+  ]
+
+  // ── Tentar Anthropic primeiro ─────────────────────────────────────────────
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (anthropicKey) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 1000,
+          system: contexto,
+          messages,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.content?.[0]?.text) {
+        console.log('[ia] Respondido via Anthropic')
+        return NextResponse.json({ resposta: data.content[0].text, via: 'anthropic' })
+      }
+
+      console.warn('[ia] Anthropic falhou:', JSON.stringify(data.error || data))
+    } catch (err) {
+      console.warn('[ia] Anthropic erro de conexão:', err)
     }
-
-    const messages = [
-      ...(historico || []),
-      { role: 'user', content: mensagem }
-    ]
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1000,
-        system: contexto,
-        messages,
-      }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok || data.error) {
-      console.error('[ia] Erro Anthropic:', JSON.stringify(data))
-      const msg = data.error?.message || data.error?.type || `HTTP ${res.status}`
-      return NextResponse.json({ resposta: `Erro da API: ${msg}` })
-    }
-
-    const resposta = data.content?.[0]?.text || 'Resposta vazia.'
-    return NextResponse.json({ resposta })
-
-  } catch (err) {
-    console.error('[ia] Erro:', err)
-    return NextResponse.json({ error: 'Erro ao conectar com a IA' }, { status: 500 })
   }
+
+  // ── Fallback: OpenAI ──────────────────────────────────────────────────────
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 1000,
+          messages: [
+            { role: 'system', content: contexto },
+            ...messages,
+          ],
+        }),
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.choices?.[0]?.message?.content) {
+        console.log('[ia] Respondido via OpenAI')
+        return NextResponse.json({ resposta: data.choices[0].message.content, via: 'openai' })
+      }
+
+      console.error('[ia] OpenAI falhou:', JSON.stringify(data.error || data))
+      return NextResponse.json({
+        resposta: `Erro OpenAI: ${data.error?.message || 'desconhecido'}`
+      })
+    } catch (err) {
+      console.error('[ia] OpenAI erro de conexão:', err)
+    }
+  }
+
+  // ── Nenhuma API configurada ───────────────────────────────────────────────
+  return NextResponse.json({
+    resposta: 'Nenhuma API de IA configurada. Adicione ANTHROPIC_API_KEY ou OPENAI_API_KEY nas variáveis de ambiente da Vercel.'
+  })
 }
