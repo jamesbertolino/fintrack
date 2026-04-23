@@ -53,6 +53,7 @@ export default function SinoNotificacoes() {
   }, [naoLidas])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
 
     const channel = supabase
