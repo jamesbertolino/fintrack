@@ -13,6 +13,9 @@ create table public.profiles (
   id            uuid references auth.users(id) on delete cascade primary key,
   nome          text not null,
   sobrenome     text,
+  whatsapp      text,
+  timezone      text not null default 'America/Sao_Paulo',
+  idioma        text not null default 'pt-BR',
   renda_mensal  text,
   banco_principal text,
   objetivo      text,          -- 'sair_vermelho' | 'poupar' | 'sonho' | 'entender'
