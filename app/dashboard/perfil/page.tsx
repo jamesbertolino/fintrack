@@ -63,33 +63,26 @@ export default function PerfilPage() {
 
     setEmail(user.email || '')
 
-    const [{ data: prof }, { data: wh }] = await Promise.all([
+    const [{ data: prof }, { data: wh }, { data: grp }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('webhook_configs').select('token, ativo, plano').eq('user_id', user.id).single(),
+      supabase.from('grupos').select('id, nome, whatsapp_grupo_id, criado_por').eq('criado_por', user.id).single(),
     ])
 
     if (prof) {
       setProfile(prof)
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
-
-      // Carrega grupo do usuário
-      const { data: grp } = await supabase
-        .from('grupos')
-        .select('id, nome, criado_por')
-        .eq('criado_por', user.id)
-        .single()
-
-      if (grp) {
-        setGrupo(grp)
-        const { data: mem } = await supabase
-          .from('grupo_membros')
-          .select('id, whatsapp, status, profiles(nome)')
-          .eq('grupo_id', grp.id)
-          .order('created_at')
-        setMembros((mem as GrupoMembro[]) || [])
-      }
     }
     if (wh) setWebhook(wh)
+    if (grp) {
+      setGrupo(grp)
+      const { data: mem } = await supabase
+        .from('grupo_membros')
+        .select('id, whatsapp, status, profiles(nome)')
+        .eq('grupo_id', grp.id)
+        .order('created_at')
+      setMembros((mem as GrupoMembro[]) || [])
+    }
     setLoading(false)
   }, [supabase, router])
 
