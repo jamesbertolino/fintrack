@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMiddlewareClient } from '@/lib/supabase-middleware'
 
-const ROTAS_PUBLICAS = ['/login', '/cadastro', '/', '/sobre', '/precos']
+const ROTAS_PUBLICAS = ['/login', '/cadastro', '/', '/sobre', '/precos', '/convite']
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request })

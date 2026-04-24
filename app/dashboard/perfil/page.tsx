@@ -21,6 +21,19 @@ interface WebhookConfig {
   plano: string
 }
 
+interface GrupoMembro {
+  id: string
+  whatsapp: string
+  status: string
+  profiles: { nome: string } | null
+}
+
+interface Grupo {
+  id: string
+  nome: string
+  criado_por: string
+}
+
 export default function PerfilPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -32,7 +45,12 @@ export default function PerfilPage() {
   const [salvando, setSalvando]     = useState(false)
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
-  const [abaSel, setAbaSel]         = useState<'perfil' | 'webhook' | 'plano' | 'seguranca'>('perfil')
+  const [abaSel, setAbaSel]         = useState<'perfil' | 'webhook' | 'grupo' | 'plano' | 'seguranca'>('perfil')
+  const [grupo, setGrupo]           = useState<Grupo | null>(null)
+  const [membros, setMembros]       = useState<GrupoMembro[]>([])
+  const [novoNumero, setNovoNum]    = useState('')
+  const [convidando, setConvidan]   = useState(false)
+  const [removendo, setRemovendo]   = useState<string | null>(null)
   const [tokenVisivel, setTokenVis] = useState(false)
   const [copiado, setCopiado]       = useState(false)
 
@@ -53,6 +71,23 @@ export default function PerfilPage() {
     if (prof) {
       setProfile(prof)
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
+
+      // Carrega grupo do usuário
+      const { data: grp } = await supabase
+        .from('grupos')
+        .select('id, nome, criado_por')
+        .eq('criado_por', user.id)
+        .single()
+
+      if (grp) {
+        setGrupo(grp)
+        const { data: mem } = await supabase
+          .from('grupo_membros')
+          .select('id, whatsapp, status, profiles(nome)')
+          .eq('grupo_id', grp.id)
+          .order('created_at')
+        setMembros((mem as GrupoMembro[]) || [])
+      }
     }
     if (wh) setWebhook(wh)
     setLoading(false)
@@ -127,6 +162,32 @@ export default function PerfilPage() {
     setTimeout(() => setCopiado(false), 2000)
   }
 
+  async function convidarMembro() {
+    if (!novoNumero.trim() || !grupo) return
+    setConvidan(true); setErro(''); setSucesso('')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const res  = await fetch('/api/grupo/convidar', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ userId: user.id, numero: novoNumero.trim(), grupo_id: grupo.id }),
+    })
+    const data = await res.json()
+    setConvidan(false)
+    if (!res.ok) { setErro(data.error || 'Erro ao convidar'); return }
+    setSucesso('Convite enviado via WhatsApp!')
+    setNovoNum('')
+    carregar()
+    setTimeout(() => setSucesso(''), 3000)
+  }
+
+  async function removerMembro(membroId: string) {
+    setRemovendo(membroId)
+    await supabase.from('grupo_membros').delete().eq('id', membroId)
+    setMembros(prev => prev.filter(m => m.id !== membroId))
+    setRemovendo(null)
+  }
+
   function copiarUrlWebhook() {
     const url = `${window.location.origin}/api/webhook/${profile?.id}`
     navigator.clipboard.writeText(url)
@@ -191,6 +252,7 @@ export default function PerfilPage() {
           {([
             { id: 'perfil',    label: 'Dados pessoais' },
             { id: 'webhook',   label: 'Webhook' },
+            { id: 'grupo',     label: 'Grupo' },
             { id: 'plano',     label: 'Plano' },
             { id: 'seguranca', label: 'Segurança' },
           ] as const).map(a => (
@@ -378,6 +440,84 @@ export default function PerfilPage() {
 }`}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ── GRUPO ── */}
+        {abaSel === 'grupo' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {!grupo ? (
+              <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.5rem', textAlign: 'center' }}>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
+                  Você ainda não tem um grupo configurado. Conclua o setup para criar seu grupo familiar.
+                </div>
+                <button onClick={() => router.push('/setup')} style={{ padding: '9px 18px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
+                  Ir para o Setup
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Info do grupo */}
+                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{grupo.nome}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
+                    {membros.length} membro{membros.length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+
+                {/* Convidar */}
+                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Convidar membro</div>
+                  {profile?.plano !== 'pro' ? (
+                    <div style={{ background: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#fbbf24' }}>
+                      ⭐ Convide membros com o plano Pro
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        value={novoNumero}
+                        onChange={e => setNovoNum(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && convidarMembro()}
+                        placeholder="5511999999999"
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <button onClick={convidarMembro} disabled={convidando || !novoNumero.trim()} style={{ padding: '9px 14px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: convidando ? 'default' : 'pointer', opacity: convidando ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                        {convidando ? 'Enviando...' : 'Convidar'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Lista de membros */}
+                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Membros</div>
+                  {membros.length === 0 ? (
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>Nenhum membro ainda. Convide alguém!</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {membros.map(m => (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#0a1a0a', borderRadius: 8, border: '1px solid #1a3a1a' }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 500 }}>{m.profiles?.nome || m.whatsapp}</div>
+                            {m.profiles?.nome && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>{m.whatsapp}</div>}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 500, background: m.status === 'ativo' ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.12)', color: m.status === 'ativo' ? '#4ade80' : '#fbbf24' }}>
+                              {m.status === 'ativo' ? 'ativo' : 'pendente'}
+                            </span>
+                            {profile?.plano === 'pro' && (
+                              <button onClick={() => removerMembro(m.id)} disabled={removendo === m.id} style={{ padding: '3px 8px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: removendo === m.id ? 'default' : 'pointer', opacity: removendo === m.id ? 0.5 : 1 }}>
+                                {removendo === m.id ? '...' : 'Remover'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
