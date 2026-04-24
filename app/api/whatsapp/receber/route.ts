@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  console.log('[whatsapp/receber] body recebido:', JSON.stringify(body, null, 2))
+  console.log('[whatsapp/receber] body completo:', JSON.stringify(body, null, 2))
+  console.log('[whatsapp/receber] remoteJid:', (body.data as Record<string, unknown> | undefined)?.key && ((body.data as Record<string, unknown>).key as Record<string, unknown>)?.remoteJid)
+  console.log('[whatsapp/receber] participant:', (body.data as Record<string, unknown> | undefined)?.key && ((body.data as Record<string, unknown>).key as Record<string, unknown>)?.participant)
+  console.log('[whatsapp/receber] pushName:', (body.data as Record<string, unknown> | undefined)?.pushName)
 
   const evento = body.event as string | undefined
   const data   = body.data as Record<string, unknown> | undefined
