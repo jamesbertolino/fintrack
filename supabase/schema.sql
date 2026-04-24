@@ -10,19 +10,21 @@ create extension if not exists "uuid-ossp";
 -- TABELA: profiles (complementa auth.users do Supabase)
 -- =========================================================
 create table public.profiles (
-  id            uuid references auth.users(id) on delete cascade primary key,
-  nome          text not null,
-  sobrenome     text,
-  whatsapp      text,
-  timezone      text not null default 'America/Sao_Paulo',
-  idioma        text not null default 'pt-BR',
-  renda_mensal  text,
-  banco_principal text,
-  objetivo      text,          -- 'sair_vermelho' | 'poupar' | 'sonho' | 'entender'
-  plano         text not null default 'free', -- 'free' | 'pro' | 'familia'
-  stripe_customer_id text,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
+  id                   uuid references auth.users(id) on delete cascade primary key,
+  nome                 text not null,
+  sobrenome            text,
+  whatsapp             text,
+  timezone             text not null default 'America/Sao_Paulo',
+  idioma               text not null default 'pt-BR',
+  evolution_instancia  text,
+  setup_completo       boolean not null default false,
+  renda_mensal         text,
+  banco_principal      text,
+  objetivo             text,          -- 'sair_vermelho' | 'poupar' | 'sonho' | 'entender'
+  plano                text not null default 'free', -- 'free' | 'pro' | 'familia'
+  stripe_customer_id   text,
+  created_at           timestamptz not null default now(),
+  updated_at           timestamptz not null default now()
 );
 
 -- RLS: usuário só acessa seu próprio perfil
@@ -59,6 +61,20 @@ $$;
 create trigger on_profile_created
   after insert on public.profiles
   for each row execute procedure public.criar_webhook_config();
+
+-- =========================================================
+-- TABELA: grupos (grupos de WhatsApp por usuário)
+-- =========================================================
+create table public.grupos (
+  id         uuid primary key default uuid_generate_v4(),
+  nome       text not null,
+  criado_por uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.grupos enable row level security;
+create policy "Grupos próprios" on public.grupos
+  using (auth.uid() = criado_por);
 
 -- =========================================================
 -- TABELA: transactions
