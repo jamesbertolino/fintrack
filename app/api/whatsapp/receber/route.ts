@@ -32,7 +32,9 @@ export async function POST(request: NextRequest) {
   const numero = (remoteJid ?? participant ?? '').replace('@s.whatsapp.net', '').replace('@g.us', '')
 
   const messageObj = data?.message as Record<string, unknown> | undefined
-  const mensagem   = (messageObj?.conversation ?? messageObj?.extendedTextMessage?.text ?? '') as string
+  const mensagem   = (messageObj?.conversation as string)
+    || ((messageObj?.extendedTextMessage as Record<string, unknown>)?.text as string)
+    || ''
 
   console.log('[whatsapp/receber] numero:', numero)
   console.log('[whatsapp/receber] mensagem:', mensagem)
