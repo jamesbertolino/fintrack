@@ -35,13 +35,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Convite já utilizado' }, { status: 409 })
   }
 
-  const grupos   = membro.grupos   as { nome: string } | null
-  const profiles = membro.profiles as { nome: string } | null
+  const gruposRaw   = membro.grupos   as { nome: string } | { nome: string }[] | null
+  const profilesRaw = membro.profiles as { nome: string } | { nome: string }[] | null
 
-  return NextResponse.json({
-    grupo_nome:     grupos?.nome   || '',
-    convidado_por:  profiles?.nome || '',
-  })
+  const grupo_nome    = (Array.isArray(gruposRaw)   ? gruposRaw[0]?.nome   : gruposRaw?.nome)   || ''
+  const convidado_por = (Array.isArray(profilesRaw) ? profilesRaw[0]?.nome : profilesRaw?.nome) || ''
+
+  return NextResponse.json({ grupo_nome, convidado_por })
 }
 
 // POST — aceita o convite

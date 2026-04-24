@@ -25,7 +25,7 @@ interface GrupoMembro {
   id: string
   whatsapp: string
   status: string
-  profiles: { nome: string } | null
+  profiles: { nome: string }[] | { nome: string } | null
 }
 
 interface Grupo {
@@ -498,8 +498,8 @@ export default function PerfilPage() {
                       {membros.map(m => (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#0a1a0a', borderRadius: 8, border: '1px solid #1a3a1a' }}>
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 500 }}>{m.profiles?.nome || m.whatsapp}</div>
-                            {m.profiles?.nome && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>{m.whatsapp}</div>}
+                            <div style={{ fontSize: 13, fontWeight: 500 }}>{(Array.isArray(m.profiles) ? m.profiles[0]?.nome : (m.profiles as { nome: string } | null)?.nome) || m.whatsapp}</div>
+                            {(Array.isArray(m.profiles) ? m.profiles[0]?.nome : (m.profiles as { nome: string } | null)?.nome) && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>{m.whatsapp}</div>}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 500, background: m.status === 'ativo' ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.12)', color: m.status === 'ativo' ? '#4ade80' : '#fbbf24' }}>
