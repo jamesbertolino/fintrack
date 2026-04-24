@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -65,29 +63,34 @@ export default function PerfilPage() {
 
     setEmail(user.email || '')
 
-    const [{ data: prof }, { data: wh }, { data: grupoData, error: grupoError }] = await Promise.all([
+    const [{ data: prof }, { data: wh }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('webhook_configs').select('token, ativo, plano').eq('user_id', user.id).single(),
-      supabase.from('grupos').select('id, nome, whatsapp_grupo_id, criado_por').eq('criado_por', user.id).single(),
     ])
-
-    console.log('[perfil] user.id:', user.id)
-    console.log('[perfil] grupoData:', JSON.stringify(grupoData))
-    console.log('[perfil] grupoError:', JSON.stringify(grupoError))
-
-    const grp = grupoData
 
     if (prof) {
       setProfile(prof)
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
     }
     if (wh) setWebhook(wh)
-    if (grp) {
-      setGrupo(grp)
+
+    const { data: grupoData, error: grupoError } = await supabase
+      .from('grupos')
+      .select('id, nome, whatsapp_grupo_id')
+      .eq('criado_por', user.id)
+      .maybeSingle()
+
+    console.log('[perfil-client] user.id:', user.id)
+    console.log('[perfil-client] grupoData:', grupoData)
+    console.log('[perfil-client] grupoError:', grupoError?.message)
+
+    setGrupo(grupoData)
+
+    if (grupoData) {
       const { data: mem } = await supabase
         .from('grupo_membros')
         .select('id, whatsapp, status, profiles(nome)')
-        .eq('grupo_id', grp.id)
+        .eq('grupo_id', grupoData.id)
         .order('created_at')
       setMembros((mem as GrupoMembro[]) || [])
     }
