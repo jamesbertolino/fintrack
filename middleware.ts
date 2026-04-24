@@ -37,7 +37,14 @@ export async function middleware(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (!profile?.setup_completo) {
+    const precisaSetup = !profile?.setup_completo
+
+    console.log('[middleware] user:', user?.id)
+    console.log('[middleware] profile:', JSON.stringify(profile))
+    console.log('[middleware] pathname:', pathname)
+    console.log('[middleware] precisaSetup:', precisaSetup)
+
+    if (precisaSetup) {
       const url = request.nextUrl.clone()
       url.pathname = '/setup'
       return NextResponse.redirect(url)
