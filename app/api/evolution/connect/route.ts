@@ -42,6 +42,10 @@ export async function POST(request: NextRequest) {
 
   const instancia = `granaup_${profile.whatsapp}`
 
+  console.log('[evolution/connect] instancia:', instancia)
+  console.log('[evolution/connect] EVOLUTION_URL:', process.env.EVOLUTION_URL)
+  console.log('[evolution/connect] API_KEY primeiros 8:', process.env.EVOLUTION_API_KEY?.slice(0, 8))
+
   // Verifica se instância já existe
   const fetchRes = await fetch(`${EVO_URL()}/instance/fetchInstances`, {
     headers: evoHeaders(),
@@ -110,23 +114,28 @@ export async function POST(request: NextRequest) {
   }
 
   // Cria instância na Evolution API
+  const payload = {
+    instanceName: instancia,
+    integration:  'WHATSAPP-BAILEYS',
+    qrcode:       true,
+    webhook: {
+      url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
+      byEvents: true,
+      events:   ['MESSAGES_UPSERT'],
+    },
+  }
+
+  console.log('[evolution/connect] payload:', JSON.stringify(payload))
+
   const evoRes = await fetch(`${EVO_URL()}/instance/create`, {
     method:  'POST',
     headers: evoHeaders(),
-    body: JSON.stringify({
-      instanceName: instancia,
-      integration:  'WHATSAPP-BAILEYS',
-      qrcode:       true,
-      webhook: {
-        url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
-        byEvents: true,
-        events:   ['MESSAGES_UPSERT'],
-      },
-    }),
+    body: JSON.stringify(payload),
   })
 
   const evoText = await evoRes.text()
-  console.log('[evolution/connect] create status:', evoRes.status, 'body:', evoText)
+  console.log('[evolution/connect] evo status:', evoRes.status)
+  console.log('[evolution/connect] evo body:', evoText)
 
   if (!evoText || !evoRes.ok) {
     return NextResponse.json(
@@ -157,6 +166,19 @@ export async function POST(request: NextRequest) {
   }
 
   const qrcode = (evoData.qrcode as Record<string, unknown>)?.base64 ?? evoData.base64 ?? null
+
+  // Configura webhook da instância recém-criada
+  const webhookRes = await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
+    method:  'POST',
+    headers: evoHeaders(),
+    body: JSON.stringify({
+      url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
+      byEvents: true,
+      base64:   false,
+      events:   ['MESSAGES_UPSERT'],
+    }),
+  })
+  console.log('[evolution/connect] webhook/set status:', webhookRes.status, 'body:', await webhookRes.text())
 
   // Salva instância no perfil
   await supabase
