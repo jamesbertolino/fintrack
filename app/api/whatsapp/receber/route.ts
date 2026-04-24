@@ -57,25 +57,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'mensagem privada' })
   }
 
-  console.log('[debug] key completo:', JSON.stringify(key))
-  console.log('[debug] participante raw:', key?.participant)
-
-  // Extrai participante tentando múltiplos campos
-  const participantRaw = (
-    (key?.participant as string) ||
-    (data?.participant as string) ||
-    (key?.remoteJid as string) ||
-    ''
-  )
-
-  console.log('[debug] participantRaw:', participantRaw)
-
-  const participante = participantRaw
+  // O sender contém o número real do remetente
+  const participante = ((body?.sender as string) || '')
     .replace('@s.whatsapp.net', '')
     .replace('@lid', '')
-    .replace('@g.us', '')
 
-  console.log('[debug] participante limpo:', participante)
+  console.log('[debug] participante via sender:', participante)
 
   // Extrai texto
   const messageObj = data?.message as Record<string, unknown> | undefined
