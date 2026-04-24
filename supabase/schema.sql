@@ -66,10 +66,11 @@ create trigger on_profile_created
 -- TABELA: grupos (grupos de WhatsApp por usuário)
 -- =========================================================
 create table public.grupos (
-  id         uuid primary key default uuid_generate_v4(),
-  nome       text not null,
-  criado_por uuid references public.profiles(id) on delete cascade not null,
-  created_at timestamptz not null default now()
+  id                 uuid primary key default uuid_generate_v4(),
+  nome               text not null,
+  criado_por         uuid references public.profiles(id) on delete cascade not null,
+  whatsapp_grupo_id  text,
+  created_at         timestamptz not null default now()
 );
 
 alter table public.grupos enable row level security;

@@ -8,19 +8,32 @@ import GranaUpLogo from '@/components/GranaUpLogo'
 type Passo  = 1 | 2
 type Status = 'aguardando' | 'conectado'
 
+function formatarWhatsapp(num: string): string {
+  const digits = num.replace(/\D/g, '')
+  if (digits.startsWith('55') && digits.length >= 12) {
+    const dd   = digits.slice(2, 4)
+    const rest = digits.slice(4)
+    if (rest.length === 9) return `+55 (${dd}) ${rest.slice(0, 5)}-${rest.slice(5)}`
+    if (rest.length === 8) return `+55 (${dd}) ${rest.slice(0, 4)}-${rest.slice(4)}`
+    return `+55 (${dd}) ${rest}`
+  }
+  return `+${digits}`
+}
+
 export default function SetupPage() {
   const router   = useRouter()
   const supabase = createClient()
 
-  const [passo, setPasso]         = useState<Passo>(1)
-  const [userId, setUserId]       = useState('')
-  const [nomeGrupo, setNomeGrupo] = useState('')
-  const [instancia, setInstancia] = useState('')
-  const [qrcode, setQrcode]       = useState('')
-  const [status, setStatus]       = useState<Status>('aguardando')
+  const [passo, setPasso]           = useState<Passo>(1)
+  const [userId, setUserId]         = useState('')
+  const [whatsapp, setWhatsapp]     = useState('')
+  const [nomeGrupo, setNomeGrupo]   = useState('')
+  const [instancia, setInstancia]   = useState('')
+  const [qrcode, setQrcode]         = useState('')
+  const [status, setStatus]         = useState<Status>('aguardando')
   const [carregando, setCarregando] = useState(false)
   const [gerandoQR, setGerandoQR]   = useState(false)
-  const [erro, setErro]           = useState('')
+  const [erro, setErro]             = useState('')
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -32,15 +45,14 @@ export default function SetupPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('nome, setup_completo')
+        .select('nome, whatsapp, setup_completo')
         .eq('id', user.id)
         .single()
 
       if (profile?.setup_completo) { router.push('/dashboard'); return }
 
-      if (profile?.nome) {
-        setNomeGrupo(`Família ${profile.nome}`)
-      }
+      if (profile?.whatsapp) setWhatsapp(profile.whatsapp)
+      if (profile?.nome)     setNomeGrupo(`Família ${profile.nome}`)
     }
 
     init()
@@ -49,11 +61,11 @@ export default function SetupPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function iniciarPolling(inst: string) {
+  function iniciarPolling(inst: string, grupo: string) {
     if (pollingRef.current) clearInterval(pollingRef.current)
     pollingRef.current = setInterval(async () => {
       try {
-        const res  = await fetch(`/api/evolution/status/${inst}`)
+        const res  = await fetch(`/api/evolution/status/${inst}?grupo=${encodeURIComponent(grupo)}`)
         const data = await res.json()
         if (data.state === 'open') {
           clearInterval(pollingRef.current!)
@@ -74,15 +86,21 @@ export default function SetupPage() {
       const res  = await fetch('/api/evolution/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nomeGrupo: nomeGrupo.trim(), userId }),
+        body: JSON.stringify({ userId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao criar instância')
 
+      if (data.jaConectada) {
+        setStatus('conectado')
+        setTimeout(() => router.push('/dashboard'), 2000)
+        return
+      }
+
       setInstancia(data.instancia)
       setQrcode(data.qrcode || '')
       setPasso(2)
-      iniciarPolling(data.instancia)
+      iniciarPolling(data.instancia, nomeGrupo.trim())
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro desconhecido')
     } finally {
@@ -98,14 +116,20 @@ export default function SetupPage() {
       const res  = await fetch('/api/evolution/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nomeGrupo: nomeGrupo.trim(), userId }),
+        body: JSON.stringify({ userId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Erro ao gerar QR')
 
+      if (data.jaConectada) {
+        setStatus('conectado')
+        setTimeout(() => router.push('/dashboard'), 2000)
+        return
+      }
+
       setInstancia(data.instancia)
       setQrcode(data.qrcode || '')
-      iniciarPolling(data.instancia)
+      iniciarPolling(data.instancia, nomeGrupo.trim())
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro desconhecido')
     } finally {
@@ -123,6 +147,21 @@ export default function SetupPage() {
     color: '#fff', fontSize: 14, fontWeight: 600,
     cursor: active ? 'pointer' : 'default', opacity: active ? 1 : 0.55,
   })
+
+  // Tela de sucesso antecipada (jaConectada)
+  if (status === 'conectado' && passo === 1) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
+        <div style={card}>
+          <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+            <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80', marginBottom: 8 }}>WhatsApp conectado!</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Redirecionando para o dashboard...</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#fff', padding: '1.5rem' }}>
@@ -160,6 +199,18 @@ export default function SetupPage() {
               Esse será o nome do grupo do WhatsApp para receber seus alertas financeiros.
             </div>
 
+            {/* Número detectado */}
+            {whatsapp ? (
+              <div style={{ background: 'rgba(22,163,74,.08)', border: '1px solid rgba(22,163,74,.2)', borderRadius: 10, padding: '10px 14px', marginBottom: '1.25rem', fontSize: 13, color: 'rgba(255,255,255,.7)' }}>
+                Você vai conectar o WhatsApp: <strong style={{ color: '#4ade80' }}>{formatarWhatsapp(whatsapp)}</strong>
+              </div>
+            ) : (
+              <div style={{ background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 10, padding: '10px 14px', marginBottom: '1.25rem', fontSize: 13, color: 'rgba(255,255,255,.6)' }}>
+                Nenhum número cadastrado.{' '}
+                <a href="/dashboard/perfil" style={{ color: '#f87171', fontWeight: 600, textDecoration: 'none' }}>Cadastrar número →</a>
+              </div>
+            )}
+
             <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
               Nome do grupo
             </label>
@@ -176,7 +227,7 @@ export default function SetupPage() {
               </div>
             )}
 
-            <button onClick={avancarPasso2} disabled={carregando || !nomeGrupo.trim()} style={btn(!carregando && !!nomeGrupo.trim())}>
+            <button onClick={avancarPasso2} disabled={carregando || !nomeGrupo.trim() || !whatsapp} style={btn(!carregando && !!nomeGrupo.trim() && !!whatsapp)}>
               {carregando ? 'Criando instância...' : 'Continuar →'}
             </button>
           </div>
