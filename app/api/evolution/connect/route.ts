@@ -17,6 +17,25 @@ const EVO_URL    = () => process.env.EVOLUTION_URL!
 const EVO_KEY    = () => process.env.EVOLUTION_API_KEY!
 const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KEY() })
 
+async function configurarWebhook(instancia: string) {
+  const body = {
+    webhook: {
+      url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
+      enabled:  true,
+      byEvents: false,
+      base64:   false,
+      events:   ['MESSAGES_UPSERT'],
+    },
+  }
+  console.log('[evolution/connect] webhook/set payload:', JSON.stringify(body))
+  const res = await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
+    method:  'POST',
+    headers: evoHeaders(),
+    body:    JSON.stringify(body),
+  })
+  console.log('[evolution/connect] webhook/set status:', res.status, 'body:', await res.text())
+}
+
 export async function POST(request: NextRequest) {
   const { userId } = await request.json()
 
@@ -83,14 +102,15 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ instancia, jaConectada: true })
         }
 
-        // Instância existe mas não está conectada — salva e retorna sem criar
+        // Instância existe mas não está conectada — reconfigura webhook e retorna QR
         await supabase
           .from('profiles')
           .update({ evolution_instancia: instancia })
           .eq('id', userId)
 
-        // Tenta buscar o QR Code atual da instância existente
-        const qrRes = await fetch(`${EVO_URL()}/instance/connect/${instancia}`, {
+        await configurarWebhook(instancia)
+
+        const qrRes  = await fetch(`${EVO_URL()}/instance/connect/${instancia}`, {
           headers: evoHeaders(),
         })
         const qrText = await qrRes.text()
@@ -118,11 +138,6 @@ export async function POST(request: NextRequest) {
     instanceName: instancia,
     integration:  'WHATSAPP-BAILEYS',
     qrcode:       true,
-    webhook: {
-      url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
-      byEvents: true,
-      events:   ['MESSAGES_UPSERT'],
-    },
   }
 
   console.log('[evolution/connect] payload:', JSON.stringify(payload))
@@ -130,7 +145,7 @@ export async function POST(request: NextRequest) {
   const evoRes = await fetch(`${EVO_URL()}/instance/create`, {
     method:  'POST',
     headers: evoHeaders(),
-    body: JSON.stringify(payload),
+    body:    JSON.stringify(payload),
   })
 
   const evoText = await evoRes.text()
@@ -168,17 +183,7 @@ export async function POST(request: NextRequest) {
   const qrcode = (evoData.qrcode as Record<string, unknown>)?.base64 ?? evoData.base64 ?? null
 
   // Configura webhook da instância recém-criada
-  const webhookRes = await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
-    method:  'POST',
-    headers: evoHeaders(),
-    body: JSON.stringify({
-      url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
-      byEvents: false,
-      base64:   false,
-      events:   ['MESSAGES_UPSERT'],
-    }),
-  })
-  console.log('[evolution/connect] webhook/set status:', webhookRes.status, 'body:', await webhookRes.text())
+  await configurarWebhook(instancia)
 
   // Salva instância no perfil
   await supabase
