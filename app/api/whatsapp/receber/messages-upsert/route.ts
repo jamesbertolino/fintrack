@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
   const evento  = body.event as string | undefined
   const data    = body.data as Record<string, unknown> | undefined
   const key     = data?.key as Record<string, unknown> | undefined
-  const fromMe  = key?.fromMe as boolean | undefined
 
   // Ignora eventos que não são mensagens recebidas
   if (evento !== 'messages.upsert') {
@@ -22,14 +21,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  if (fromMe) {
-    console.log('[whatsapp/receber] mensagem própria ignorada')
+  const remoteJid   = key?.remoteJid as string | undefined
+  const participant = data?.participant as string | undefined
+
+  // Ignora grupos e status broadcast
+  if (remoteJid?.endsWith('@g.us') || remoteJid?.endsWith('@broadcast')) {
+    console.log('[whatsapp/receber] grupo/broadcast ignorado:', remoteJid)
     return NextResponse.json({ ok: true })
   }
 
-  const remoteJid   = key?.remoteJid as string | undefined
-  const participant = data?.participant as string | undefined
-  const numero = (remoteJid ?? participant ?? '').replace('@s.whatsapp.net', '').replace('@g.us', '')
+  const numero = (remoteJid ?? participant ?? '').replace('@s.whatsapp.net', '')
 
   const messageObj = data?.message as Record<string, unknown> | undefined
   const mensagem   = (messageObj?.conversation as string)
