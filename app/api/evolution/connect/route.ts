@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     headers: evoHeaders(),
     body: JSON.stringify({
       url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
-      byEvents: true,
+      byEvents: false,
       base64:   false,
       events:   ['MESSAGES_UPSERT'],
     }),
