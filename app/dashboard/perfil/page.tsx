@@ -63,11 +63,17 @@ export default function PerfilPage() {
 
     setEmail(user.email || '')
 
-    const [{ data: prof }, { data: wh }, { data: grp }] = await Promise.all([
+    const [{ data: prof }, { data: wh }, { data: grupoData, error: grupoError }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('webhook_configs').select('token, ativo, plano').eq('user_id', user.id).single(),
       supabase.from('grupos').select('id, nome, whatsapp_grupo_id, criado_por').eq('criado_por', user.id).single(),
     ])
+
+    console.log('[perfil] user.id:', user.id)
+    console.log('[perfil] grupoData:', JSON.stringify(grupoData))
+    console.log('[perfil] grupoError:', JSON.stringify(grupoError))
+
+    const grp = grupoData
 
     if (prof) {
       setProfile(prof)
