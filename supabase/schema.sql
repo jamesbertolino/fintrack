@@ -89,6 +89,7 @@ create table public.transactions (
   categoria           text not null default 'Outros',
   data_hora           timestamptz not null,
   origem              text not null default 'webhook', -- 'webhook' | 'manual'
+  grupo_id            uuid references public.grupos(id) on delete set null,
   referencia_externa  text,   -- ID do banco de origem (para deduplicação)
   created_at          timestamptz not null default now()
 );

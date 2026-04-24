@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  const { numero, mensagem } = await request.json()
+  const { numero, mensagem, grupo_id } = await request.json()
   if (!numero || !mensagem) {
     return NextResponse.json({ error: 'numero e mensagem são obrigatórios' }, { status: 400 })
   }
@@ -106,13 +106,14 @@ Regras:
   const { data: transacao, error } = await supabase
     .from('transactions')
     .insert({
-      user_id: profile.id,
+      user_id:   profile.id,
       descricao: parsed.descricao,
-      valor: parsed.tipo === 'debito' ? -Math.abs(parsed.valor) : Math.abs(parsed.valor),
-      tipo: parsed.tipo,
+      valor:     parsed.tipo === 'debito' ? -Math.abs(parsed.valor) : Math.abs(parsed.valor),
+      tipo:      parsed.tipo,
       categoria: parsed.categoria,
       data_hora: new Date().toISOString(),
-      origem: 'whatsapp',
+      origem:    'whatsapp',
+      grupo_id:  grupo_id || null,
     })
     .select('id')
     .single()
