@@ -67,8 +67,11 @@ export async function POST(request: NextRequest) {
     || ((messageObj?.extendedTextMessage as Record<string, unknown>)?.text as string)
     || ''
 
+  console.log('[debug] body.data.key:', JSON.stringify(key))
+  console.log('[debug] body.data.participant:', data?.participant)
+  console.log('[debug] body.data.pushName:', data?.pushName)
+  console.log('[debug] participante extraido:', participante)
   console.log('[whatsapp/receber] grupoJid:', grupoJid)
-  console.log('[whatsapp/receber] participante:', participante)
   console.log('[whatsapp/receber] mensagem:', mensagem)
 
   if (!mensagem) {
