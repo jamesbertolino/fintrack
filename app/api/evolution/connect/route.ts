@@ -21,35 +21,40 @@ export async function POST(request: NextRequest) {
   }
 
   const instancia = `granaup_${userId.slice(0, 8)}`
-  const evoUrl    = process.env.EVOLUTION_URL!
-  const apiKey    = process.env.EVOLUTION_API_KEY!
-  const appUrl    = process.env.NEXT_PUBLIC_APP_URL!
 
-  const evoRes = await fetch(`${evoUrl}/instance/create`, {
+  const evoRes = await fetch(`${process.env.EVOLUTION_URL}/instance/create`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': apiKey,
+      'apikey': process.env.EVOLUTION_API_KEY!,
     },
     body: JSON.stringify({
       instanceName: instancia,
       integration:  'WHATSAPP-BAILEYS',
       qrcode:       true,
       webhook: {
-        url:      `${appUrl}/api/whatsapp/parse`,
+        url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
         byEvents: true,
         events:   ['MESSAGES_UPSERT'],
       },
     }),
   })
 
-  if (!evoRes.ok) {
-    const txt = await evoRes.text()
-    return NextResponse.json({ error: `Erro Evolution API: ${txt}` }, { status: 502 })
+  const evoText = await evoRes.text()
+  console.log('[evolution/connect] status:', evoRes.status, 'body:', evoText)
+
+  if (!evoText || !evoRes.ok) {
+    return NextResponse.json({ error: `Evolution API erro ${evoRes.status}: ${evoText}` }, { status: 500 })
   }
 
-  const evoData = await evoRes.json()
-  const qrcode  = evoData.qrcode?.base64 ?? evoData.base64 ?? null
+  let evoData: Record<string, unknown>
+  try {
+    evoData = JSON.parse(evoText)
+  } catch {
+    return NextResponse.json({ error: `Resposta inválida da Evolution: ${evoText.slice(0, 200)}` }, { status: 500 })
+  }
+
+  const qrcode = (evoData.qrcode as Record<string, unknown>)?.base64 ?? evoData.base64 ?? null
 
   const supabase = getSupabase()
 
