@@ -8,8 +8,8 @@ function getSupabase() {
   )
 }
 
-const EVO_URL  = () => process.env.EVOLUTION_URL!
-const EVO_KEY  = () => process.env.EVOLUTION_API_KEY!
+const EVO_URL    = () => process.env.EVOLUTION_URL!
+const EVO_KEY    = () => process.env.EVOLUTION_API_KEY!
 const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KEY() })
 
 export async function GET(
@@ -30,13 +30,15 @@ export async function GET(
   const data  = await res.json()
   const state: string = data.instance?.state ?? data.state ?? 'close'
 
+  console.log('[evolution/status] instancia:', instancia, 'state:', state)
+
   if (state === 'open') {
     const supabase = getSupabase()
 
-    // Busca o user_id vinculado a esta instância
+    // Busca o user vinculado a esta instância
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, whatsapp')
       .eq('evolution_instancia', instancia)
       .single()
 
@@ -46,28 +48,49 @@ export async function GET(
       .update({ setup_completo: true })
       .eq('evolution_instancia', instancia)
 
-    // Cria o grupo WhatsApp via Evolution
+    // Cria o grupo WhatsApp via Evolution (apenas se ainda não foi criado)
     if (nomeGrupo && profile?.id) {
       try {
+        const participants = profile.whatsapp ? [profile.whatsapp] : []
+
+        console.log('[evolution/status] criando grupo:', nomeGrupo, 'participants:', participants)
+
         const grupoRes = await fetch(`${EVO_URL()}/group/create/${instancia}`, {
           method:  'POST',
           headers: evoHeaders(),
-          body: JSON.stringify({ subject: nomeGrupo, participants: [] }),
+          body:    JSON.stringify({ subject: nomeGrupo, participants }),
         })
 
+        const grupoText = await grupoRes.text()
+        console.log('[evolution/status] group/create status:', grupoRes.status, 'body:', grupoText)
+
         if (grupoRes.ok) {
-          const grupoData = await grupoRes.json()
-          const groupJid: string = grupoData.id ?? grupoData.groupJid ?? grupoData.jid ?? ''
+          const grupoData = JSON.parse(grupoText) as Record<string, unknown>
+          const groupJid: string = (grupoData.id ?? grupoData.groupJid ?? grupoData.jid ?? '') as string
+
+          console.log('[evolution/status] groupJid:', groupJid)
 
           if (groupJid) {
-            await supabase.from('grupos').insert({
-              nome:              nomeGrupo,
-              criado_por:        profile.id,
-              whatsapp_grupo_id: groupJid,
-            })
+            const { data: novoGrupo } = await supabase
+              .from('grupos')
+              .insert({
+                nome:                nomeGrupo,
+                criado_por:          profile.id,
+                evolution_instancia: instancia,
+                whatsapp_grupo_id:   groupJid,
+              })
+              .select('id')
+              .single()
+
+            if (novoGrupo?.id) {
+              await supabase
+                .from('profiles')
+                .update({ grupo_id_principal: novoGrupo.id })
+                .eq('id', profile.id)
+
+              console.log('[evolution/status] grupo salvo:', novoGrupo.id)
+            }
           }
-        } else {
-          console.log('[evolution/status] group/create falhou:', grupoRes.status, await grupoRes.text())
         }
       } catch (err) {
         console.log('[evolution/status] erro ao criar grupo:', err)
