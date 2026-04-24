@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import GranaUpLogo from '@/components/GranaUpLogo'
@@ -252,10 +253,12 @@ export default function SetupPage() {
                 {/* QR Code */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', borderRadius: 12, padding: 16, marginBottom: '1.25rem', minHeight: 220 }}>
                   {qrcode ? (
-                    <img
+                    <Image
                       src={qrcode.startsWith('data:') ? qrcode : `data:image/png;base64,${qrcode}`}
                       alt="QR Code WhatsApp"
-                      style={{ width: 200, height: 200, display: 'block' }}
+                      width={200}
+                      height={200}
+                      unoptimized
                     />
                   ) : (
                     <div style={{ color: '#999', fontSize: 13 }}>Carregando QR Code...</div>

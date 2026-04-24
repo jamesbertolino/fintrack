@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import GranaUpLogo from '@/components/GranaUpLogo'
@@ -20,34 +20,7 @@ export default function ConvitePage() {
   const [aceitando, setAceitando] = useState(false)
   const [erroMsg, setErroMsg]     = useState('')
 
-  useEffect(() => {
-    async function init() {
-      // Busca info pública do convite
-      const res = await fetch(`/api/grupo/aceitar?token=${token}`)
-      if (!res.ok) {
-        const d = await res.json()
-        setErroMsg(d.error || 'Convite inválido')
-        setEstado('invalido')
-        return
-      }
-      const d = await res.json()
-      setGrupoNome(d.grupo_nome)
-      setConvid(d.convidado_por)
-      setEstado('valido')
-
-      // Verifica se usuário está logado
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setLogado(true)
-        // Aceita automaticamente
-        await aceitar(user.id)
-      }
-    }
-    init()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token])
-
-  async function aceitar(userId: string) {
+  const aceitar = useCallback(async (userId: string) => {
     setAceitando(true)
     try {
       const res = await fetch('/api/grupo/aceitar', {
@@ -69,7 +42,32 @@ export default function ConvitePage() {
     } finally {
       setAceitando(false)
     }
-  }
+  }, [token, router])
+
+  useEffect(() => {
+    async function init() {
+      // Busca info pública do convite
+      const res = await fetch(`/api/grupo/aceitar?token=${token}`)
+      if (!res.ok) {
+        const d = await res.json()
+        setErroMsg(d.error || 'Convite inválido')
+        setEstado('invalido')
+        return
+      }
+      const d = await res.json()
+      setGrupoNome(d.grupo_nome)
+      setConvid(d.convidado_por)
+      setEstado('valido')
+
+      // Verifica se usuário está logado
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setLogado(true)
+        await aceitar(user.id)
+      }
+    }
+    init()
+  }, [token, aceitar, supabase.auth])
 
   const card: React.CSSProperties = {
     width: '100%', maxWidth: 420,
