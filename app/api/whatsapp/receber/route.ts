@@ -57,9 +57,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'mensagem privada' })
   }
 
-  // Extrai participante (quem enviou dentro do grupo)
-  const participante = ((key?.participant as string) || (data?.participant as string) || '')
+  console.log('[debug] key completo:', JSON.stringify(key))
+  console.log('[debug] participante raw:', key?.participant)
+
+  // Extrai participante tentando múltiplos campos
+  const participantRaw = (
+    (key?.participant as string) ||
+    (data?.participant as string) ||
+    (key?.remoteJid as string) ||
+    ''
+  )
+
+  console.log('[debug] participantRaw:', participantRaw)
+
+  const participante = participantRaw
     .replace('@s.whatsapp.net', '')
+    .replace('@lid', '')
+    .replace('@g.us', '')
+
+  console.log('[debug] participante limpo:', participante)
 
   // Extrai texto
   const messageObj = data?.message as Record<string, unknown> | undefined
@@ -67,10 +83,6 @@ export async function POST(request: NextRequest) {
     || ((messageObj?.extendedTextMessage as Record<string, unknown>)?.text as string)
     || ''
 
-  console.log('[debug] body.data.key:', JSON.stringify(key))
-  console.log('[debug] body.data.participant:', data?.participant)
-  console.log('[debug] body.data.pushName:', data?.pushName)
-  console.log('[debug] participante extraido:', participante)
   console.log('[whatsapp/receber] grupoJid:', grupoJid)
   console.log('[whatsapp/receber] mensagem:', mensagem)
 
@@ -102,12 +114,14 @@ export async function POST(request: NextRequest) {
 
   const instancia = dono?.evolution_instancia || ''
 
-  // Busca perfil do participante
+  // Busca perfil do participante (tenta match exato ou sufixo dos últimos 8 dígitos)
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, nome, whatsapp')
-    .eq('whatsapp', participante)
+    .or(`whatsapp.eq.${participante},whatsapp.ilike.%${participante.slice(-8)}%`)
     .single()
+
+  console.log('[debug] profile encontrado:', profile?.nome, profile?.whatsapp)
 
   if (!profile) {
     console.log('[whatsapp/receber] participante não cadastrado no GranaUp:', participante)
