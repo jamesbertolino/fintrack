@@ -247,7 +247,7 @@ export default function PerfilPage() {
         .eq('id', grupo.id)
 
       await supabase.from('profiles')
-        .update({ grupo_id_principal: null, evolution_instancia: null })
+        .update({ grupo_id_principal: null, setup_completo: false, evolution_instancia: null })
         .eq('id', user.id)
 
     } else {
