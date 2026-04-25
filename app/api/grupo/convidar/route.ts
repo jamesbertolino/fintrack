@@ -72,13 +72,13 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Gera token único para este convite
-  const token = crypto.randomUUID()
+  // Gera token único para este convite (sem hífens para URLs mais limpas)
+  const token = crypto.randomUUID().replace(/-/g, '')
 
   if (membroExistente) {
     // status = 'removido' → reativa com novo token
     await supabase.from('grupo_membros')
-      .update({ status: 'pendente', token_convite: token })
+      .update({ status: 'pendente', token_convite: token, convidado_por: userId })
       .eq('id', membroExistente.id)
   } else {
     const { error: insertError } = await supabase

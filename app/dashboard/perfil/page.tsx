@@ -287,6 +287,8 @@ export default function PerfilPage() {
       .eq('id', user.id)
       .single()
 
+    console.log('[remover] chamando evolution com:', { instancia: prof?.evolution_instancia, grupoJid: grupo.whatsapp_grupo_id, numero: whatsapp })
+
     if (prof?.evolution_instancia && grupo.whatsapp_grupo_id) {
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/evolution/grupo/remover-membro`, {
         method: 'POST',
