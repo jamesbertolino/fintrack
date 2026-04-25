@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-  // O grupo WhatsApp continua existindo — apenas desativamos no banco.
-  // Não fazemos leaveGroup para não remover o bot do grupo desnecessariamente.
-  void request.json()
-  return NextResponse.json({ ok: true })
+  const { instancia, grupoJid } = await request.json()
+
+  const res = await fetch(
+    `${process.env.EVOLUTION_URL}/group/leaveGroup/${instancia}?groupJid=${grupoJid}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'apikey': process.env.EVOLUTION_API_KEY!,
+      },
+    }
+  )
+
+  const text = await res.text()
+  console.log('[encerrar-grupo] status:', res.status, 'body:', text)
+  return NextResponse.json({ ok: res.ok || res.status === 400 })
 }

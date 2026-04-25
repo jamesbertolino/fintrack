@@ -85,6 +85,7 @@ export default function PerfilPage() {
       .from('grupos')
       .select('id, nome, whatsapp_grupo_id, criado_por')
       .eq('criado_por', user.id)
+      .eq('ativo', true)
       .maybeSingle()
 
     let grupoFinal: Grupo | null = grupoData
@@ -225,6 +226,18 @@ export default function PerfilPage() {
         }
       }
 
+      // Bot sai do grupo WhatsApp
+      if (prof?.evolution_instancia && grupo.whatsapp_grupo_id) {
+        await fetch('/api/evolution/grupo/encerrar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instancia: prof.evolution_instancia,
+            grupoJid: grupo.whatsapp_grupo_id,
+          }),
+        })
+      }
+
       await supabase.from('grupo_membros')
         .update({ status: 'removido' })
         .eq('grupo_id', grupo.id)
@@ -234,7 +247,7 @@ export default function PerfilPage() {
         .eq('id', grupo.id)
 
       await supabase.from('profiles')
-        .update({ grupo_id_principal: null })
+        .update({ grupo_id_principal: null, evolution_instancia: null })
         .eq('id', user.id)
 
     } else {
@@ -594,10 +607,10 @@ export default function PerfilPage() {
             {!grupo ? (
               <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.5rem', textAlign: 'center' }}>
                 <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
-                  Você ainda não tem um grupo configurado. Conclua o setup para criar seu grupo familiar.
+                  Você ainda não tem um grupo configurado.
                 </div>
                 <button onClick={() => router.push('/setup')} style={{ padding: '9px 18px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
-                  Ir para o Setup
+                  Criar novo grupo
                 </button>
               </div>
             ) : (
