@@ -85,13 +85,31 @@ export default function PerfilPage() {
     console.log('[perfil-client] grupoData:', grupoData)
     console.log('[perfil-client] grupoError:', grupoError?.message)
 
-    setGrupo(grupoData)
+    let grupoFinal: Grupo | null = grupoData
 
-    if (grupoData) {
+    // Se não é admin, tenta buscar como membro ativo
+    if (!grupoData) {
+      const { data: membroData } = await supabase
+        .from('grupo_membros')
+        .select('grupo_id, grupos(id, nome, whatsapp_grupo_id, criado_por)')
+        .eq('user_id', user.id)
+        .eq('status', 'ativo')
+        .maybeSingle()
+
+      if (membroData?.grupos) {
+        grupoFinal = Array.isArray(membroData.grupos)
+          ? (membroData.grupos[0] as Grupo)
+          : (membroData.grupos as Grupo)
+      }
+    }
+
+    setGrupo(grupoFinal)
+
+    if (grupoFinal) {
       const { data: mem } = await supabase
         .from('grupo_membros')
         .select('id, whatsapp, status, profiles(nome)')
-        .eq('grupo_id', grupoData.id)
+        .eq('grupo_id', grupoFinal.id)
         .order('created_at')
       setMembros((mem as GrupoMembro[]) || [])
     }
@@ -165,6 +183,30 @@ export default function PerfilPage() {
     navigator.clipboard.writeText(webhook.token)
     setCopiado(true)
     setTimeout(() => setCopiado(false), 2000)
+  }
+
+  async function sairDoGrupo() {
+    const isAdmin = grupo?.criado_por === profile?.id
+    if (!confirm(isAdmin ? 'Encerrar o grupo para todos?' : 'Sair do grupo?')) return
+    setSalvando(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !grupo) { setSalvando(false); return }
+
+    if (isAdmin) {
+      await supabase.from('grupos').update({ ativo: false } as Record<string, unknown>).eq('id', grupo.id)
+      await supabase.from('profiles').update({ grupo_id_principal: null } as Record<string, unknown>).eq('id', user.id)
+    } else {
+      await supabase.from('grupo_membros')
+        .update({ status: 'removido' })
+        .eq('grupo_id', grupo.id)
+        .eq('user_id', user.id)
+    }
+
+    setGrupo(null)
+    setMembros([])
+    setSucesso(isAdmin ? 'Grupo encerrado.' : 'Você saiu do grupo.')
+    setSalvando(false)
+    setTimeout(() => setSucesso(''), 3000)
   }
 
   async function convidarMembro() {
@@ -523,6 +565,26 @@ export default function PerfilPage() {
                 </div>
               </>
             )}
+
+            {/* Sair / Encerrar grupo */}
+            {grupo && (() => {
+              const isAdmin = grupo.criado_por === profile?.id
+              return (
+                <div style={{ marginTop: 4, padding: '1rem', background: 'rgba(239,68,68,.04)', border: '1px solid rgba(239,68,68,.15)', borderRadius: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#f87171', marginBottom: 6 }}>
+                    {isAdmin ? 'Encerrar grupo' : 'Sair do grupo'}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
+                    {isAdmin
+                      ? 'Remove todos os membros e encerra o grupo GranaUp.'
+                      : 'Você será removido do grupo e perderá acesso às metas compartilhadas.'}
+                  </div>
+                  <button onClick={sairDoGrupo} disabled={salvando} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, color: '#f87171', fontSize: 12, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
+                    {isAdmin ? 'Encerrar grupo' : 'Sair do grupo'}
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         )}
 
