@@ -81,20 +81,23 @@ export default function PerfilPage() {
       .eq('criado_por', user.id)
       .maybeSingle()
 
-    console.log('[perfil-client] user.id:', user.id)
-    console.log('[perfil-client] grupoData:', grupoData)
-    console.log('[perfil-client] grupoError:', grupoError?.message)
+    console.log('[perfil] user.id:', user.id)
+    console.log('[perfil] grupoData:', JSON.stringify(grupoData))
+    console.log('[perfil] grupoError:', JSON.stringify(grupoError))
 
     let grupoFinal: Grupo | null = grupoData
 
     // Se não é admin, tenta buscar como membro ativo
     if (!grupoData) {
-      const { data: membroData } = await supabase
+      const { data: membroData, error: membroError } = await supabase
         .from('grupo_membros')
         .select('grupo_id, grupos(id, nome, whatsapp_grupo_id, criado_por)')
         .eq('user_id', user.id)
         .eq('status', 'ativo')
         .maybeSingle()
+
+      console.log('[perfil] membroData:', JSON.stringify(membroData))
+      console.log('[perfil] membroError:', JSON.stringify(membroError))
 
       if (membroData?.grupos) {
         grupoFinal = Array.isArray(membroData.grupos)
