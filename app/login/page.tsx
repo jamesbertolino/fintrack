@@ -78,10 +78,10 @@ export default function LoginPage() {
     setSucesso(true)
   }
 
-  async function handleGoogle() {
+  async function loginGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
   }
 
@@ -186,6 +186,26 @@ export default function LoginPage() {
             <form onSubmit={handleLogin}>
               <div style={{ fontSize: 17, fontWeight: 500, color: '#fff', marginBottom: 3 }}>Bem-vindo de volta</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>Continue subindo de nível</div>
+              <button type="button" onClick={loginGoogle} style={{
+                width: '100%', padding: '11px', marginBottom: 16,
+                background: '#fff', border: '1px solid #e5e7eb',
+                borderRadius: 10, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                fontSize: 14, fontWeight: 500, color: '#374151',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+                  <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                  <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                </svg>
+                Entrar com Google
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>ou</span>
+                <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
+              </div>
               {[
                 { label: 'E-mail', key: 'email', type: 'email', placeholder: 'seu@email.com' },
                 { label: 'Senha',  key: 'senha', type: showPw ? 'text' : 'password', placeholder: '••••••••' },
@@ -224,8 +244,6 @@ export default function LoginPage() {
               }}>
                 {loading ? 'Entrando...' : 'Entrar'}
               </button>
-              <Divider />
-              <GoogleBtn onClick={handleGoogle} />
             </form>
           )}
 
@@ -234,6 +252,26 @@ export default function LoginPage() {
             <form onSubmit={handleCadastro}>
               <div style={{ fontSize: 17, fontWeight: 500, color: '#fff', marginBottom: 3 }}>Criar sua conta</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>7 dias grátis no plano Pro</div>
+              <button type="button" onClick={loginGoogle} style={{
+                width: '100%', padding: '11px', marginBottom: 16,
+                background: '#fff', border: '1px solid #e5e7eb',
+                borderRadius: 10, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                fontSize: 14, fontWeight: 500, color: '#374151',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+                  <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                  <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                </svg>
+                Entrar com Google
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>ou</span>
+                <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
+              </div>
               {[
                 { label: 'Nome',   key: 'nome',  type: 'text',     placeholder: 'Seu nome' },
                 { label: 'E-mail', key: 'email', type: 'email',    placeholder: 'seu@email.com' },
@@ -289,8 +327,6 @@ export default function LoginPage() {
               }}>
                 {loading ? 'Criando conta...' : 'Criar conta grátis'}
               </button>
-              <Divider />
-              <GoogleBtn onClick={handleGoogle} />
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: '0.875rem', lineHeight: 1.6 }}>
                 Ao criar sua conta você concorda com os{' '}
                 <span style={{ color: 'rgba(74,222,128,0.6)', cursor: 'pointer' }}>Termos</span> e a{' '}
@@ -342,28 +378,3 @@ export default function LoginPage() {
   )
 }
 
-function Divider() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0.875rem 0' }}>
-      <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>ou</div>
-      <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
-    </div>
-  )
-}
-
-function GoogleBtn({ onClick }: { onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} style={{
-      width: '100%', padding: '9px', background: 'transparent',
-      border: '1px solid #1a3a1a', borderRadius: 8, fontSize: 12,
-      color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-    }}>
-      <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-        <path d="M13 7.15c0-.5-.04-.87-.12-1.25H7v2.27h3.4c-.14.9-.7 2.25-2 2.25-1.2 0-2.2-1-2.2-2.42s1-2.42 2.2-2.42c.68 0 1.14.3 1.4.55l1.5-1.45C10.3 3.4 8.8 3 7 3 4.2 3 2 5.2 2 8s2.2 5 5 5c2.9 0 4.8-2 4.8-4.85h.2z" fill="rgba(255,255,255,0.4)"/>
-      </svg>
-      Continuar com Google
-    </button>
-  )
-}
