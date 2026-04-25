@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         body:    JSON.stringify({
           groupJid:     grupo.whatsapp_grupo_id,
           action:       'add',
-          participants: [membro.whatsapp],
+          participants: [`${membro.whatsapp}@s.whatsapp.net`],
         }),
       })
       console.log('[grupo/aceitar] updateParticipant status:', evoRes.status)
