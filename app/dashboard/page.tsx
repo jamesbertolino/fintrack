@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import GranaUpLogo from '@/components/GranaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
+import Avatar from '@/components/Avatar'
 import { usePerfil } from '@/hooks/usePerfil'
 
 interface Transacao {
@@ -26,6 +27,7 @@ interface Meta {
 interface Profile {
   nome: string
   plano: string
+  avatar_url?: string | null
 }
 
 const CORES: Record<string, string> = {
@@ -73,7 +75,7 @@ export default function Dashboard() {
     if (!user) { router.push('/login'); return }
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
-      supabase.from('profiles').select('nome, plano').eq('id', user.id).single(),
+      supabase.from('profiles').select('nome, plano, avatar_url').eq('id', user.id).single(),
       supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }).limit(20),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
@@ -197,13 +199,12 @@ export default function Dashboard() {
               <span style={{ fontSize: 11, color: '#4ade80' }}>webhook ativo</span>
             </div>
             <SinoNotificacoes />
-            <div
+            <Avatar
+              url={profile?.avatar_url}
+              nome={profile?.nome || 'U'}
+              size={30}
               onClick={() => router.push('/dashboard/perfil')}
-              style={{ width: 30, height: 30, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 500, color: '#fff', cursor: 'pointer' }}
-              title="Meu perfil"
-            >
-              {profile?.nome?.[0]?.toUpperCase() || 'U'}
-            </div>
+            />
           </div>
         </div>
 

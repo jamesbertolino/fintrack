@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import Avatar from '@/components/Avatar'
+import ModalAvatar from '@/components/ModalAvatar'
 
 interface Profile {
   id: string
@@ -13,6 +15,7 @@ interface Profile {
   idioma: string
   plano: string
   created_at: string
+  avatar_url?: string | null
 }
 
 interface WebhookConfig {
@@ -27,7 +30,7 @@ interface GrupoMembro {
   status: string
   papel: string
   user_id: string | null
-  profiles: { nome: string }[] | { nome: string } | null
+  profiles: { nome: string; avatar_url?: string | null }[] | { nome: string; avatar_url?: string | null } | null
 }
 
 interface Grupo {
@@ -54,8 +57,9 @@ export default function PerfilPage() {
   const [novoNumero, setNovoNum]    = useState('')
   const [convidando, setConvidan]   = useState(false)
   const [removendo, setRemovendo]   = useState<string | null>(null)
-  const [tokenVisivel, setTokenVis] = useState(false)
-  const [copiado, setCopiado]       = useState(false)
+  const [tokenVisivel, setTokenVis]     = useState(false)
+  const [copiado, setCopiado]           = useState(false)
+  const [modalAvatarAberto, setModalAv] = useState(false)
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
@@ -106,7 +110,7 @@ export default function PerfilPage() {
     if (grupoFinal) {
       const { data: membrosData } = await supabase
         .from('grupo_membros')
-        .select('id, whatsapp, status, papel, user_id, profiles!grupo_membros_user_id_fkey(nome)')
+        .select('id, whatsapp, status, papel, user_id, profiles!grupo_membros_user_id_fkey(nome, avatar_url)')
         .eq('grupo_id', grupoFinal.id)
         .neq('status', 'removido')
 
@@ -276,8 +280,11 @@ export default function PerfilPage() {
 
         {/* Avatar + nome */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: '1.5rem', padding: '1.25rem', background: '#111', border: '1px solid #1a3a1a', borderRadius: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-            {profile?.nome?.[0]?.toUpperCase() || 'U'}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <Avatar url={profile?.avatar_url} nome={profile?.nome || 'U'} size={56} onClick={() => setModalAv(true)} />
+            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid #0a0a0a' }} onClick={() => setModalAv(true)}>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 5.5l1.5-1.5 3.5-3.5L7.5 2 4 5.5l-2.5.5-.5-.5z" stroke="#fff" strokeWidth="1" strokeLinejoin="round"/></svg>
+            </div>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 18, fontWeight: 600, color: '#fff' }}>{profile?.nome} {profile?.sobrenome}</div>
@@ -541,13 +548,17 @@ export default function PerfilPage() {
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>Nenhum membro ainda. Convide alguém!</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {membros.map(m => (
+                      {membros.map(m => {
+                        const prof = Array.isArray(m.profiles) ? m.profiles[0] : (m.profiles as { nome: string; avatar_url?: string | null } | null)
+                        const nomeExibido = prof?.nome || 'Convidado'
+                        return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#0a1a0a', borderRadius: 8, border: '1px solid #1a3a1a' }}>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 500 }}>
-                              {(Array.isArray(m.profiles) ? m.profiles[0]?.nome : (m.profiles as { nome: string } | null)?.nome) || 'Convidado'}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <Avatar url={prof?.avatar_url} nome={nomeExibido} size={32} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500 }}>{nomeExibido}</div>
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>{m.whatsapp}</div>
                             </div>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>{m.whatsapp}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 500, background: m.status === 'ativo' ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.12)', color: m.status === 'ativo' ? '#4ade80' : '#fbbf24' }}>
@@ -560,7 +571,8 @@ export default function PerfilPage() {
                             )}
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -669,6 +681,19 @@ export default function PerfilPage() {
         )}
 
       </div>
+
+      {modalAvatarAberto && profile && (
+        <ModalAvatar
+          userId={profile.id}
+          nomeAtual={profile.nome}
+          avatarAtual={profile.avatar_url}
+          onSalvo={novaUrl => {
+            setProfile(prev => prev ? { ...prev, avatar_url: novaUrl } : prev)
+            setModalAv(false)
+          }}
+          onFechar={() => setModalAv(false)}
+        />
+      )}
     </div>
   )
 }
