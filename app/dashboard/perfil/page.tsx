@@ -196,9 +196,50 @@ export default function PerfilPage() {
     if (!user || !grupo) { setSalvando(false); return }
 
     if (isAdmin) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('evolution_instancia')
+        .eq('id', user.id)
+        .single()
+
+      if (prof?.evolution_instancia && grupo.whatsapp_grupo_id) {
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/evolution/grupo/encerrar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instancia: prof.evolution_instancia,
+            grupoJid: grupo.whatsapp_grupo_id,
+          }),
+        })
+      }
+
       await supabase.from('grupos').update({ ativo: false } as Record<string, unknown>).eq('id', grupo.id)
       await supabase.from('profiles').update({ grupo_id_principal: null } as Record<string, unknown>).eq('id', user.id)
     } else {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('evolution_instancia, whatsapp')
+        .eq('id', user.id)
+        .single()
+
+      const { data: adminProf } = await supabase
+        .from('profiles')
+        .select('evolution_instancia')
+        .eq('id', grupo.criado_por)
+        .single()
+
+      if (adminProf?.evolution_instancia && grupo.whatsapp_grupo_id && prof?.whatsapp) {
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/evolution/grupo/remover-membro`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            instancia: adminProf.evolution_instancia,
+            grupoJid: grupo.whatsapp_grupo_id,
+            numero: prof.whatsapp,
+          }),
+        })
+      }
+
       await supabase.from('grupo_membros')
         .update({ status: 'removido' })
         .eq('grupo_id', grupo.id)
@@ -206,7 +247,6 @@ export default function PerfilPage() {
     }
 
     setGrupo(null)
-    setMembros([])
     setSucesso(isAdmin ? 'Grupo encerrado.' : 'Você saiu do grupo.')
     setSalvando(false)
     setTimeout(() => setSucesso(''), 3000)
@@ -231,11 +271,38 @@ export default function PerfilPage() {
     setTimeout(() => setSucesso(''), 3000)
   }
 
-  async function removerMembro(membroId: string) {
-    setRemovendo(membroId)
-    await supabase.from('grupo_membros').delete().eq('id', membroId)
-    setMembros(prev => prev.filter(m => m.id !== membroId))
-    setRemovendo(null)
+  async function removerMembro(membroId: string, whatsapp: string) {
+    if (!confirm('Remover este membro do grupo?')) return
+    setSalvando(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !grupo) { setSalvando(false); return }
+
+    await supabase.from('grupo_membros')
+      .update({ status: 'removido' })
+      .eq('id', membroId)
+
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('evolution_instancia')
+      .eq('id', user.id)
+      .single()
+
+    if (prof?.evolution_instancia && grupo.whatsapp_grupo_id) {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/evolution/grupo/remover-membro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instancia: prof.evolution_instancia,
+          grupoJid: grupo.whatsapp_grupo_id,
+          numero: whatsapp,
+        }),
+      })
+    }
+
+    setSucesso('Membro removido!')
+    carregar()
+    setSalvando(false)
+    setTimeout(() => setSucesso(''), 3000)
   }
 
   function copiarUrlWebhook() {
@@ -565,8 +632,8 @@ export default function PerfilPage() {
                               {m.status === 'ativo' ? 'ativo' : 'pendente'}
                             </span>
                             {profile?.plano === 'pro' && (
-                              <button onClick={() => removerMembro(m.id)} disabled={removendo === m.id} style={{ padding: '3px 8px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: removendo === m.id ? 'default' : 'pointer', opacity: removendo === m.id ? 0.5 : 1 }}>
-                                {removendo === m.id ? '...' : 'Remover'}
+                              <button onClick={() => removerMembro(m.id, m.whatsapp)} disabled={salvando} style={{ padding: '3px 8px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.5 : 1 }}>
+                                Remover
                               </button>
                             )}
                           </div>
