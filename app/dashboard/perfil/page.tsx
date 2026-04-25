@@ -694,7 +694,7 @@ export default function PerfilPage() {
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
                     {isAdmin
-                      ? 'Remove todos os membros e encerra o grupo GranaUp.'
+                      ? 'Remove todos os membros e encerra o grupo PoupaUp.'
                       : 'Você será removido do grupo e perderá acesso às metas compartilhadas.'}
                   </div>
                   <button onClick={sairDoGrupo} disabled={salvando} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, color: '#f87171', fontSize: 12, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
@@ -717,7 +717,7 @@ export default function PerfilPage() {
                   {profile?.plano === 'free' && <span style={{ fontSize: 10, background: 'rgba(74,222,128,.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 10 }}>Plano atual</span>}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80', marginBottom: 14 }}>R$ 0<span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,.4)' }}>/mês</span></div>
-                {['5 metas', '10 webhooks/min', 'GranaBot básico', 'Dashboard completo'].map(f => (
+                {['5 metas', '10 webhooks/min', 'PoupaBot básico', 'Dashboard completo'].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7, fontSize: 12, color: 'rgba(255,255,255,.6)' }}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9 10.5,3" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     {f}
@@ -733,7 +733,7 @@ export default function PerfilPage() {
                   {profile?.plano === 'pro' && <span style={{ fontSize: 10, background: 'rgba(251,191,36,.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: 10 }}>Plano atual</span>}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24', marginBottom: 14 }}>R$ 29<span style={{ fontSize: 13, fontWeight: 400, color: 'rgba(255,255,255,.4)' }}>/mês</span></div>
-                {['Metas ilimitadas', '60 webhooks/min', 'GranaBot avançado', 'Relatórios em PDF', 'Suporte prioritário', 'Multibancos (em breve)'].map(f => (
+                {['Metas ilimitadas', '60 webhooks/min', 'PoupaBot avançado', 'Relatórios em PDF', 'Suporte prioritário', 'Multibancos (em breve)'].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7, fontSize: 12, color: 'rgba(255,255,255,.6)' }}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><polyline points="1.5,6 4.5,9 10.5,3" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     {f}

@@ -4,14 +4,14 @@ import { Geist } from 'next/font/google'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'GranaUp — Poupe. Evolua. Conquiste.',
-  description: 'Seu assistente financeiro inteligente. Controle gastos, crie metas e suba de nível financeiro com IA.',
+  title: 'PoupaUp — Poupe. Evolua. Conquiste.',
+  description: 'Controle financeiro familiar com IA e WhatsApp',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',
   },
   openGraph: {
-    title: 'GranaUp',
+    title: 'PoupaUp',
     description: 'Poupe. Evolua. Conquiste.',
     images: ['/logo.png'],
   },

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
+import PoupaUpLogo from '@/components/PoupaUpLogo'
 
 type Passo  = 1 | 2
 type Status = 'aguardando' | 'conectado'
@@ -168,7 +168,7 @@ export default function SetupPage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#fff', padding: '1.5rem' }}>
 
       <div style={{ marginBottom: '2rem' }}>
-        <GranaUpLogo mode="compact" />
+        <PoupaUpLogo mode="compact" />
       </div>
 
       {/* Indicador de passos */}

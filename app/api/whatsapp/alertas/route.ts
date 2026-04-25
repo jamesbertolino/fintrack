@@ -72,6 +72,6 @@ function formatarMensagem(tipo: string, titulo: string, mensagem: string, timezo
   const hora = new Intl.DateTimeFormat(idioma, {
     hour: '2-digit', minute: '2-digit', timeZone: timezone,
   }).format(new Date())
-  return `${emojis[tipo] || '🔔'} *${titulo}*\n\n${mensagem}\n\n_GranaUp • ${hora}_`
+  return `${emojis[tipo] || '🔔'} *${titulo}*\n\n${mensagem}\n\n_PoupaUp • ${hora}_`
 }
 

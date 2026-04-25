@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
+import PoupaUpLogo from '@/components/PoupaUpLogo'
 
 type Estado = 'carregando' | 'valido' | 'invalido' | 'aceito' | 'erro'
 
@@ -79,7 +79,7 @@ export default function ConvitePage() {
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#fff', padding: '1.5rem' }}>
 
       <div style={{ marginBottom: '2rem' }}>
-        <GranaUpLogo mode="compact" />
+        <PoupaUpLogo mode="compact" />
       </div>
 
       <div style={card}>
@@ -118,10 +118,10 @@ export default function ConvitePage() {
             <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Você foi convidado!</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
               <strong style={{ color: '#4ade80' }}>{convidadoPor}</strong> te convidou para o grupo{' '}
-              <strong style={{ color: '#fff' }}>{grupoNome}</strong> no GranaUp.
+              <strong style={{ color: '#fff' }}>{grupoNome}</strong> no PoupaUp.
             </div>
             <div style={{ background: 'rgba(22,163,74,.08)', border: '1px solid rgba(22,163,74,.2)', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: 'rgba(255,255,255,.6)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-              🎯 GranaUp é um app de controle financeiro familiar com IA. Lance gastos pelo WhatsApp e acompanhe tudo no dashboard.
+              🎯 PoupaUp é um app de controle financeiro familiar com IA. Lance gastos pelo WhatsApp e acompanhe tudo no dashboard.
             </div>
             <a
               href={`/login?next=/convite/${token}`}

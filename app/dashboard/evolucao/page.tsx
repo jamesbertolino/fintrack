@@ -75,7 +75,7 @@ export default function EvolucaoPage() {
 
   // Conquistas
   const conquistas: Conquista[] = [
-    { id: 'cadastro',     nome: 'Bem-vindo!',          desc: 'Criou sua conta no GranaUp',         emoji: '🎉', xp: 50,  conquistado: true },
+    { id: 'cadastro',     nome: 'Bem-vindo!',          desc: 'Criou sua conta no PoupaUp',         emoji: '🎉', xp: 50,  conquistado: true },
     { id: 'primeira_tx',  nome: 'Primeiro registro',   desc: 'Registrou a primeira transação',      emoji: '📝', xp: 20,  conquistado: transacoes.length >= 1, progresso: Math.min(transacoes.length, 1), total: 1 },
     { id: 'dez_tx',       nome: 'Disciplinado',        desc: 'Registrou 10 transações',             emoji: '💪', xp: 100, conquistado: transacoes.length >= 10, progresso: Math.min(transacoes.length, 10), total: 10 },
     { id: 'cem_tx',       nome: 'Consistente',         desc: 'Registrou 100 transações',            emoji: '🏆', xp: 500, conquistado: transacoes.length >= 100, progresso: Math.min(transacoes.length, 100), total: 100 },

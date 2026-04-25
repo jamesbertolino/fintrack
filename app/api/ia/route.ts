@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const topCat = Object.entries(porCategoria).sort((a, b) => b[1] - a[1])
 
   const contexto = `
-Você é o GranaBot, assistente financeiro pessoal do GranaUp.
+Você é o PoupaBot, assistente financeiro pessoal do PoupaUp.
 Usuário: ${profile?.nome || 'usuário'}
 Plano: ${profile?.plano || 'free'}
 

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   if (!profile) {
     return NextResponse.json({
       ok: false,
-      resposta: '❌ Número não autorizado. Cadastre seu WhatsApp no GranaUp em Perfil → Dados pessoais.',
+      resposta: '❌ Número não autorizado. Cadastre seu WhatsApp no PoupaUp em Perfil → Dados pessoais.',
       ignorar: true,
     })
   }
@@ -130,7 +130,7 @@ Regras:
 
   const emoji = parsed.tipo === 'debito' ? '💸' : '💰'
   const sinal = parsed.tipo === 'debito' ? '-' : '+'
-  const resposta = `${emoji} *Lançado com sucesso!*\n\n📝 ${parsed.descricao}\n💵 ${sinal}R$ ${Math.abs(parsed.valor).toFixed(2)}\n🏷️ ${parsed.categoria}\n\n_Registrado no GranaUp_ ✓`
+  const resposta = `${emoji} *Lançado com sucesso!*\n\n📝 ${parsed.descricao}\n💵 ${sinal}R$ ${Math.abs(parsed.valor).toFixed(2)}\n🏷️ ${parsed.categoria}\n\n_Registrado no PoupaUp_ ✓`
 
   return NextResponse.json({ ok: true, resposta, transacao_id: transacao.id })
 }

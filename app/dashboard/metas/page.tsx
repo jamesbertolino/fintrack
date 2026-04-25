@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
+import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { usePerfil } from '@/hooks/usePerfil'
 
 interface Meta {
@@ -168,7 +168,7 @@ export default function MetasPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-      <GranaUpLogo mode="compact" />
+      <PoupaUpLogo mode="compact" />
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando metas...</div>
     </div>
   )

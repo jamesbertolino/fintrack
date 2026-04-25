@@ -45,7 +45,7 @@ export default function IAPage() {
       // Mensagem inicial
       setMsgs([{
         role: 'assistant',
-        content: `Olá${p?.nome ? `, ${p.nome}` : ''}! 👋 Sou o **GranaBot**, seu assistente financeiro inteligente.\n\nTenho acesso aos seus dados reais — transações, metas e métricas — e posso te ajudar a tomar decisões financeiras melhores.\n\nComo posso te ajudar hoje?`,
+        content: `Olá${p?.nome ? `, ${p.nome}` : ''}! 👋 Sou o **PoupaBot**, seu assistente financeiro inteligente.\n\nTenho acesso aos seus dados reais — transações, metas e métricas — e posso te ajudar a tomar decisões financeiras melhores.\n\nComo posso te ajudar hoje?`,
       }])
       setHorarios([fmtHora(new Date())])
     }
@@ -119,7 +119,7 @@ export default function IAPage() {
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="#fff" strokeWidth="1.2"/><circle cx="7" cy="7" r="2" fill="#fff"/></svg>
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 500 }}>GranaBot</div>
+              <div style={{ fontSize: 14, fontWeight: 500 }}>PoupaBot</div>
               <div style={{ fontSize: 10, color: '#4ade80' }}>● online — com acesso aos seus dados</div>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function IAPage() {
                 </div>
               )}
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>
-                {m.role === 'assistant' ? 'GranaBot' : nomeUser || 'Você'} · {horarios[i] || ''}
+                {m.role === 'assistant' ? 'PoupaBot' : nomeUser || 'Você'} · {horarios[i] || ''}
               </span>
               {m.role === 'user' && (
                 <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#534AB7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 10, fontWeight: 500 }}>
@@ -173,7 +173,7 @@ export default function IAPage() {
               <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="#fff" strokeWidth="1.2"/><circle cx="6" cy="6" r="1.5" fill="#fff"/></svg>
               </div>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>GranaBot está analisando seus dados...</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>PoupaBot está analisando seus dados...</span>
             </div>
             <div style={{ padding: '10px 14px', borderRadius: '0 14px 14px 14px', background: '#111', border: '1px solid #1a3a1a', display: 'flex', gap: 5 }}>
               {[0, 1, 2].map(i => (
@@ -240,7 +240,7 @@ export default function IAPage() {
           </button>
         </div>
         <div style={{ maxWidth: 760, margin: '6px auto 0', fontSize: 10, color: 'rgba(255,255,255,.2)', textAlign: 'center' }}>
-          GranaBot analisa seus dados reais de transações e metas para responder
+          PoupaBot analisa seus dados reais de transações e metas para responder
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
+import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import { usePerfil } from '@/hooks/usePerfil'
@@ -98,7 +98,7 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
-      <GranaUpLogo mode="compact" />
+      <PoupaUpLogo mode="compact" />
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando...</div>
     </div>
   )
@@ -121,7 +121,7 @@ export default function Dashboard() {
       <aside style={{ width: sidebarAberta ? 200 : 56, background: '#0a1a0a', borderRight: '1px solid #1a3a1a', display: 'flex', flexDirection: 'column', transition: 'width .2s', flexShrink: 0 }}>
 
         <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <GranaUpLogo mode={sidebarAberta ? 'full' : 'icon'} />
+          <PoupaUpLogo mode={sidebarAberta ? 'full' : 'icon'} />
         </div>
 
         <nav style={{ flex: 1, padding: '0.75rem 0' }}>
@@ -181,7 +181,7 @@ export default function Dashboard() {
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
             </button>
             <span style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}>
-              {{ inicio: 'Início', evolucao: 'Evolução' }[paginaAtiva] || 'GranaUp'}
+              {{ inicio: 'Início', evolucao: 'Evolução' }[paginaAtiva] || 'PoupaUp'}
             </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

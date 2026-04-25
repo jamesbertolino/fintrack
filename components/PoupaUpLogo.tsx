@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 
-interface GranaUpLogoProps {
+interface PoupaUpLogoProps {
   mode?: 'full' | 'icon' | 'compact'
 }
 
@@ -10,7 +10,7 @@ function Velocimetro({ size }: { size: number }) {
   return (
     <Image
       src="/velocimetro.jpg"
-      alt="GranaUp"
+      alt="PoupaUp"
       width={size}
       height={size}
       style={{ objectFit: 'cover', borderRadius: 10, flexShrink: 0 }}
@@ -18,7 +18,7 @@ function Velocimetro({ size }: { size: number }) {
   )
 }
 
-export default function GranaUpLogo({ mode = 'full' }: GranaUpLogoProps) {
+export default function PoupaUpLogo({ mode = 'full' }: PoupaUpLogoProps) {
   if (mode === 'icon') return <Velocimetro size={36} />
 
   return (
@@ -26,7 +26,7 @@ export default function GranaUpLogo({ mode = 'full' }: GranaUpLogoProps) {
       <Velocimetro size={mode === 'full' ? 48 : 38} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 
-        {/* GranaUp */}
+        {/* PoupaUp */}
         <div style={{
           display: 'flex',
           alignItems: 'baseline',
@@ -36,7 +36,7 @@ export default function GranaUpLogo({ mode = 'full' }: GranaUpLogoProps) {
           fontSize: mode === 'full' ? 22 : 18,
           letterSpacing: -0.5,
         }}>
-          <span style={{ color: '#ffffff' }}>Grana</span>
+          <span style={{ color: '#ffffff' }}>Poupa</span>
           <span style={{ color: '#4ade80' }}>Up</span>
         </div>
 

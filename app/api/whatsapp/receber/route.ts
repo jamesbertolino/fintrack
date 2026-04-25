@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       await enviarMensagemGrupo(
         instancia,
         grupoJid!,
-        '❓ Número não cadastrado no GranaUp. Acesse granaup.com.br para criar sua conta.'
+        '❓ Número não cadastrado no PoupaUp. Acesse poupaup.com.br para criar sua conta.'
       )
     }
     return NextResponse.json({ ok: true })

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import GranaUpLogo from '@/components/GranaUpLogo'
+import PoupaUpLogo from '@/components/PoupaUpLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -103,7 +103,7 @@ export default function LoginPage() {
       }}>
         {/* Logo */}
         <div>
-          <GranaUpLogo mode="full" />
+          <PoupaUpLogo mode="full" />
         </div>
 
         {/* Hero */}
