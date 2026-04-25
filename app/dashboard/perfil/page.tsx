@@ -83,23 +83,16 @@ export default function PerfilPage() {
       .eq('criado_por', user.id)
       .maybeSingle()
 
-    console.log('[perfil] user.id:', user.id)
-    console.log('[perfil] grupoData:', JSON.stringify(grupoData))
-    console.log('[perfil] grupoError:', JSON.stringify(grupoError))
-
     let grupoFinal: Grupo | null = grupoData
 
     // Se não é admin, tenta buscar como membro ativo
     if (!grupoData) {
-      const { data: membroData, error: membroError } = await supabase
+      const { data: membroData } = await supabase
         .from('grupo_membros')
-        .select('grupo_id, grupos(id, nome, whatsapp_grupo_id, criado_por)')
+        .select('grupo_id, grupos!grupo_membros_grupo_id_fkey(id, nome, whatsapp_grupo_id, criado_por)')
         .eq('user_id', user.id)
         .eq('status', 'ativo')
         .maybeSingle()
-
-      console.log('[perfil] membroData:', JSON.stringify(membroData))
-      console.log('[perfil] membroError:', JSON.stringify(membroError))
 
       if (membroData?.grupos) {
         grupoFinal = Array.isArray(membroData.grupos)
@@ -111,14 +104,11 @@ export default function PerfilPage() {
     setGrupo(grupoFinal)
 
     if (grupoFinal) {
-      const { data: membrosData, error: membrosError } = await supabase
+      const { data: membrosData } = await supabase
         .from('grupo_membros')
         .select('id, whatsapp, status, papel, user_id, profiles!grupo_membros_user_id_fkey(nome)')
         .eq('grupo_id', grupoFinal.id)
         .neq('status', 'removido')
-
-      console.log('[perfil] membrosData:', JSON.stringify(membrosData))
-      console.log('[perfil] membrosError:', membrosError?.message)
 
       if (membrosData) setMembros(membrosData as GrupoMembro[])
     }
@@ -554,8 +544,10 @@ export default function PerfilPage() {
                       {membros.map(m => (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#0a1a0a', borderRadius: 8, border: '1px solid #1a3a1a' }}>
                           <div>
-                            <div style={{ fontSize: 13, fontWeight: 500 }}>{(Array.isArray(m.profiles) ? m.profiles[0]?.nome : (m.profiles as { nome: string } | null)?.nome) || m.whatsapp}</div>
-                            {((Array.isArray(m.profiles) ? m.profiles[0]?.nome : (m.profiles as { nome: string } | null)?.nome)) && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>{m.whatsapp}</div>}
+                            <div style={{ fontSize: 13, fontWeight: 500 }}>
+                              {(Array.isArray(m.profiles) ? m.profiles[0]?.nome : (m.profiles as { nome: string } | null)?.nome) || 'Convidado'}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>{m.whatsapp}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 500, background: m.status === 'ativo' ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.12)', color: m.status === 'ativo' ? '#4ade80' : '#fbbf24' }}>
