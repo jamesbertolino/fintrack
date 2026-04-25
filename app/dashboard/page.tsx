@@ -7,6 +7,7 @@ import GranaUpLogo from '@/components/GranaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import { usePerfil } from '@/hooks/usePerfil'
+import { calcularXP, calcularNivel } from '@/lib/calcularXP'
 
 interface Transacao {
   id: string
@@ -22,6 +23,7 @@ interface Meta {
   nome: string
   valor_total: number
   valor_atual: number
+  ativo?: boolean
 }
 
 interface Profile {
@@ -36,16 +38,6 @@ const CORES: Record<string, string> = {
   'Receita': '#4ade80', 'Outros': '#6b7280',
 }
 
-const XP_POR_NIVEL = 1000
-
-function calcularNivel(xp: number) {
-  const nivel = Math.floor(xp / XP_POR_NIVEL) + 1
-  const xpAtual = xp % XP_POR_NIVEL
-  const pct = Math.round((xpAtual / XP_POR_NIVEL) * 100)
-  const nomes = ['', 'Iniciante', 'Poupador', 'Controlado', 'Estrategista', 'Poupador Pro', 'Investidor', 'Mestre Financeiro']
-  return { nivel, xpAtual, pct, nome: nomes[nivel] || `Nível ${nivel}` }
-}
-
 export default function Dashboard() {
   const router = useRouter()
   const supabase = createClient()
@@ -58,10 +50,9 @@ export default function Dashboard() {
   const [paginaAtiva, setPagina]    = useState('inicio')
   const [sidebarAberta, setSidebar] = useState(true)
 
-  const receitas     = transacoes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
-  const despesas     = transacoes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
-  const saldo        = receitas - despesas
-  const xpTotal      = Math.max(0, Math.round(saldo / 10))
+  const xp           = calcularXP({ transacoes, metas })
+  const { receitas, despesas, saldo } = xp
+  const xpTotal      = xp.xpTotal
   const nivel        = calcularNivel(xpTotal)
 
   const porCategoria = transacoes.filter(t => t.tipo === 'debito').reduce((acc, t) => {
@@ -163,7 +154,7 @@ export default function Dashboard() {
             <div style={{ height: 4, background: 'rgba(255,255,255,.08)', borderRadius: 2, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${nivel.pct}%`, background: '#4ade80', borderRadius: 2, transition: 'width .5s' }} />
             </div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>{nivel.xpAtual} / {XP_POR_NIVEL} XP</div>
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>{nivel.xpNoNivel} / {nivel.xpParaProximo} XP</div>
           </div>
         )}
 

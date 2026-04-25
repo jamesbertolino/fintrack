@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { usePerfil } from '@/hooks/usePerfil'
+import { calcularXP, calcularNivel, NIVEIS } from '@/lib/calcularXP'
 
 interface Transacao {
   id: string
@@ -21,19 +22,6 @@ interface Meta {
   ativo: boolean
 }
 
-const XP_POR_NIVEL = 1000
-
-const NIVEIS = [
-  { nivel: 1, nome: 'Iniciante',         cor: '#6b7280', min: 0    },
-  { nivel: 2, nome: 'Poupador',          cor: '#4ade80', min: 1000 },
-  { nivel: 3, nome: 'Controlado',        cor: '#22d3ee', min: 2000 },
-  { nivel: 4, nome: 'Estrategista',      cor: '#60a5fa', min: 3000 },
-  { nivel: 5, nome: 'Poupador Pro',      cor: '#a78bfa', min: 4000 },
-  { nivel: 6, nome: 'Investidor',        cor: '#f97316', min: 5000 },
-  { nivel: 7, nome: 'Mestre Financeiro', cor: '#fbbf24', min: 6000 },
-  { nivel: 8, nome: 'Guru das Finanças', cor: '#f43f5e', min: 7000 },
-]
-
 interface Conquista {
   id: string
   nome: string
@@ -43,16 +31,6 @@ interface Conquista {
   conquistado: boolean
   progresso?: number
   total?: number
-}
-
-function calcularNivel(xp: number) {
-  const idx = [...NIVEIS].reverse().findIndex(n => xp >= n.min)
-  const nivelAtual = NIVEIS[NIVEIS.length - 1 - idx] || NIVEIS[0]
-  const proximoNivel = NIVEIS[NIVEIS.indexOf(nivelAtual) + 1]
-  const xpNoNivel = xp - nivelAtual.min
-  const xpParaProximo = proximoNivel ? proximoNivel.min - nivelAtual.min : XP_POR_NIVEL
-  const pct = Math.min(Math.round((xpNoNivel / xpParaProximo) * 100), 100)
-  return { ...nivelAtual, proximoNivel, xpNoNivel, xpParaProximo, pct, xpTotal: xp }
 }
 
 function fmtBRL(v: number) {
@@ -91,18 +69,9 @@ export default function EvolucaoPage() {
     carregar()
   }, [carregar])
 
-  // Calcular XP
-  const receitas = transacoes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
-  const despesas = transacoes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
-  const saldo    = receitas - despesas
-
-  // XP por atividades
-  const xpTransacoes  = transacoes.length * 10
-  const xpSaldo       = Math.max(0, Math.round(saldo / 10))
-  const xpMetas       = metas.filter(m => m.ativo).length * 50
-  const xpMetasConcl  = metas.filter(m => m.valor_atual >= m.valor_total).length * 200
-  const xpTotal       = xpTransacoes + xpSaldo + xpMetas + xpMetasConcl
-  const nivel         = calcularNivel(xpTotal)
+  const xp         = calcularXP({ transacoes, metas })
+  const { receitas, despesas, saldo, xpTotal, xpTransacoes, xpSaldo, xpMetas: xpMetasTotal } = xp
+  const nivel      = calcularNivel(xpTotal)
 
   // Conquistas
   const conquistas: Conquista[] = [
@@ -215,7 +184,7 @@ export default function EvolucaoPage() {
           {[
             { label: 'XP de transações', val: xpTransacoes, desc: `${transacoes.length} registros × 10`, cor: '#4ade80' },
             { label: 'XP de saldo',      val: xpSaldo,      desc: `saldo R$ ${saldo.toFixed(0)} ÷ 10`, cor: saldo >= 0 ? '#22d3ee' : '#f87171' },
-            { label: 'XP de metas',      val: xpMetas + xpMetasConcl, desc: `${metas.filter(m => m.ativo).length} ativas + ${metas.filter(m => m.valor_atual >= m.valor_total).length} concluídas`, cor: '#a78bfa' },
+            { label: 'XP de metas',      val: xpMetasTotal, desc: `${metas.filter(m => m.ativo).length} ativas + ${metas.filter(m => m.valor_atual >= m.valor_total).length} concluídas`, cor: '#a78bfa' },
             { label: 'XP de conquistas', val: xpConquistas, desc: `${conquistadas.length} de ${conquistas.length} desbloqueadas`, cor: '#fbbf24' },
           ].map(m => (
             <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
