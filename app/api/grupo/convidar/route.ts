@@ -55,39 +55,48 @@ export async function POST(request: NextRequest) {
   const numeroLimpo     = numero.replace(/\D/g, '')
   const numeroFormatado = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`
 
-  // Verifica se já é membro ou tem convite pendente
+  // Verifica duplicata
   const { data: membroExistente } = await supabase
     .from('grupo_membros')
     .select('id, status')
     .eq('grupo_id', grupo_id)
     .eq('whatsapp', numeroFormatado)
-    .single()
+    .maybeSingle()
 
   if (membroExistente) {
-    return NextResponse.json(
-      { error: 'Número já está no grupo ou possui convite pendente' },
-      { status: 409 }
-    )
+    if (membroExistente.status === 'ativo') {
+      return NextResponse.json({ error: 'Número já é membro ativo do grupo' }, { status: 400 })
+    }
+    if (membroExistente.status === 'pendente') {
+      return NextResponse.json({ error: 'Convite já enviado e pendente' }, { status: 400 })
+    }
   }
 
-  // Cria convite
+  // Gera token único para este convite
   const token = crypto.randomUUID()
 
-  const { error: insertError } = await supabase
-    .from('grupo_membros')
-    .insert({
-      grupo_id,
-      whatsapp:      numeroFormatado,
-      status:        'pendente',
-      convidado_por: userId,
-      token_convite: token,
-    })
+  if (membroExistente) {
+    // status = 'removido' → reativa com novo token
+    await supabase.from('grupo_membros')
+      .update({ status: 'pendente', token_convite: token })
+      .eq('id', membroExistente.id)
+  } else {
+    const { error: insertError } = await supabase
+      .from('grupo_membros')
+      .insert({
+        grupo_id,
+        whatsapp:      numeroFormatado,
+        status:        'pendente',
+        convidado_por: userId,
+        token_convite: token,
+      })
 
-  if (insertError) {
-    return NextResponse.json(
-      { error: 'Erro ao criar convite: ' + insertError.message },
-      { status: 500 }
-    )
+    if (insertError) {
+      return NextResponse.json(
+        { error: 'Erro ao criar convite: ' + insertError.message },
+        { status: 500 }
+      )
+    }
   }
 
   // Envia mensagem de convite via Evolution
