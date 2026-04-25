@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
   })
 
   const data = await res.json()
-  console.log('[remover-membro] status:', res.status, 'resposta:', JSON.stringify(data))
-  return NextResponse.json({ ok: res.ok, data })
+  console.log('[remover-membro] status:', res.status, 'data:', JSON.stringify(data))
+
+  const jaRemovido = JSON.stringify(data).includes('item-not-found')
+  const ok = res.ok || jaRemovido
+
+  return NextResponse.json({ ok, data })
 }

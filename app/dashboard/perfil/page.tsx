@@ -277,10 +277,6 @@ export default function PerfilPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || !grupo) { setSalvando(false); return }
 
-    await supabase.from('grupo_membros')
-      .update({ status: 'removido' })
-      .eq('id', membroId)
-
     const { data: prof } = await supabase
       .from('profiles')
       .select('evolution_instancia')
@@ -300,6 +296,11 @@ export default function PerfilPage() {
         }),
       })
     }
+
+    // Remove do banco sempre (mesmo se Evolution retornar erro)
+    await supabase.from('grupo_membros')
+      .update({ status: 'removido' })
+      .eq('id', membroId)
 
     setSucesso('Membro removido!')
     carregar()
