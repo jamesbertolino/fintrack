@@ -554,7 +554,7 @@ export default function PerfilPage() {
                         return (
                         <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#0a1a0a', borderRadius: 8, border: '1px solid #1a3a1a' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Avatar url={prof?.avatar_url} nome={nomeExibido} size={32} />
+                            <Avatar url={prof?.avatar_url} nome={nomeExibido} size={36} />
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 500 }}>{nomeExibido}</div>
                               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>{m.whatsapp}</div>
