@@ -189,53 +189,75 @@ export default function PerfilPage() {
   }
 
   async function sairDoGrupo() {
-    const isAdmin = grupo?.criado_por === profile?.id
-    if (!confirm(isAdmin ? 'Encerrar o grupo para todos?' : 'Sair do grupo?')) return
-    setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user || !grupo) { setSalvando(false); return }
+    if (!user || !grupo) return
 
-    if (isAdmin) {
+    const ehAdmin = grupo.criado_por === user.id
+
+    if (!window.confirm(ehAdmin ? 'Encerrar o grupo para todos?' : 'Sair do grupo?')) return
+
+    setSalvando(true)
+
+    if (ehAdmin) {
+      const { data: membrosAtivos } = await supabase
+        .from('grupo_membros')
+        .select('whatsapp')
+        .eq('grupo_id', grupo.id)
+        .eq('status', 'ativo')
+
       const { data: prof } = await supabase
         .from('profiles')
         .select('evolution_instancia')
         .eq('id', user.id)
         .single()
 
-      if (prof?.evolution_instancia && grupo.whatsapp_grupo_id) {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/evolution/grupo/encerrar`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instancia: prof.evolution_instancia,
-            grupoJid: grupo.whatsapp_grupo_id,
-          }),
-        })
+      if (prof?.evolution_instancia && membrosAtivos?.length) {
+        for (const membro of membrosAtivos) {
+          await fetch('/api/evolution/grupo/remover-membro', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              instancia: prof.evolution_instancia,
+              grupoJid: grupo.whatsapp_grupo_id,
+              numero: membro.whatsapp,
+            }),
+          })
+        }
       }
 
-      await supabase.from('grupos').update({ ativo: false } as Record<string, unknown>).eq('id', grupo.id)
-      await supabase.from('profiles').update({ grupo_id_principal: null } as Record<string, unknown>).eq('id', user.id)
-    } else {
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('evolution_instancia, whatsapp')
-        .eq('id', user.id)
-        .single()
+      await supabase.from('grupo_membros')
+        .update({ status: 'removido' })
+        .eq('grupo_id', grupo.id)
 
+      await supabase.from('grupos')
+        .update({ ativo: false })
+        .eq('id', grupo.id)
+
+      await supabase.from('profiles')
+        .update({ grupo_id_principal: null })
+        .eq('id', user.id)
+
+    } else {
       const { data: adminProf } = await supabase
         .from('profiles')
         .select('evolution_instancia')
         .eq('id', grupo.criado_por)
         .single()
 
-      if (adminProf?.evolution_instancia && grupo.whatsapp_grupo_id && prof?.whatsapp) {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/evolution/grupo/remover-membro`, {
+      const { data: meuPerfil } = await supabase
+        .from('profiles')
+        .select('whatsapp')
+        .eq('id', user.id)
+        .single()
+
+      if (adminProf?.evolution_instancia && meuPerfil?.whatsapp) {
+        await fetch('/api/evolution/grupo/remover-membro', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             instancia: adminProf.evolution_instancia,
             grupoJid: grupo.whatsapp_grupo_id,
-            numero: prof.whatsapp,
+            numero: meuPerfil.whatsapp,
           }),
         })
       }
@@ -247,7 +269,7 @@ export default function PerfilPage() {
     }
 
     setGrupo(null)
-    setSucesso(isAdmin ? 'Grupo encerrado.' : 'Você saiu do grupo.')
+    setSucesso(ehAdmin ? 'Grupo encerrado com sucesso!' : 'Você saiu do grupo.')
     setSalvando(false)
     setTimeout(() => setSucesso(''), 3000)
   }
