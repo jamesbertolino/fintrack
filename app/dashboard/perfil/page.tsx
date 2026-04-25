@@ -31,6 +31,7 @@ interface GrupoMembro {
 interface Grupo {
   id: string
   nome: string
+  whatsapp_grupo_id: string | null
   criado_por: string
 }
 
@@ -76,7 +77,7 @@ export default function PerfilPage() {
 
     const { data: grupoData, error: grupoError } = await supabase
       .from('grupos')
-      .select('id, nome, whatsapp_grupo_id')
+      .select('id, nome, whatsapp_grupo_id, criado_por')
       .eq('criado_por', user.id)
       .maybeSingle()
 
