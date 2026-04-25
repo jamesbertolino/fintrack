@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   const { instancia, grupoJid } = await request.json()
 
-  const res = await fetch(`${process.env.EVOLUTION_URL}/group/deleteGroup/${instancia}`, {
+  const res = await fetch(`${process.env.EVOLUTION_URL}/group/leaveGroup/${instancia}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
