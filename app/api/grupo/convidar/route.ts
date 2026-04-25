@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   // Busca grupo e valida admin
   const { data: grupo } = await supabase
     .from('grupos')
-    .select('id, nome, criado_por')
+    .select('id, nome, criado_por, whatsapp_grupo_id')
     .eq('id', grupo_id)
     .single()
 
@@ -102,7 +102,33 @@ export async function POST(request: NextRequest) {
   // Envia mensagem de convite via Evolution
   if (adminProfile.evolution_instancia) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-    const texto  = `👋 *${adminProfile.nome}* te convidou para o *${grupo.nome}* no GranaUp!\n\n🎯 O GranaUp é um app de controle financeiro familiar inteligente com IA.\n\n✅ Acesse o link abaixo para criar sua conta e entrar no grupo automaticamente:\n\n👉 ${appUrl}/convite/${token}\n\n_Válido por 7 dias_`
+
+    // Gera link de convite do grupo WhatsApp dinamicamente via revokeInviteCode
+    let whatsappLink = ''
+    if (grupo.whatsapp_grupo_id) {
+      try {
+        const invRes  = await fetch(
+          `${EVO_URL()}/group/revokeInviteCode/${adminProfile.evolution_instancia}`,
+          {
+            method:  'POST',
+            headers: evoHeaders(),
+            body:    JSON.stringify({ groupJid: grupo.whatsapp_grupo_id }),
+          }
+        )
+        const invData = await invRes.json()
+        console.log('[grupo/convidar] revokeInviteCode status:', invRes.status, 'data:', JSON.stringify(invData))
+        if (invData.inviteCode) {
+          whatsappLink = `https://chat.whatsapp.com/${invData.inviteCode}`
+        }
+      } catch (err) {
+        console.log('[grupo/convidar] erro ao gerar invite code:', err)
+      }
+    }
+
+    const passoGrupo = whatsappLink
+      ? `\n\n*Passo 2* — Entre no grupo WhatsApp:\n👉 ${whatsappLink}`
+      : ''
+    const texto = `👋 *${adminProfile.nome}* te convidou para o *${grupo.nome}* no GranaUp!\n\n🎯 O GranaUp é um app de controle financeiro familiar com IA.\n\n*Passo 1* — Crie sua conta no GranaUp:\n👉 ${appUrl}/convite/${token}${passoGrupo}\n\n_Válido por 7 dias_`
 
     try {
       const evoRes = await fetch(`${EVO_URL()}/message/sendText/${adminProfile.evolution_instancia}`, {

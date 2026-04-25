@@ -75,40 +75,13 @@ export async function POST(request: NextRequest) {
     .update({ user_id, status: 'ativo' })
     .eq('id', membro.id)
 
-  // Busca grupo e instância do dono
+  // Busca nome do grupo para retornar ao cliente
   const { data: grupo } = await supabase
     .from('grupos')
-    .select('nome, whatsapp_grupo_id, criado_por')
+    .select('nome')
     .eq('id', membro.grupo_id)
     .single()
 
-  if (!grupo) {
-    return NextResponse.json({ ok: true, grupo_nome: '' })
-  }
-
-  const { data: dono } = await supabase
-    .from('profiles')
-    .select('evolution_instancia')
-    .eq('id', grupo.criado_por)
-    .single()
-
-  // Adiciona ao grupo WhatsApp via Evolution
-  if (dono?.evolution_instancia && grupo.whatsapp_grupo_id) {
-    try {
-      const evoRes = await fetch(`${EVO_URL()}/group/updateParticipant/${dono.evolution_instancia}`, {
-        method:  'POST',
-        headers: evoHeaders(),
-        body:    JSON.stringify({
-          groupJid:     grupo.whatsapp_grupo_id,
-          action:       'add',
-          participants: [`${membro.whatsapp}@s.whatsapp.net`],
-        }),
-      })
-      console.log('[grupo/aceitar] updateParticipant status:', evoRes.status)
-    } catch (err) {
-      console.log('[grupo/aceitar] erro ao adicionar ao grupo WhatsApp:', err)
-    }
-  }
-
-  return NextResponse.json({ ok: true, grupo_nome: grupo.nome })
+  // O membro entra no grupo WhatsApp pelo link recebido no convite — sem necessidade de API aqui.
+  return NextResponse.json({ ok: true, grupo_nome: grupo?.nome || '' })
 }
