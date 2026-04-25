@@ -113,7 +113,7 @@ export default function PerfilPage() {
     if (grupoFinal) {
       const { data: membrosData, error: membrosError } = await supabase
         .from('grupo_membros')
-        .select('id, whatsapp, status, papel, user_id, profiles(nome)')
+        .select('id, whatsapp, status, papel, user_id, profiles!grupo_membros_user_id_fkey(nome)')
         .eq('grupo_id', grupoFinal.id)
         .neq('status', 'removido')
 
