@@ -12,6 +12,7 @@ export default function LandingPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('conta') === 'excluida') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setToastContaExcluida(true)
       setTimeout(() => setToastContaExcluida(false), 5000)
     }
