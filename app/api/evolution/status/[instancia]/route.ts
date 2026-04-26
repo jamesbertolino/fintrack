@@ -19,6 +19,8 @@ export async function GET(
   const { instancia } = await params
   const nomeGrupo = request.nextUrl.searchParams.get('grupo') || ''
 
+  console.log('[status] instancia:', instancia)
+
   const res = await fetch(`${EVO_URL()}/instance/connectionState/${instancia}`, {
     headers: { 'apikey': EVO_KEY() },
   })
@@ -30,7 +32,7 @@ export async function GET(
   const data  = await res.json()
   const state: string = data.instance?.state ?? data.state ?? 'close'
 
-  console.log('[evolution/status] instancia:', instancia, 'state:', state)
+  console.log('[status] state:', state)
 
   if (state === 'open') {
     const supabase = getSupabase()
@@ -41,6 +43,8 @@ export async function GET(
       .select('id, whatsapp')
       .eq('evolution_instancia', instancia)
       .single()
+
+    console.log('[status] user encontrado:', profile?.id)
 
     // Marca setup completo
     await supabase
@@ -53,7 +57,7 @@ export async function GET(
       try {
         const participants = profile.whatsapp ? [profile.whatsapp] : []
 
-        console.log('[evolution/status] criando grupo:', nomeGrupo, 'participants:', participants)
+        console.log('[status] criando grupo...')
 
         const grupoRes = await fetch(`${EVO_URL()}/group/create/${instancia}`, {
           method:  'POST',
@@ -62,13 +66,13 @@ export async function GET(
         })
 
         const grupoText = await grupoRes.text()
-        console.log('[evolution/status] group/create status:', grupoRes.status, 'body:', grupoText)
+        console.log('[status] grupo criado:', grupoRes.status, grupoText)
 
         if (grupoRes.ok) {
           const grupoData = JSON.parse(grupoText) as Record<string, unknown>
           const groupJid: string = (grupoData.id ?? grupoData.groupJid ?? grupoData.jid ?? '') as string
 
-          console.log('[evolution/status] groupJid:', groupJid)
+          console.log('[status] grupo salvo no banco:', grupoData)
 
           if (groupJid) {
             const { data: novoGrupo } = await supabase
@@ -87,8 +91,6 @@ export async function GET(
                 .from('profiles')
                 .update({ grupo_id_principal: novoGrupo.id })
                 .eq('id', profile.id)
-
-              console.log('[evolution/status] grupo salvo:', novoGrupo.id)
             }
           }
         }
