@@ -37,20 +37,23 @@ export async function GET(
   if (state === 'open') {
     const supabase = getSupabase()
 
-    // Busca o user vinculado a esta instância
-    const { data: profile } = await supabase
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, whatsapp')
-      .eq('evolution_instancia', instancia)
+      .select('id, nome, whatsapp, evolution_instancia')
+      .eq('id', user.id)
       .single()
 
+    console.log('[status] profile query result:', profile, 'error:', profileError?.message)
     console.log('[status] user encontrado:', profile?.id)
 
     // Marca setup completo
     await supabase
       .from('profiles')
       .update({ setup_completo: true })
-      .eq('evolution_instancia', instancia)
+      .eq('id', user.id)
 
     // Cria o grupo WhatsApp via Evolution (apenas se ainda não foi criado)
     if (nomeGrupo && profile?.id) {
