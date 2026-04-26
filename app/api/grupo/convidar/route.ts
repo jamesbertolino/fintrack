@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     .from('grupos')
     .select('id, nome, criado_por, whatsapp_grupo_id')
     .eq('id', grupo_id)
+    .eq('ativo', true)
     .single()
 
   if (!grupo) {
