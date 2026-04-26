@@ -44,27 +44,28 @@ Retorne APENAS JSON válido, sem texto adicional.
 
 Mensagem: "${mensagem}"
 
-Categorias: ${CATEGORIAS.join(', ')}
+Categorias disponíveis: ${CATEGORIAS.join(', ')}
 
 Regras OBRIGATÓRIAS:
-- Se NÃO houver valor numérico explícito na mensagem → retorne reconhecido: false
-- NUNCA invente ou assuma valores
-- Valor deve estar explícito: "R$100", "100 reais", "100,00", "- 100", etc
-- receita/salário/recebimento → tipo "credito"
-- gasto/compra/pagamento → tipo "debito"
-- Sem valor = não reconhecido
+- Se NÃO houver valor numérico explícito → reconhecido: false. NUNCA invente valores.
+- Valor deve estar explícito: "R$100", "100 reais", "100,00", "- 100", "+ 100", etc
+- receita, salário, recebimento, entrada → tipo "credito"
+- gasto, compra, pagamento, combustível, despesa → tipo "debito"
+- Exemplos:
+  "combustivel carro familia - R$100" → {descricao: "Combustível - carro família", valor: 100, tipo: "debito", categoria: "Transporte", reconhecido: true}
+  "salário + R$3000" → {descricao: "Salário", valor: 3000, tipo: "credito", categoria: "Salário", reconhecido: true}
+  "presente pai" → {reconhecido: false}
+  "mercado" → {reconhecido: false}
+- Nunca inclua texto fora do JSON
 
-Formato de retorno:
+Formato:
 {
   "descricao": "descrição limpa",
   "valor": 100.00,
   "tipo": "debito" ou "credito",
   "categoria": "categoria válida",
   "reconhecido": true ou false
-}
-
-Se reconhecido: false, retorne:
-{"reconhecido": false}`
+}`
 
   let parsed: { descricao: string; valor: number; tipo: string; categoria: string; reconhecido: boolean } | null = null
 
