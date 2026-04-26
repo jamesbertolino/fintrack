@@ -246,6 +246,7 @@ export default function PerfilPage() {
         .update({ ativo: false })
         .eq('id', grupo.id)
 
+      console.log('[sairDoGrupo] limpando profile...')
       await supabase.from('profiles')
         .update({ grupo_id_principal: null, setup_completo: false, evolution_instancia: null })
         .eq('id', user.id)
