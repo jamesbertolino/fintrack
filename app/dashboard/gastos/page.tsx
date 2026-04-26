@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -45,29 +45,41 @@ export default function GastosPage() {
   const [busca, setBusca]           = useState('')
   const [periodo, setPeriodo]       = useState('30')
   const [abaGrafico, setAbaGrafico] = useState<'categoria' | 'evolucao'>('categoria')
+  const [userId, setUserId]         = useState('')
+
+  const carregar = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
+    setUserId(user.id)
+
+    const dias = parseInt(periodo)
+    const desde = new Date()
+    desde.setDate(desde.getDate() - dias)
+
+    const { data } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('data_hora', desde.toISOString())
+      .order('data_hora', { ascending: false })
+
+    if (data) setTransacoes(data)
+    setLoading(false)
+  }, [supabase, router, periodo])
 
   useEffect(() => {
-    async function carregar() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-
-      const dias = parseInt(periodo)
-      const desde = new Date()
-      desde.setDate(desde.getDate() - dias)
-
-      const { data } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('data_hora', desde.toISOString())
-        .order('data_hora', { ascending: false })
-
-      if (data) setTransacoes(data)
-      setLoading(false)
-    }
     carregar()
+  }, [carregar])
+
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase
+      .channel('gastos-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` }, () => { carregar() })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodo])
+  }, [userId])
 
   // Filtros aplicados
   const filtradas = useMemo(() => transacoes.filter(t => {

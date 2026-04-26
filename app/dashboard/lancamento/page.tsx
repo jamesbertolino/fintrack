@@ -86,6 +86,7 @@ export default function LancamentoPage() {
   const [sucesso, setSucesso]       = useState(false)
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
+  const [userId, setUserId]         = useState('')
 
   // Busca timezone do perfil e inicializa o campo de data/hora corretamente
   useEffect(() => {
@@ -104,6 +105,7 @@ export default function LancamentoPage() {
   const carregarHistorico = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
+    setUserId(user.id)
 
     const { data } = await supabase
       .from('transactions')
@@ -119,6 +121,16 @@ export default function LancamentoPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarHistorico()
   }, [carregarHistorico])
+
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase
+      .channel('lancamento-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${userId}` }, () => { carregarHistorico() })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   // Trocar tipo e categoria juntos — sem useEffect
   function handleSetTipo(t: 'debito' | 'credito') {

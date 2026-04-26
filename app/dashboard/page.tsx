@@ -78,17 +78,22 @@ export default function Dashboard() {
   }, [supabase, router])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    carregarDados()
+    let channel: ReturnType<typeof supabase.channel>
 
-    const channel = supabase
-      .channel('dashboard-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, () => {
-        carregarDados()
-      })
-      .subscribe()
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      carregarDados()
+      channel = supabase
+        .channel('dashboard-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` }, () => { carregarDados() })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => { carregarDados() })
+        .subscribe()
+    }
 
-    return () => { supabase.removeChannel(channel) }
+    init()
+    return () => { if (channel) supabase.removeChannel(channel) }
   }, [carregarDados, supabase])
 
   async function sair() {
@@ -121,7 +126,19 @@ export default function Dashboard() {
       <aside style={{ width: sidebarAberta ? 200 : 56, background: '#0a1a0a', borderRight: '1px solid #1a3a1a', display: 'flex', flexDirection: 'column', transition: 'width .2s', flexShrink: 0 }}>
 
         <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <PoupaUpLogo mode={sidebarAberta ? 'full' : 'icon'} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img src="/favicon.ico" alt="PoupaUp" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+            {sidebarAberta && (
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+                  Poupa<span style={{ color: '#4ade80' }}>Up</span>
+                </div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em' }}>
+                  Poupe. Evolua. Conquiste.
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <nav style={{ flex: 1, padding: '0.75rem 0' }}>

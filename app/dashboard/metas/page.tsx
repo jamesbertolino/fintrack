@@ -63,6 +63,7 @@ export default function MetasPage() {
   const [salvando, setSalvando]   = useState(false)
   const [erro, setErro]           = useState('')
   const [abaSel, setAbaSel]       = useState<'metas' | 'alertas'>('metas')
+  const [userId, setUserId]       = useState('')
 
   const [form, setForm] = useState({
     nome: '', tipo: 'acumulacao', valor_total: '',
@@ -72,6 +73,7 @@ export default function MetasPage() {
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
+    setUserId(user.id)
 
     const [{ data: mt }, { data: al }] = await Promise.all([
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).order('created_at', { ascending: false }),
@@ -87,6 +89,16 @@ export default function MetasPage() {
     carregar()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase
+      .channel('metas-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'goals', filter: `user_id=eq.${userId}` }, () => { carregar() })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   async function salvarMeta(e: React.FormEvent) {
     e.preventDefault()
