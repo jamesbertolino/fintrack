@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
+import Image from 'next/image'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel } from '@/lib/calcularXP'
 
@@ -83,7 +84,6 @@ export default function Dashboard() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       carregarDados()
       channel = supabase
         .channel('dashboard-realtime')
@@ -127,7 +127,7 @@ export default function Dashboard() {
 
         <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/favicon.ico" alt="PoupaUp" style={{ width: 32, height: 32, objectFit: 'contain' }} />
+            <Image src="/favicon.ico" alt="PoupaUp" width={32} height={32} style={{ objectFit: 'contain' }} />
             {sidebarAberta && (
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1 }}>

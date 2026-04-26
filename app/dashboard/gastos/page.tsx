@@ -68,6 +68,7 @@ export default function GastosPage() {
   }, [supabase, router, periodo])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
   }, [carregar])
 
