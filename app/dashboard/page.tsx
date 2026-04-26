@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
-import Image from 'next/image'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel } from '@/lib/calcularXP'
 
@@ -38,6 +37,62 @@ const CORES: Record<string, string> = {
   'Saúde': '#a78bfa', 'Moradia': '#fbbf24', 'Educação': '#60a5fa',
   'Receita': '#4ade80', 'Outros': '#6b7280',
 }
+
+const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div style={{ position: 'relative', width: 36, height: 36, flexShrink: 0 }}>
+      <svg viewBox="0 0 100 100" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 75 A45 45 0 0 1 90 75" fill="none" stroke="url(#grad)" strokeWidth="8" strokeLinecap="round"/>
+        <line x1="10" y1="75" x2="17" y2="70" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+        <line x1="22" y1="45" x2="27" y2="52" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+        <line x1="50" y1="30" x2="50" y2="38" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+        <line x1="78" y1="45" x2="73" y2="52" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+        <line x1="90" y1="75" x2="83" y2="70" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+        <g style={{ transformOrigin: '50px 75px' }}>
+          <line
+            x1="50" y1="75" x2="80" y2="35"
+            stroke="url(#gradPonteiro)" strokeWidth="4" strokeLinecap="round"
+            style={{
+              transformOrigin: '50px 75px',
+              animation: 'ponteiro 1.5s ease-out forwards',
+            }}
+          />
+        </g>
+        <circle cx="50" cy="75" r="12" fill="#0a1a0a" stroke="#4ade80" strokeWidth="2"/>
+        <text x="50" y="80" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#4ade80">$</text>
+        <path d="M65 55 L85 35 M75 35 L85 35 L85 45" fill="none" stroke="#a3e635" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#16a34a"/>
+            <stop offset="100%" stopColor="#a3e635"/>
+          </linearGradient>
+          <linearGradient id="gradPonteiro" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#4ade80"/>
+            <stop offset="100%" stopColor="#a3e635"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    {!collapsed && (
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
+          Poupa<span style={{ color: '#4ade80' }}>Up</span>
+        </div>
+        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em' }}>
+          Poupe. Evolua. Conquiste.
+        </div>
+      </div>
+    )}
+    <style>{`
+      @keyframes ponteiro {
+        0% { transform: rotate(-90deg); }
+        60% { transform: rotate(20deg); }
+        80% { transform: rotate(5deg); }
+        100% { transform: rotate(10deg); }
+      }
+    `}</style>
+  </div>
+)
 
 export default function Dashboard() {
   const router = useRouter()
@@ -126,19 +181,7 @@ export default function Dashboard() {
       <aside style={{ width: sidebarAberta ? 200 : 56, background: '#0a1a0a', borderRight: '1px solid #1a3a1a', display: 'flex', flexDirection: 'column', transition: 'width .2s', flexShrink: 0 }}>
 
         <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Image src="/favicon.ico" alt="PoupaUp" width={32} height={32} style={{ objectFit: 'contain' }} />
-            {sidebarAberta && (
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
-                  Poupa<span style={{ color: '#4ade80' }}>Up</span>
-                </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em' }}>
-                  Poupe. Evolua. Conquiste.
-                </div>
-              </div>
-            )}
-          </div>
+          <LogoPoupaUp collapsed={!sidebarAberta} />
         </div>
 
         <nav style={{ flex: 1, padding: '0.75rem 0' }}>
