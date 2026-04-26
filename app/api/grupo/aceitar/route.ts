@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
     .eq('token_convite', token)
     .single()
 
+  console.log('[aceitar] convite grupo_id:', membro?.grupo_id)
+
   if (!membro) {
     return NextResponse.json({ error: 'Convite inválido ou expirado' }, { status: 404 })
   }

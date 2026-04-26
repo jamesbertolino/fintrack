@@ -24,10 +24,12 @@ export async function POST(request: NextRequest) {
   // Busca grupo e valida admin
   const { data: grupo } = await supabase
     .from('grupos')
-    .select('id, nome, criado_por, whatsapp_grupo_id')
+    .select('id, nome, criado_por, whatsapp_grupo_id, ativo')
     .eq('id', grupo_id)
     .eq('ativo', true)
     .single()
+
+  console.log('[convidar] grupo encontrado:', grupo?.id, grupo?.nome, 'ativo:', grupo?.ativo)
 
   if (!grupo) {
     return NextResponse.json({ error: 'Grupo não encontrado' }, { status: 404 })
