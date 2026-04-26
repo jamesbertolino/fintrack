@@ -205,7 +205,12 @@ export async function POST(request: NextRequest) {
     const respostaIA = await fetch(`${appUrl}/api/whatsapp/parse`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'x-n8n-secret': secret },
-      body:    JSON.stringify({ numero: participante, mensagem: mensagemLimpa || mensagem, grupo_id: grupo.id }),
+      body:    JSON.stringify({
+        numero:             participante,
+        mensagem:           mensagemLimpa || mensagem,
+        grupo_id:           grupo.id,
+        apenas_interpretar: precisaPerguntar,
+      }),
     })
     dadosIA = await respostaIA.json() as Record<string, unknown>
     console.log('[whatsapp/receber] parse status:', respostaIA.status, 'resposta:', JSON.stringify(dadosIA))
@@ -213,20 +218,14 @@ export async function POST(request: NextRequest) {
     console.log('[whatsapp/receber] erro ao chamar parse:', err)
   }
 
-  if (!dadosIA.ok || !dadosIA.transacao_id) {
+  if (!dadosIA.ok) {
     return NextResponse.json({ ok: true })
   }
 
   if (precisaPerguntar) {
-    const { data: txCriada } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('id', dadosIA.transacao_id)
-      .single()
+    const interp = dadosIA.interpretacao as { descricao: string; valor: number; tipo: string; categoria: string } | undefined
 
-    if (txCriada) {
-      await supabase.from('transactions').delete().eq('id', dadosIA.transacao_id)
-
+    if (interp) {
       const expires = new Date(Date.now() + 5 * 60 * 1000)
       await supabase.from('whatsapp_pendentes').insert({
         grupo_jid:         remoteJid,
@@ -234,28 +233,32 @@ export async function POST(request: NextRequest) {
         user_id:           profile.id,
         mensagem_original: mensagem,
         interpretacao: {
-          descricao: txCriada.descricao,
-          valor:     Math.abs(txCriada.valor),
-          tipo:      txCriada.tipo,
-          categoria: txCriada.categoria,
+          descricao: interp.descricao,
+          valor:     interp.valor,
+          tipo:      interp.tipo,
+          categoria: interp.categoria,
         },
         expires_at: expires.toISOString(),
       })
 
-      const emoji = txCriada.tipo === 'debito' ? '💸' : '💰'
-      const sinal = txCriada.tipo === 'debito' ? '-' : '+'
+      const emoji = interp.tipo === 'debito' ? '💸' : '💰'
+      const sinal = interp.tipo === 'debito' ? '-' : '+'
 
       await enviarMensagem(
         instancia,
         remoteJid,
-        `${emoji} *Detectei:* ${txCriada.descricao} ${sinal}R$ ${Math.abs(txCriada.valor).toFixed(2)} (${txCriada.categoria})\n\nEsse lançamento é:\n1️⃣ *Pessoal* (só seu)\n2️⃣ *Família* (para todos)\n\n_Responda 1, 2, p ou f — expira em 5 min_`
+        `${emoji} *Detectei:* ${interp.descricao} ${sinal}R$ ${Math.abs(interp.valor).toFixed(2)} (${interp.categoria})\n\nEsse lançamento é:\n1️⃣ *Pessoal* (só seu)\n2️⃣ *Família* (para todos)\n\n_Responda 1, 2, p ou f — expira em 5 min_`
       )
     }
 
     return NextResponse.json({ ok: true })
   }
 
-  // Sem necessidade de perguntar — define tipo direto
+  // Sem necessidade de perguntar — transação já foi criada pelo parse
+  if (!dadosIA.transacao_id) {
+    return NextResponse.json({ ok: true })
+  }
+
   const tipoVisibilidade = prefixoFamiliar ? 'familiar' :
                            modoUso === 'familiar' ? 'familiar' : 'pessoal'
 

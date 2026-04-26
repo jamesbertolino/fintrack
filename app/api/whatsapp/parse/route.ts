@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
-  const { numero, mensagem, grupo_id } = await request.json()
+  const { numero, mensagem, grupo_id, apenas_interpretar } = await request.json()
   if (!numero || !mensagem) {
     return NextResponse.json({ error: 'numero e mensagem são obrigatórios' }, { status: 400 })
   }
@@ -100,6 +100,19 @@ Regras:
     return NextResponse.json({
       ok: false,
       resposta: `❓ Não entendi. Tente assim:\n\n*combustivel - R$100*\n*mercado - R$87,50*\n*salário + R$3000*`,
+    })
+  }
+
+  // Modo só interpretar: retorna dados sem persistir
+  if (apenas_interpretar) {
+    return NextResponse.json({
+      ok: true,
+      interpretacao: {
+        descricao: parsed.descricao,
+        valor:     parsed.valor,
+        tipo:      parsed.tipo,
+        categoria: parsed.categoria,
+      },
     })
   }
 
