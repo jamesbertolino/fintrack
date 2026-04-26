@@ -67,7 +67,7 @@ export default function Dashboard() {
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
       supabase.from('profiles').select('nome, plano, avatar_url').eq('id', user.id).single(),
-      supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }).limit(20),
+      supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
 
