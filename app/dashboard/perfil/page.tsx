@@ -364,6 +364,29 @@ export default function PerfilPage() {
     setTimeout(() => setSucesso(''), 3000)
   }
 
+  async function excluirConta() {
+    const confirmacao1 = window.confirm(
+      '⚠️ Tem certeza que deseja excluir sua conta?\n\nTodos os seus dados serão apagados permanentemente:\n- Transações\n- Metas\n- Histórico\n- Grupo familiar'
+    )
+    if (!confirmacao1) return
+
+    const confirmacao2 = window.confirm(
+      '🚨 Esta ação é IRREVERSÍVEL.\n\nDigite OK para confirmar a exclusão definitiva da sua conta.'
+    )
+    if (!confirmacao2) return
+
+    setSalvando(true)
+    const res = await fetch('/api/conta/excluir', { method: 'DELETE' })
+
+    if (res.ok) {
+      await supabase.auth.signOut()
+      router.push('/?conta=excluida')
+    } else {
+      setErro('Erro ao excluir conta. Tente novamente.')
+      setSalvando(false)
+    }
+  }
+
   function copiarUrlWebhook() {
     const url = `${window.location.origin}/api/webhook/${profile?.id}`
     navigator.clipboard.writeText(url)
@@ -799,8 +822,22 @@ export default function PerfilPage() {
             <div style={{ background: 'rgba(239,68,68,.04)', border: '1px solid rgba(239,68,68,.15)', borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, color: '#f87171', marginBottom: 6 }}>Zona de perigo</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Ações irreversíveis. Tenha certeza antes de continuar.</div>
-              <button disabled style={{ padding: '9px 16px', background: 'transparent', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, color: 'rgba(239,68,68,.5)', fontSize: 12, cursor: 'not-allowed' }}>
-                Excluir conta — em breve
+              <button
+                onClick={excluirConta}
+                disabled={salvando}
+                style={{
+                  padding: '9px 16px',
+                  background: 'rgba(239,68,68,.1)',
+                  border: '1px solid rgba(239,68,68,.3)',
+                  borderRadius: 8,
+                  color: '#f87171',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: salvando ? 'not-allowed' : 'pointer',
+                  opacity: salvando ? 0.6 : 1,
+                }}
+              >
+                {salvando ? 'Excluindo...' : '🗑 Excluir minha conta'}
               </button>
             </div>
           </div>

@@ -1,12 +1,21 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 
 export default function LandingPage() {
   const router = useRouter()
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const [toastContaExcluida, setToastContaExcluida] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('conta') === 'excluida') {
+      setToastContaExcluida(true)
+      setTimeout(() => setToastContaExcluida(false), 5000)
+    }
+  }, [])
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
@@ -50,6 +59,14 @@ export default function LandingPage() {
           .mock-grid { grid-template-columns: 1fr 1fr !important; }
         }
       `}</style>
+
+      {/* Toast conta excluída */}
+      {toastContaExcluida && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#111', border: '1px solid rgba(74,222,128,.3)', borderRadius: 10, padding: '12px 20px', fontSize: 13, color: '#4ade80', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 4px 24px rgba(0,0,0,.5)', whiteSpace: 'nowrap' }}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="2,8 6,12 14,4" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          Conta excluída com sucesso.
+        </div>
+      )}
 
       {/* ── HEADER ── */}
       <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(10,10,10,.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #1a2a1a' }}>
