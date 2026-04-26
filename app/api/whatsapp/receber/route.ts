@@ -8,21 +8,22 @@ function getSupabase() {
   )
 }
 
-const EVO_URL    = () => process.env.EVOLUTION_URL!
-const EVO_KEY    = () => process.env.EVOLUTION_API_KEY!
-const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KEY() })
+const EVO_URL = () => process.env.EVOLUTION_URL!
+const EVO_KEY = () => process.env.EVOLUTION_API_KEY!
 
-async function enviarMensagemGrupo(instancia: string, grupoJid: string, text: string) {
-  try {
-    const res = await fetch(`${EVO_URL()}/message/sendText/${instancia}`, {
-      method:  'POST',
-      headers: evoHeaders(),
-      body:    JSON.stringify({ number: grupoJid, text }),
-    })
-    console.log('[whatsapp/receber] sendText status:', res.status)
-  } catch (err) {
-    console.log('[whatsapp/receber] erro ao enviar mensagem grupo:', err)
-  }
+function detectarResposta(msg: string): 'pessoal' | 'familiar' | null {
+  const m = msg.trim().toLowerCase()
+  if (['1', 'p', 'pessoal', 'meu', 'minha'].includes(m)) return 'pessoal'
+  if (['2', 'f', 'familia', 'família', 'familiar', 'todos', 'gente'].includes(m)) return 'familiar'
+  return null
+}
+
+async function enviarMensagem(instancia: string, numero: string, texto: string) {
+  await fetch(`${EVO_URL()}/message/sendText/${instancia}`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': EVO_KEY() },
+    body:    JSON.stringify({ number: numero, text: texto }),
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -57,14 +58,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ignorado: 'mensagem privada' })
   }
 
-  // O sender contém o número real do remetente
   const participante = ((body?.sender as string) || '')
     .replace('@s.whatsapp.net', '')
     .replace('@lid', '')
 
   console.log('[debug] participante via sender:', participante)
 
-  // Extrai texto
   const messageObj = data?.message as Record<string, unknown> | undefined
   const mensagem   = (messageObj?.conversation as string)
     || ((messageObj?.extendedTextMessage as Record<string, unknown>)?.text as string)
@@ -80,7 +79,6 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabase()
 
-  // Busca grupo pelo whatsapp_grupo_id
   const { data: grupo } = await supabase
     .from('grupos')
     .select('id, criado_por, whatsapp_grupo_id')
@@ -88,11 +86,10 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (!grupo) {
-    console.log('[whatsapp/receber] grupo não cadastrado no GranaUp:', grupoJid)
+    console.log('[whatsapp/receber] grupo não cadastrado no PoupaUp:', grupoJid)
     return NextResponse.json({ ok: true })
   }
 
-  // Busca instância Evolution do dono do grupo
   const { data: dono } = await supabase
     .from('profiles')
     .select('evolution_instancia')
@@ -101,7 +98,6 @@ export async function POST(request: NextRequest) {
 
   const instancia = dono?.evolution_instancia || ''
 
-  // Busca perfil do participante (tenta match exato ou sufixo dos últimos 8 dígitos)
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, nome, whatsapp')
@@ -111,9 +107,9 @@ export async function POST(request: NextRequest) {
   console.log('[debug] profile encontrado:', profile?.nome, profile?.whatsapp)
 
   if (!profile) {
-    console.log('[whatsapp/receber] participante não cadastrado no GranaUp:', participante)
+    console.log('[whatsapp/receber] participante não cadastrado no PoupaUp:', participante)
     if (instancia) {
-      await enviarMensagemGrupo(
+      await enviarMensagem(
         instancia,
         grupoJid!,
         '❓ Número não cadastrado no PoupaUp. Acesse poupaup.com.br para criar sua conta.'
@@ -122,27 +118,155 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // Chama o parse
+  // Verificar se é uma resposta a um pendente
+  const respostaPendente = detectarResposta(mensagem)
+
+  if (respostaPendente) {
+    const { data: pendente } = await supabase
+      .from('whatsapp_pendentes')
+      .select('*')
+      .eq('numero', participante)
+      .eq('grupo_jid', remoteJid)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (pendente) {
+      const interpretacao = pendente.interpretacao as {
+        descricao: string; valor: number; tipo: string; categoria: string
+      }
+
+      await supabase.from('transactions').insert({
+        user_id:           pendente.user_id,
+        descricao:         interpretacao.descricao,
+        valor:             interpretacao.tipo === 'debito' ? -Math.abs(interpretacao.valor) : Math.abs(interpretacao.valor),
+        tipo:              interpretacao.tipo,
+        categoria:         interpretacao.categoria,
+        data_hora:         new Date().toISOString(),
+        origem:            'whatsapp',
+        grupo_id:          grupo.id,
+        tipo_visibilidade: respostaPendente,
+      })
+
+      await supabase.from('whatsapp_pendentes').delete().eq('id', pendente.id)
+
+      const emoji     = interpretacao.tipo === 'debito' ? '💸' : '💰'
+      const sinal     = interpretacao.tipo === 'debito' ? '-' : '+'
+      const tipoLabel = respostaPendente === 'familiar' ? '👨‍👩‍👧 familiar' : '👤 pessoal'
+
+      await enviarMensagem(
+        instancia,
+        remoteJid,
+        `${emoji} *Lançado como ${tipoLabel}!*\n\n📝 ${interpretacao.descricao}\n💵 ${sinal}R$ ${Math.abs(interpretacao.valor).toFixed(2)}\n🏷️ ${interpretacao.categoria}\n\n_PoupaUp_ ✓`
+      )
+      return NextResponse.json({ ok: true })
+    } else {
+      await enviarMensagem(instancia, remoteJid, '⏱ Tempo esgotado. Por favor, mande a mensagem novamente.')
+      return NextResponse.json({ ok: true })
+    }
+  }
+
+  // Verificar prefixos diretos
+  const prefixoPessoal  = /^(p:|pessoal:)\s*/i.test(mensagem)
+  const prefixoFamiliar = /^(f:|familia:|família:)\s*/i.test(mensagem)
+  const mensagemLimpa   = mensagem.replace(/^(p:|f:|pessoal:|familia:|família:)\s*/i, '').trim()
+
+  // Buscar modo_uso do usuário
+  const { data: profileUser } = await supabase
+    .from('profiles')
+    .select('modo_uso')
+    .eq('id', profile.id)
+    .single()
+
+  const modoUso          = profileUser?.modo_uso || 'pessoal'
+  const temGrupoFamiliar = !!grupo
+
+  // Decidir se precisa perguntar
+  let precisaPerguntar = false
+  if (prefixoPessoal) {
+    // lança direto como pessoal
+  } else if (prefixoFamiliar) {
+    // lança direto como familiar
+  } else if (temGrupoFamiliar && modoUso === 'ambos') {
+    precisaPerguntar = true
+  } else if (temGrupoFamiliar && modoUso === 'familiar') {
+    precisaPerguntar = true
+  } else if ((mensagemLimpa || mensagem).match(/família|familia|casa|nós|nos|gente|juntos/i)) {
+    precisaPerguntar = true
+  }
+
+  // Chamar IA para interpretar
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
   const secret = process.env.N8N_WEBHOOK_SECRET  || 'granaup-secret-2026'
 
-  let resposta = ''
+  let dadosIA: Record<string, unknown> = {}
   try {
-    const parseRes  = await fetch(`${appUrl}/api/whatsapp/parse`, {
+    const respostaIA = await fetch(`${appUrl}/api/whatsapp/parse`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'x-n8n-secret': secret },
-      body:    JSON.stringify({ numero: participante, mensagem, grupo_id: grupo.id }),
+      body:    JSON.stringify({ numero: participante, mensagem: mensagemLimpa || mensagem, grupo_id: grupo.id }),
     })
-    const parseData = await parseRes.json() as Record<string, unknown>
-    console.log('[whatsapp/receber] parse status:', parseRes.status, 'resposta:', JSON.stringify(parseData))
-    resposta = (parseData.resposta as string) || ''
+    dadosIA = await respostaIA.json() as Record<string, unknown>
+    console.log('[whatsapp/receber] parse status:', respostaIA.status, 'resposta:', JSON.stringify(dadosIA))
   } catch (err) {
     console.log('[whatsapp/receber] erro ao chamar parse:', err)
   }
 
+  if (!dadosIA.ok || !dadosIA.transacao_id) {
+    return NextResponse.json({ ok: true })
+  }
+
+  if (precisaPerguntar) {
+    const { data: txCriada } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', dadosIA.transacao_id)
+      .single()
+
+    if (txCriada) {
+      await supabase.from('transactions').delete().eq('id', dadosIA.transacao_id)
+
+      const expires = new Date(Date.now() + 5 * 60 * 1000)
+      await supabase.from('whatsapp_pendentes').insert({
+        grupo_jid:         remoteJid,
+        numero:            participante,
+        user_id:           profile.id,
+        mensagem_original: mensagem,
+        interpretacao: {
+          descricao: txCriada.descricao,
+          valor:     Math.abs(txCriada.valor),
+          tipo:      txCriada.tipo,
+          categoria: txCriada.categoria,
+        },
+        expires_at: expires.toISOString(),
+      })
+
+      const emoji = txCriada.tipo === 'debito' ? '💸' : '💰'
+      const sinal = txCriada.tipo === 'debito' ? '-' : '+'
+
+      await enviarMensagem(
+        instancia,
+        remoteJid,
+        `${emoji} *Detectei:* ${txCriada.descricao} ${sinal}R$ ${Math.abs(txCriada.valor).toFixed(2)} (${txCriada.categoria})\n\nEsse lançamento é:\n1️⃣ *Pessoal* (só seu)\n2️⃣ *Família* (para todos)\n\n_Responda 1, 2, p ou f — expira em 5 min_`
+      )
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  // Sem necessidade de perguntar — define tipo direto
+  const tipoVisibilidade = prefixoFamiliar ? 'familiar' :
+                           modoUso === 'familiar' ? 'familiar' : 'pessoal'
+
+  await supabase.from('transactions')
+    .update({ tipo_visibilidade: tipoVisibilidade })
+    .eq('id', dadosIA.transacao_id)
+
   // Envia resposta de volta para o grupo
+  const resposta = (dadosIA.resposta as string) || ''
   if (resposta && instancia) {
-    await enviarMensagemGrupo(instancia, grupoJid!, resposta)
+    await enviarMensagem(instancia, grupoJid!, resposta)
   }
 
   return NextResponse.json({ ok: true })
