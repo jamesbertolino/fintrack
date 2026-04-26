@@ -66,7 +66,7 @@ export default function SetupPage() {
     if (pollingRef.current) clearInterval(pollingRef.current)
     pollingRef.current = setInterval(async () => {
       try {
-        const res  = await fetch(`/api/evolution/status/${inst}?grupo=${encodeURIComponent(grupo)}`)
+        const res  = await fetch(`/api/evolution/status/${inst}?grupo=${encodeURIComponent(grupo)}&user_id=${userId}`)
         const data = await res.json()
         if (data.state === 'open') {
           clearInterval(pollingRef.current!)
