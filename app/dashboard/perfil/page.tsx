@@ -120,21 +120,29 @@ export default function PerfilPage() {
       const userIds = membrosData?.map(m => m.user_id).filter(Boolean) || []
       let profilesMap: Record<string, { nome: string; avatar_url: string | null }> = {}
 
+      console.log('[perfil] userIds:', userIds)
+
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, nome, avatar_url')
           .in('id', userIds)
 
+        console.log('[perfil] profilesData:', JSON.stringify(profilesData))
+
         profilesMap = Object.fromEntries(
           (profilesData || []).map(p => [p.id, { nome: p.nome, avatar_url: p.avatar_url }])
         )
       }
 
+      console.log('[perfil] profilesMap:', JSON.stringify(profilesMap))
+
       const membrosCompletos = (membrosData || []).map(m => ({
         ...m,
         profiles: m.user_id ? profilesMap[m.user_id] || null : null,
       }))
+
+      console.log('[perfil] membrosCompletos:', JSON.stringify(membrosCompletos))
 
       setMembros(membrosCompletos as GrupoMembro[])
     }
