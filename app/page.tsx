@@ -238,7 +238,7 @@ export default function LandingPage() {
       {/* ── DEPOIMENTO ── */}
       <section style={{ padding: '80px 1.5rem', maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
         <div className="fade-in" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 20, padding: '2rem 2.5rem', position: 'relative' }}>
-          <div style={{ fontSize: 48, color: 'rgba(74,222,128,.3)', fontFamily: 'Georgia, serif', lineHeight: 1, marginBottom: 16, marginTop: -8 }}>"</div>
+          <div style={{ fontSize: 48, color: 'rgba(74,222,128,.3)', fontFamily: 'Georgia, serif', lineHeight: 1, marginBottom: 16, marginTop: -8 }}>&quot;</div>
           <p style={{ fontSize: 18, lineHeight: 1.7, color: 'rgba(255,255,255,.8)', fontStyle: 'italic', margin: '0 0 24px' }}>
             Lancei meu salário no WhatsApp e em 2 segundos já estava no app. Nunca foi tão fácil controlar meu dinheiro.
           </p>

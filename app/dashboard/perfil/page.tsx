@@ -56,7 +56,6 @@ export default function PerfilPage() {
   const [membros, setMembros]       = useState<GrupoMembro[]>([])
   const [novoNumero, setNovoNum]    = useState('')
   const [convidando, setConvidan]   = useState(false)
-  const [removendo, setRemovendo]   = useState<string | null>(null)
   const [tokenVisivel, setTokenVis]     = useState(false)
   const [copiado, setCopiado]           = useState(false)
   const [modalAvatarAberto, setModalAv] = useState(false)
@@ -81,7 +80,7 @@ export default function PerfilPage() {
     }
     if (wh) setWebhook(wh)
 
-    const { data: grupoData, error: grupoError } = await supabase
+    const { data: grupoData } = await supabase
       .from('grupos')
       .select('id, nome, whatsapp_grupo_id, criado_por')
       .eq('criado_por', user.id)

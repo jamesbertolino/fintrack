@@ -8,10 +8,6 @@ function getSupabase() {
   )
 }
 
-const EVO_URL    = () => process.env.EVOLUTION_URL!
-const EVO_KEY    = () => process.env.EVOLUTION_API_KEY!
-const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KEY() })
-
 // GET — informações públicas do convite (para exibir antes do login)
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token')

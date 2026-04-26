@@ -70,7 +70,7 @@ export default function EvolucaoPage() {
   }, [carregar])
 
   const xp         = calcularXP({ transacoes, metas })
-  const { receitas, despesas, saldo, xpTotal, xpTransacoes, xpSaldo, xpMetas: xpMetasTotal } = xp
+  const { saldo, xpTotal, xpTransacoes, xpSaldo, xpMetas: xpMetasTotal } = xp
   const nivel      = calcularNivel(xpTotal)
 
   // Conquistas
