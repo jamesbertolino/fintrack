@@ -1,24 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const [tab, setTab] = useState<'login' | 'cadastro'>('login')
+  const [estado, setEstado] = useState<'form' | 'sucesso' | 'aguardando_email'>('form')
   const [loading, setLoading] = useState(false)
   const [showPw, setShowPw] = useState(false)
-  const [sucesso, setSucesso] = useState(false)
   const [nomeUsuario, setNomeUsuario] = useState('')
+  const [emailDigitado, setEmailDigitado] = useState('')
   const [erro, setErro] = useState('')
 
   const [loginForm, setLoginForm] = useState({ email: '', senha: '' })
   const [cadForm, setCadForm] = useState({ nome: '', email: '', senha: '' })
   const [forca, setForca] = useState({ pct: 0, cor: '', label: '' })
+
+  const erroParam = searchParams.get('erro')
 
   function calcularForca(pw: string) {
     let score = 0
@@ -65,7 +69,6 @@ export default function LoginPage() {
     setLoading(false)
     if (error) { setErro(error.message); return }
 
-    // Criar perfil na tabela profiles
     if (data.user) {
       await supabase.from('profiles').upsert({
         id: data.user.id,
@@ -74,8 +77,14 @@ export default function LoginPage() {
         plano: 'free',
       })
     }
+
+    if (data.user && !data.user.email_confirmed_at) {
+      setEstado('aguardando_email')
+      return
+    }
+
     setNomeUsuario(cadForm.nome.split(' ')[0])
-    setSucesso(true)
+    setEstado('sucesso')
   }
 
   async function loginGoogle() {
@@ -84,6 +93,29 @@ export default function LoginPage() {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     })
   }
+
+  if (estado === 'aguardando_email') return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', padding: '1rem' }}>
+      <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>📧</div>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+          Confirme seu email
+        </h2>
+        <p style={{ fontSize: 14, color: 'rgba(255,255,255,.5)', marginBottom: 24, lineHeight: 1.6 }}>
+          Enviamos um link de confirmação para <strong style={{ color: '#4ade80' }}>{emailDigitado}</strong>.
+          <br />Acesse seu email e clique no link para ativar sua conta.
+        </p>
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: 20, fontSize: 13, color: 'rgba(255,255,255,.5)', textAlign: 'left' }}>
+          <div style={{ marginBottom: 8 }}>✉️ Verifique sua caixa de entrada</div>
+          <div style={{ marginBottom: 8 }}>📁 Verifique também o spam</div>
+          <div>⏱ O link expira em 24 horas</div>
+        </div>
+        <button onClick={() => { setEstado('form'); setTab('login') }} style={{ fontSize: 13, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+          Voltar para o login
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{
@@ -161,7 +193,7 @@ export default function LoginPage() {
             marginBottom: '1.5rem',
           }}>
             {(['login', 'cadastro'] as const).map(t => (
-              <button key={t} onClick={() => { setTab(t); setErro(''); setSucesso(false) }} style={{
+              <button key={t} onClick={() => { setTab(t); setErro(''); setEstado('form') }} style={{
                 flex: 1, padding: '7px', textAlign: 'center', fontSize: 12, fontWeight: 500,
                 borderRadius: 6, cursor: 'pointer', border: 'none',
                 background: tab === t ? '#16a34a' : 'transparent',
@@ -172,6 +204,16 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
+
+          {erroParam === 'email_nao_confirmado' && (
+            <div style={{
+              background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)',
+              borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#fde047',
+              marginBottom: 12,
+            }}>
+              ⚠️ Confirme seu email antes de entrar. Verifique sua caixa de entrada.
+            </div>
+          )}
 
           {erro && (
             <div style={{
@@ -248,7 +290,7 @@ export default function LoginPage() {
           )}
 
           {/* ── CADASTRO ── */}
-          {tab === 'cadastro' && !sucesso && (
+          {tab === 'cadastro' && estado === 'form' && (
             <form onSubmit={handleCadastro}>
               <div style={{ fontSize: 17, fontWeight: 500, color: '#fff', marginBottom: 3 }}>Criar sua conta</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>7 dias grátis no plano Pro</div>
@@ -273,15 +315,18 @@ export default function LoginPage() {
                 <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
               </div>
               {[
-                { label: 'Nome',   key: 'nome',  type: 'text',     placeholder: 'Seu nome' },
-                { label: 'E-mail', key: 'email', type: 'email',    placeholder: 'seu@email.com' },
+                { label: 'Nome',   key: 'nome',  type: 'text',  placeholder: 'Seu nome' },
+                { label: 'E-mail', key: 'email', type: 'email', placeholder: 'seu@email.com' },
               ].map(({ label, key, type, placeholder }) => (
                 <div key={key} style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
                   <input
                     type={type} placeholder={placeholder}
                     value={cadForm[key as keyof typeof cadForm]}
-                    onChange={e => setCadForm(prev => ({ ...prev, [key]: e.target.value }))}
+                    onChange={e => {
+                      setCadForm(prev => ({ ...prev, [key]: e.target.value }))
+                      if (key === 'email') setEmailDigitado(e.target.value)
+                    }}
                     required
                     style={{
                       width: '100%', fontSize: 13, padding: '9px 12px',
@@ -336,7 +381,7 @@ export default function LoginPage() {
           )}
 
           {/* ── SUCESSO ── */}
-          {tab === 'cadastro' && sucesso && (
+          {tab === 'cadastro' && estado === 'sucesso' && (
             <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
               <div style={{
                 width: 56, height: 56, borderRadius: '50%',
@@ -378,3 +423,10 @@ export default function LoginPage() {
   )
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
+  )
+}

@@ -22,8 +22,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Usuário autenticado na tela de login → dashboard
-  if (user && pathname === '/login') {
+  // Usuário autenticado mas email não confirmado → aviso no login
+  if (user && !user.email_confirmed_at && !isPublic && !isApi) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('erro', 'email_nao_confirmado')
+    return NextResponse.redirect(url)
+  }
+
+  // Usuário autenticado na tela de login → dashboard (só se email confirmado)
+  if (user && user.email_confirmed_at && pathname === '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
