@@ -40,55 +40,49 @@ const CORES: Record<string, string> = {
 
 const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    <div style={{ position: 'relative', width: 36, height: 36, flexShrink: 0 }}>
-      <svg viewBox="0 0 100 100" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
-        <path d="M10 75 A45 45 0 0 1 90 75" fill="none" stroke="url(#grad)" strokeWidth="8" strokeLinecap="round"/>
-        <line x1="10" y1="75" x2="17" y2="70" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
-        <line x1="22" y1="45" x2="27" y2="52" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
-        <line x1="50" y1="30" x2="50" y2="38" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
-        <line x1="78" y1="45" x2="73" y2="52" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
-        <line x1="90" y1="75" x2="83" y2="70" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
-        <g style={{ transformOrigin: '50px 75px' }}>
-          <line
-            x1="50" y1="75" x2="80" y2="35"
-            stroke="url(#gradPonteiro)" strokeWidth="4" strokeLinecap="round"
-            style={{
-              transformOrigin: '50px 75px',
-              animation: 'ponteiro 1.5s ease-out forwards',
-            }}
-          />
-        </g>
-        <circle cx="50" cy="75" r="12" fill="#0a1a0a" stroke="#4ade80" strokeWidth="2"/>
-        <text x="50" y="80" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#4ade80">$</text>
-        <path d="M65 55 L85 35 M75 35 L85 35 L85 45" fill="none" stroke="#a3e635" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-        <defs>
-          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#16a34a"/>
-            <stop offset="100%" stopColor="#a3e635"/>
-          </linearGradient>
-          <linearGradient id="gradPonteiro" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#4ade80"/>
-            <stop offset="100%" stopColor="#a3e635"/>
-          </linearGradient>
-        </defs>
-      </svg>
+    <div style={{
+      width: 36, height: 36, flexShrink: 0, position: 'relative',
+      borderRadius: 8, overflow: 'hidden',
+    }}>
+      <img
+        src="/velocimetro.jpg"
+        alt="PoupaUp"
+        style={{
+          width: '100%', height: '100%', objectFit: 'cover',
+          animation: 'pulse-logo 2s ease-in-out',
+        }}
+      />
     </div>
+
     {!collapsed && (
-      <div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1 }}>
-          Poupa<span style={{ color: '#4ade80' }}>Up</span>
+      <div style={{ lineHeight: 1 }}>
+        <div style={{
+          fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em',
+          background: 'linear-gradient(135deg, #fff 40%, #4ade80 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          Poupa<span style={{
+            background: 'linear-gradient(135deg, #4ade80, #a3e635)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}>Up</span>
         </div>
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', letterSpacing: '.08em' }}>
-          Poupe. Evolua. Conquiste.
+        <div style={{
+          fontSize: 8, color: 'rgba(255,255,255,.3)',
+          letterSpacing: '.1em', marginTop: 2,
+          textTransform: 'uppercase',
+        }}>
+          Poupe · Evolua · Conquiste
         </div>
       </div>
     )}
+
     <style>{`
-      @keyframes ponteiro {
-        0% { transform: rotate(-90deg); }
-        60% { transform: rotate(20deg); }
-        80% { transform: rotate(5deg); }
-        100% { transform: rotate(10deg); }
+      @keyframes pulse-logo {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        50% { transform: scale(1.05); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
       }
     `}</style>
   </div>
