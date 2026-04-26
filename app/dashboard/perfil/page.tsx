@@ -108,13 +108,35 @@ export default function PerfilPage() {
     setGrupo(grupoFinal)
 
     if (grupoFinal) {
-      const { data: membrosData } = await supabase
+      const { data: membrosData, error: membrosError } = await supabase
         .from('grupo_membros')
-        .select('id, whatsapp, status, papel, user_id, profiles!grupo_membros_user_id_fkey(nome, avatar_url)')
+        .select('id, whatsapp, status, papel, user_id')
         .eq('grupo_id', grupoFinal.id)
         .neq('status', 'removido')
 
-      if (membrosData) setMembros(membrosData as GrupoMembro[])
+      console.log('[perfil] membrosData sem join:', JSON.stringify(membrosData))
+      if (membrosError) console.log('[perfil] membrosError:', membrosError.message)
+
+      const userIds = membrosData?.map(m => m.user_id).filter(Boolean) || []
+      let profilesMap: Record<string, { nome: string; avatar_url: string | null }> = {}
+
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, nome, avatar_url')
+          .in('id', userIds)
+
+        profilesMap = Object.fromEntries(
+          (profilesData || []).map(p => [p.id, { nome: p.nome, avatar_url: p.avatar_url }])
+        )
+      }
+
+      const membrosCompletos = (membrosData || []).map(m => ({
+        ...m,
+        profiles: m.user_id ? profilesMap[m.user_id] || null : null,
+      }))
+
+      setMembros(membrosCompletos as GrupoMembro[])
     }
     setLoading(false)
   }, [supabase, router])
