@@ -39,27 +39,32 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const prompt = `Interprete esta mensagem de controle financeiro e retorne APENAS um JSON válido, sem texto adicional:
+  const prompt = `Interprete esta mensagem de controle financeiro.
+Retorne APENAS JSON válido, sem texto adicional.
 
 Mensagem: "${mensagem}"
 
-Categorias disponíveis: ${CATEGORIAS.join(', ')}
+Categorias: ${CATEGORIAS.join(', ')}
 
-Retorne exatamente neste formato:
+Regras OBRIGATÓRIAS:
+- Se NÃO houver valor numérico explícito na mensagem → retorne reconhecido: false
+- NUNCA invente ou assuma valores
+- Valor deve estar explícito: "R$100", "100 reais", "100,00", "- 100", etc
+- receita/salário/recebimento → tipo "credito"
+- gasto/compra/pagamento → tipo "debito"
+- Sem valor = não reconhecido
+
+Formato de retorno:
 {
-  "descricao": "descrição limpa da transação",
+  "descricao": "descrição limpa",
   "valor": 100.00,
   "tipo": "debito" ou "credito",
-  "categoria": "uma das categorias disponíveis",
+  "categoria": "categoria válida",
   "reconhecido": true ou false
 }
 
-Regras:
-- receita, salário, recebimento → tipo "credito"
-- gasto, compra, pagamento, combustível → tipo "debito"
-- "combustivel carro familia - R$100" → {descricao: "Combustível - carro família", valor: 100, tipo: "debito", categoria: "Transporte"}
-- Se não conseguir interpretar → reconhecido: false
-- Nunca inclua texto fora do JSON`
+Se reconhecido: false, retorne:
+{"reconhecido": false}`
 
   let parsed: { descricao: string; valor: number; tipo: string; categoria: string; reconhecido: boolean } | null = null
 
@@ -99,7 +104,7 @@ Regras:
     })
     return NextResponse.json({
       ok: false,
-      resposta: `❓ Não entendi. Tente assim:\n\n*combustivel - R$100*\n*mercado - R$87,50*\n*salário + R$3000*`,
+      resposta: `❓ Não entendi o valor. Tente assim:\n\n*mercado - R$150*\n*salário + R$3.000*\n*uber 32,50*`,
     })
   }
 
