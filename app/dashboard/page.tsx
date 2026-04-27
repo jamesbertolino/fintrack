@@ -32,6 +32,14 @@ interface Profile {
   avatar_url?: string | null
 }
 
+interface Conta {
+  id: string
+  nome: string
+  saldo: number
+  mostrar_saldo: boolean
+  bancos: { nome_curto: string; cor: string | null } | null
+}
+
 const CORES: Record<string, string> = {
   'Alimentação': '#4ade80', 'Transporte': '#22d3ee', 'Lazer': '#f97316',
   'Saúde': '#a78bfa', 'Moradia': '#fbbf24', 'Educação': '#60a5fa',
@@ -97,6 +105,7 @@ export default function Dashboard() {
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
   const [metas, setMetas]           = useState<Meta[]>([])
+  const [contas, setContas]         = useState<Conta[]>([])
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
   const [sidebarAberta, setSidebar] = useState(true)
@@ -125,6 +134,11 @@ export default function Dashboard() {
     if (prof) setProfile(prof)
     if (tx)   setTransacoes(tx)
     if (mt)   setMetas(mt)
+
+    const contasRes  = await fetch('/api/contas')
+    const contasDados = await contasRes.json()
+    setContas(contasDados.contas || [])
+
     setLoading(false)
   }, [supabase, router])
 
@@ -283,6 +297,37 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+
+              {contas.length > 0 && (
+                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldos por conta</span>
+                    <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver detalhes →</button>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {contas.slice(0, 4).map(c => (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.bancos?.cor || '#4ade80', flexShrink: 0 }} />
+                        <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>{c.nome}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? '#4ade80' : '#f87171' }}>
+                          {c.mostrar_saldo ? `R$ ${c.saldo.toFixed(2).replace('.', ',')}` : '••••••'}
+                        </span>
+                      </div>
+                    ))}
+                    {contas.length > 4 && (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>
+                        +{contas.length - 4} contas
+                      </div>
+                    )}
+                    <div style={{ borderTop: '1px solid #1a3a1a', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>
+                        R$ {contas.reduce((a, c) => a + (c.mostrar_saldo ? c.saldo : 0), 0).toFixed(2).replace('.', ',')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 12, marginBottom: 12 }}>
                 <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>

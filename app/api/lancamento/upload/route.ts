@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -21,8 +22,33 @@ export async function POST(request: NextRequest) {
   return processarImagem(arquivo, user.id)
 }
 
+async function detectarBanco(cabecalho: string): Promise<{ id: string; nome_curto: string } | null> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { data: bancos } = await supabase
+    .from('bancos')
+    .select('id, nome_curto, padrao_csv')
+    .not('padrao_csv', 'is', null)
+
+  if (!bancos) return null
+
+  for (const banco of bancos) {
+    if (!banco.padrao_csv?.length) continue
+    const matches = banco.padrao_csv.filter((col: string) =>
+      cabecalho.toLowerCase().includes(col.toLowerCase())
+    )
+    if (matches.length >= 2) return { id: banco.id, nome_curto: banco.nome_curto }
+  }
+  return null
+}
+
 async function processarCSV(arquivo: File, userId: string) {
   const texto = await arquivo.text()
+  const cabecalho = texto.split('\n')[0] || ''
+  const banco = await detectarBanco(cabecalho)
 
   const prompt = `Analise este CSV de extrato bancário e extraia as transações.
 Retorne APENAS JSON válido sem texto adicional.
@@ -49,7 +75,14 @@ Retorne:
   "resumo": "Encontrei X transações de DD/MM a DD/MM"
 }`
 
-  return chamarIA(prompt, null)
+  const iaResponse = await chamarIA(prompt, null)
+  const iaData = await iaResponse.json()
+  if (!iaData.ok) return iaResponse
+  return NextResponse.json({
+    ...iaData,
+    banco_id:   banco?.id         || null,
+    banco_nome: banco?.nome_curto || null,
+  })
 }
 
 async function processarImagem(arquivo: File, userId: string) {

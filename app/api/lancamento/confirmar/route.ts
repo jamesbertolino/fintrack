@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const { transacoes } = await request.json()
+  const { transacoes, conta_id } = await request.json()
   if (!transacoes?.length) return NextResponse.json({ error: 'Nenhuma transação' }, { status: 400 })
 
   const inserir = transacoes.map((t: {
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     tipo:      t.tipo,
     categoria: t.categoria,
     data_hora: t.data_hora || new Date().toISOString(),
+    conta_id:  conta_id || null,
     origem:    'upload',
   }))
 

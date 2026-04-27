@@ -16,6 +16,13 @@ interface Profile {
   plano: string
   created_at: string
   avatar_url?: string | null
+  conta_padrao_id?: string | null
+}
+
+interface ContaPerfil {
+  id: string
+  nome: string
+  bancos: { nome_curto: string } | null
 }
 
 interface WebhookConfig {
@@ -59,6 +66,8 @@ export default function PerfilPage() {
   const [tokenVisivel, setTokenVis]     = useState(false)
   const [copiado, setCopiado]           = useState(false)
   const [modalAvatarAberto, setModalAv] = useState(false)
+  const [contasPerfil, setContasPerfil] = useState<ContaPerfil[]>([])
+  const [contaPadrao, setContaPadrao]   = useState('')
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
@@ -77,8 +86,13 @@ export default function PerfilPage() {
     if (prof) {
       setProfile(prof)
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
+      setContaPadrao(prof.conta_padrao_id || '')
     }
     if (wh) setWebhook(wh)
+
+    const contasRes = await fetch('/api/contas')
+    const contasDados = await contasRes.json()
+    setContasPerfil(contasDados.contas || [])
 
     const { data: grupoData } = await supabase
       .from('grupos')
@@ -726,6 +740,36 @@ export default function PerfilPage() {
                   )}
                 </div>
               </>
+            )}
+
+            {/* Conta padrão */}
+            {grupo && contasPerfil.length > 0 && (
+              <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Conta padrão para lançamentos do grupo</div>
+                <select
+                  value={contaPadrao}
+                  onChange={async e => {
+                    const val = e.target.value
+                    setContaPadrao(val)
+                    const { data: { user } } = await supabase.auth.getUser()
+                    if (!user) return
+                    await supabase.from('profiles').update({ conta_padrao_id: val || null }).eq('id', user.id)
+                    setSucesso('Conta padrão atualizada!')
+                    setTimeout(() => setSucesso(''), 2000)
+                  }}
+                  style={inputStyle}
+                >
+                  <option value="">Sem conta padrão (genérico)</option>
+                  {contasPerfil.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.bancos?.nome_curto || '—'} — {c.nome}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
+                  Lançamentos via WhatsApp sem conta especificada usarão esta conta.
+                </div>
+              </div>
             )}
 
             {/* Sair / Encerrar grupo */}

@@ -71,6 +71,7 @@ export default function ContasPage() {
     numero:        '',
     agencia:       '',
     mostrar_saldo: true,
+    saldo_inicial: '',
   })
 
   const carregar = useCallback(async () => {
@@ -114,7 +115,7 @@ export default function ContasPage() {
     if (!data.ok) { setErro(data.error || 'Erro ao salvar'); return }
 
     setModal(false)
-    setForm({ banco_id: '', nome: '', tipo: 'corrente', numero: '', agencia: '', mostrar_saldo: true })
+    setForm({ banco_id: '', nome: '', tipo: 'corrente', numero: '', agencia: '', mostrar_saldo: true, saldo_inicial: '' })
     setBusca('')
     setSucesso('Conta adicionada!')
     carregar()
@@ -346,9 +347,23 @@ export default function ContasPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Agência (opcional)</label>
                 <input value={form.agencia} onChange={e => setForm(p => ({ ...p, agencia: e.target.value }))} placeholder="Ex: 0001" style={inputStyle} />
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldo inicial (opcional)</label>
+                <input
+                  type="number"
+                  value={form.saldo_inicial}
+                  onChange={e => setForm(p => ({ ...p, saldo_inicial: e.target.value }))}
+                  placeholder="0,00"
+                  style={inputStyle}
+                />
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
+                  Se omitido, a conta começa com R$ 0,00
+                </div>
               </div>
 
               <div

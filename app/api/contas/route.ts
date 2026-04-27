@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const { banco_id, nome, tipo, numero, agencia, mostrar_saldo } = await request.json()
+  const { banco_id, nome, tipo, numero, agencia, mostrar_saldo, saldo_inicial } = await request.json()
 
   const { data, error } = await supabase.from('contas').insert({
     user_id:       user.id,
@@ -45,5 +45,20 @@ export async function POST(request: NextRequest) {
   }).select('*').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  const valorInicial = parseFloat(saldo_inicial) || 0
+  if (valorInicial > 0 && data) {
+    await supabase.from('transactions').insert({
+      user_id:   user.id,
+      descricao: 'Saldo inicial',
+      valor:     valorInicial,
+      tipo:      'credito',
+      categoria: 'Outros',
+      conta_id:  data.id,
+      origem:    'saldo_inicial',
+      data_hora: new Date().toISOString(),
+    })
+  }
+
   return NextResponse.json({ ok: true, conta: data })
 }

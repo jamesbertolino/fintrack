@@ -87,8 +87,10 @@ export default function LancamentoPage() {
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
   const [userId, setUserId]         = useState('')
-  const [contas, setContas]         = useState<Array<{ id: string; nome: string; tipo: string; bancos: { nome_curto: string; cor: string | null } | null }>>([])
+  const [contas, setContas]         = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
   const [contaSelecionada, setConta] = useState('')
+  const [bancoDetectado, setBancoDetectado] = useState<{ id: string; nome_curto: string; cor: string | null } | null>(null)
+  const [contaUpload, setContaUpload] = useState('')
 
   const inputRef                    = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver]     = useState(false)
@@ -226,6 +228,16 @@ export default function LancamentoPage() {
 
     setTransacoesDetectadas(data.transacoes)
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
+
+    if (data.banco_id) {
+      const bancoDados = await (await fetch('/api/bancos')).json()
+      const banco = bancoDados.bancos?.find((b: { id: string }) => b.id === data.banco_id)
+      if (banco) {
+        setBancoDetectado(banco)
+        const contasBanco = contas.filter(c => c.bancos?.id === banco.id)
+        if (contasBanco.length === 1) setContaUpload(contasBanco[0].id)
+      }
+    }
   }
 
   function editarTransacao(i: number, campo: string, valor: string) {
@@ -241,7 +253,7 @@ export default function LancamentoPage() {
     const res = await fetch('/api/lancamento/confirmar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transacoes: transacoesDetectadas }),
+      body: JSON.stringify({ transacoes: transacoesDetectadas, conta_id: contaUpload || null }),
     })
     const data = await res.json()
     setConfirman(false)
@@ -249,6 +261,8 @@ export default function LancamentoPage() {
     if (data.ok) {
       setTransacoesDetectadas([])
       setResumo('')
+      setBancoDetectado(null)
+      setContaUpload('')
       setSucesso(true)
       carregarHistorico()
       setTimeout(() => setSucesso(false), 3000)
@@ -446,6 +460,36 @@ export default function LancamentoPage() {
                 <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#4ade80' }}>
                   ✅ {resumoDetectado} — Revise antes de confirmar:
                 </div>
+
+                {bancoDetectado && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, marginBottom: 12 }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 4, background: bancoDetectado.cor || '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                      {bancoDetectado.nome_curto[0]}
+                    </div>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>
+                      Banco detectado: <strong style={{ color: '#fff' }}>{bancoDetectado.nome_curto}</strong>
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Vincular à conta</label>
+                  <select
+                    value={contaUpload}
+                    onChange={e => setContaUpload(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="">Sem conta específica</option>
+                    {contas
+                      .filter(c => !bancoDetectado || c.bancos?.id === bancoDetectado.id)
+                      .map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.bancos?.nome_curto || '—'} — {c.nome}
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
                   {transacoesDetectadas.map((t, i) => (
                     <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -467,7 +511,7 @@ export default function LancamentoPage() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={() => setTransacoesDetectadas([])} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                  <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload('') }} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
                     Cancelar
                   </button>
                   <button onClick={confirmarLancamentos} disabled={confirmando} style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
