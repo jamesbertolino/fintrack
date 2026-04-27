@@ -87,6 +87,8 @@ export default function LancamentoPage() {
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
   const [userId, setUserId]         = useState('')
+  const [contas, setContas]         = useState<Array<{ id: string; nome: string; tipo: string; bancos: { nome_curto: string; cor: string | null } | null }>>([])
+  const [contaSelecionada, setConta] = useState('')
 
   const inputRef                    = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver]     = useState(false)
@@ -111,6 +113,10 @@ export default function LancamentoPage() {
   }, [])
 
   // useCallback declarado ANTES do useEffect que o chama
+  useEffect(() => {
+    fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
+  }, [])
+
   const carregarHistorico = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -182,7 +188,8 @@ export default function LancamentoPage() {
       tipo,
       categoria,
       data_hora: inputParaUTC(dataHora, timezone),
-      origem: 'manual',
+      origem:   'manual',
+      conta_id: contaSelecionada || null,
     })
 
     if (error) { setErro('Erro ao salvar: ' + error.message); setSalvando(false); return }
@@ -336,6 +343,24 @@ export default function LancamentoPage() {
                 ))}
               </div>
             </div>
+
+            {contas.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conta (opcional)</label>
+                <select
+                  value={contaSelecionada}
+                  onChange={e => setConta(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="">Sem conta específica</option>
+                  {contas.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.bancos?.nome_curto || '—'} · {c.nome} ({c.tipo})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data e hora</label>

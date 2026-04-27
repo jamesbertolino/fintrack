@@ -166,6 +166,7 @@ export default function Dashboard() {
     { id: 'notificacoes',label: 'Notificações',   icon: 'M7 2a4 4 0 00-4 4v2l-1 1v1h10v-1l-1-1V6a4 4 0 00-4-4zM5.5 12a1.5 1.5 0 003 0', href: '/dashboard/notificacoes' },
     //{ id: 'evolucao',    label: 'Evolução',       icon: 'M2 10l3-3 3 3 4-6' },
     { id: 'evolucao', label: 'Evolução', icon: 'M2 10l3-3 3 3 4-6', href: '/dashboard/evolucao' },
+    { id: 'contas', label: 'Contas', icon: 'M2 4h10a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zM1 7h12', href: '/dashboard/contas' },
   ]
 
   return (
