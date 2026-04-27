@@ -44,6 +44,7 @@ const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
       width: 36, height: 36, flexShrink: 0, position: 'relative',
       borderRadius: 8, overflow: 'hidden',
     }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/velocimetro.jpg"
         alt="PoupaUp"

@@ -49,7 +49,7 @@ Retorne:
   "resumo": "Encontrei X transações de DD/MM a DD/MM"
 }`
 
-  return chamarIA(prompt, null, userId)
+  return chamarIA(prompt, null)
 }
 
 async function processarImagem(arquivo: File, userId: string) {
@@ -80,10 +80,10 @@ Retorne:
   "resumo": "Descrição breve do documento"
 }`
 
-  return chamarIA(prompt, { base64, mediaType }, userId)
+  return chamarIA(prompt, { base64, mediaType })
 }
 
-async function chamarIA(prompt: string, imagem: { base64: string; mediaType: string } | null, _userId: string) {
+async function chamarIA(prompt: string, imagem: { base64: string; mediaType: string } | null) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
   if (anthropicKey) {

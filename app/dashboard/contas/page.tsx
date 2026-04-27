@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 interface Banco {
   id: string
@@ -71,7 +72,10 @@ export default function ContasPage() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { carregar() }, [carregar])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    carregar()
+  }, [carregar])
 
   const totalSaldo = contas.reduce((acc, c) => acc + (c.saldo || 0), 0)
 
@@ -192,7 +196,7 @@ export default function ContasPage() {
                   {/* Ícone banco */}
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: `${cor}22`, border: `1.5px solid ${cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 700, color: cor }}>
                     {banco?.logo_url
-                      ? <img src={banco.logo_url} alt={banco.nome_curto} style={{ width: 28, height: 28, objectFit: 'contain' }} />
+                      ? <Image src={banco.logo_url} alt={banco.nome_curto} width={28} height={28} style={{ objectFit: 'contain' }} />
                       : inicialBanco(banco)
                     }
                   </div>
