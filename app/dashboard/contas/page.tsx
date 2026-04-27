@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 
 interface Banco {
   id: string
@@ -36,6 +35,20 @@ function corBanco(banco: Banco | null) {
 
 function inicialBanco(banco: Banco | null) {
   return (banco?.nome_curto || 'B')[0].toUpperCase()
+}
+
+function getLogoBanco(banco: { codigo?: string; nome_curto?: string; logo_url?: string | null }) {
+  if (banco.logo_url) return banco.logo_url
+  const dominios: Record<string, string> = {
+    '001': 'bb.com.br', '033': 'santander.com.br', '104': 'caixa.gov.br',
+    '237': 'bradesco.com.br', '341': 'itau.com.br', '260': 'nubank.com.br',
+    '077': 'bancointer.com.br', '290': 'pagbank.com.br', '336': 'c6bank.com.br',
+    '380': 'picpay.com', '323': 'mercadopago.com.br', '748': 'sicredi.com.br',
+    '756': 'sicoob.com.br', '212': 'original.com.br', '041': 'banrisul.com.br',
+    '070': 'brb.com.br', '422': 'safra.com.br', '707': 'daycoval.com.br',
+  }
+  const dominio = dominios[banco.codigo || '']
+  return dominio ? `https://logo.clearbit.com/${dominio}` : null
 }
 
 export default function ContasPage() {
@@ -190,15 +203,27 @@ export default function ContasPage() {
             {contas.map(conta => {
               const banco = conta.bancos
               const cor = corBanco(banco)
+              const logoUrl = getLogoBanco(banco || {})
               const saldoVisivel = conta.mostrar_saldo && !ocultarSaldos
               return (
                 <div key={conta.id} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
                   {/* Ícone banco */}
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: `${cor}22`, border: `1.5px solid ${cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 700, color: cor }}>
-                    {banco?.logo_url
-                      ? <Image src={banco.logo_url} alt={banco.nome_curto} width={28} height={28} style={{ objectFit: 'contain' }} />
-                      : inicialBanco(banco)
-                    }
+                    {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={logoUrl}
+                        alt={banco?.nome_curto || ''}
+                        width={28}
+                        height={28}
+                        style={{ objectFit: 'contain', borderRadius: 6 }}
+                        onError={e => {
+                          e.currentTarget.style.display = 'none'
+                          const parent = e.currentTarget.parentElement
+                          if (parent) parent.textContent = inicialBanco(banco)
+                        }}
+                      />
+                    ) : inicialBanco(banco)}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -266,21 +291,38 @@ export default function ContasPage() {
                 />
                 {buscaBanco && (
                   <div style={{ background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, marginTop: 4, maxHeight: 180, overflowY: 'auto' }}>
-                    {bancosFiltrados.slice(0, 8).map(b => (
-                      <div
-                        key={b.id}
-                        onClick={() => { setForm(p => ({ ...p, banco_id: b.id })); setBusca(b.nome_curto) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', background: form.banco_id === b.id ? 'rgba(74,222,128,.08)' : 'transparent' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = form.banco_id === b.id ? 'rgba(74,222,128,.08)' : 'transparent')}
-                      >
-                        <div style={{ width: 24, height: 24, borderRadius: 6, background: `${b.cor || '#4ade80'}22`, border: `1px solid ${b.cor || '#4ade80'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: b.cor || '#4ade80', flexShrink: 0 }}>
-                          {b.nome_curto[0]}
+                    {bancosFiltrados.slice(0, 8).map(b => {
+                      const bLogo = getLogoBanco(b)
+                      return (
+                        <div
+                          key={b.id}
+                          onClick={() => { setForm(p => ({ ...p, banco_id: b.id })); setBusca(b.nome_curto) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', cursor: 'pointer', background: form.banco_id === b.id ? 'rgba(74,222,128,.08)' : 'transparent' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = form.banco_id === b.id ? 'rgba(74,222,128,.08)' : 'transparent')}
+                        >
+                          <div style={{ width: 24, height: 24, borderRadius: 6, background: `${b.cor || '#4ade80'}22`, border: `1px solid ${b.cor || '#4ade80'}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: b.cor || '#4ade80', flexShrink: 0 }}>
+                            {bLogo ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={bLogo}
+                                alt={b.nome_curto}
+                                width={16}
+                                height={16}
+                                style={{ objectFit: 'contain', borderRadius: 3 }}
+                                onError={e => {
+                                  e.currentTarget.style.display = 'none'
+                                  const parent = e.currentTarget.parentElement
+                                  if (parent) parent.textContent = b.nome_curto[0]
+                                }}
+                              />
+                            ) : b.nome_curto[0]}
+                          </div>
+                          <span style={{ fontSize: 13 }}>{b.nome_curto}</span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 'auto' }}>{b.codigo}</span>
                         </div>
-                        <span style={{ fontSize: 13 }}>{b.nome_curto}</span>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 'auto' }}>{b.codigo}</span>
-                      </div>
-                    ))}
+                      )
+                    })}
                     {bancosFiltrados.length === 0 && <div style={{ padding: '10px 12px', fontSize: 12, color: 'rgba(255,255,255,.3)' }}>Nenhum banco encontrado</div>}
                   </div>
                 )}
