@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { usePerfil } from '@/hooks/usePerfil'
@@ -87,6 +87,15 @@ export default function LancamentoPage() {
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
   const [userId, setUserId]         = useState('')
+
+  const inputRef                    = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver]     = useState(false)
+  const [processando, setProcessan] = useState(false)
+  const [confirmando, setConfirman] = useState(false)
+  const [transacoesDetectadas, setTransacoesDetectadas] = useState<Array<{
+    descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
+  }>>([])
+  const [resumoDetectado, setResumo] = useState('')
 
   // Busca timezone do perfil e inicializa o campo de data/hora corretamente
   useEffect(() => {
@@ -185,6 +194,60 @@ export default function LancamentoPage() {
     setDataHora(dataLocalParaInput(timezone))
     carregarHistorico()
     setTimeout(() => setSucesso(false), 2500)
+  }
+
+  async function handleUpload(arquivo: File) {
+    if (!arquivo) return
+    if (arquivo.size > 10 * 1024 * 1024) { setErro('Arquivo muito grande. Máx 10MB'); return }
+
+    setProcessan(true)
+    setTransacoesDetectadas([])
+    setErro('')
+
+    const form = new FormData()
+    form.append('arquivo', arquivo)
+
+    const res = await fetch('/api/lancamento/upload', { method: 'POST', body: form })
+    const data = await res.json()
+
+    setProcessan(false)
+
+    if (!data.ok || !data.transacoes?.length) {
+      setErro(data.error || 'Não foi possível extrair transações do documento')
+      return
+    }
+
+    setTransacoesDetectadas(data.transacoes)
+    setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
+  }
+
+  function editarTransacao(i: number, campo: string, valor: string) {
+    setTransacoesDetectadas(prev => prev.map((t, idx) => idx === i ? { ...t, [campo]: valor } : t))
+  }
+
+  function removerTransacao(i: number) {
+    setTransacoesDetectadas(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function confirmarLancamentos() {
+    setConfirman(true)
+    const res = await fetch('/api/lancamento/confirmar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transacoes: transacoesDetectadas }),
+    })
+    const data = await res.json()
+    setConfirman(false)
+
+    if (data.ok) {
+      setTransacoesDetectadas([])
+      setResumo('')
+      setSucesso(true)
+      carregarHistorico()
+      setTimeout(() => setSucesso(false), 3000)
+    } else {
+      setErro(data.error || 'Erro ao confirmar')
+    }
   }
 
   async function deletar(id: string) {
@@ -308,6 +371,87 @@ export default function LancamentoPage() {
               {salvando ? 'Salvando...' : `Lançar ${tipo === 'debito' ? 'despesa' : 'receita'}${valor ? ' de R$ ' + valor : ''}`}
             </button>
           </form>
+
+          {/* Seção upload */}
+          <div style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
+            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>📎 Importar documento</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
+              Foto de cupom, nota fiscal, fatura PDF ou extrato CSV
+            </div>
+
+            <div
+              onClick={() => inputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]) }}
+              style={{
+                border: `2px dashed ${dragOver ? '#4ade80' : '#1a3a1a'}`,
+                borderRadius: 12, padding: '1.5rem',
+                textAlign: 'center', cursor: 'pointer',
+                background: dragOver ? 'rgba(74,222,128,.05)' : 'transparent',
+                transition: 'all .2s',
+              }}
+            >
+              <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>
+                Clique ou arraste o arquivo aqui
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
+                JPG, PNG, PDF, CSV — máx 10MB
+              </div>
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,.pdf,.csv"
+                style={{ display: 'none' }}
+                onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])}
+              />
+            </div>
+
+            {processando && (
+              <div style={{ marginTop: 12, padding: '12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, fontSize: 12, color: '#4ade80', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ animation: 'spin 1s linear infinite' }}>⏳</div>
+                Analisando documento com IA...
+                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+              </div>
+            )}
+
+            {transacoesDetectadas.length > 0 && !processando && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#4ade80' }}>
+                  ✅ {resumoDetectado} — Revise antes de confirmar:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+                  {transacoesDetectadas.map((t, i) => (
+                    <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 14, flexShrink: 0 }}>✕</button>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <input
+                          value={t.descricao}
+                          onChange={e => editarTransacao(i, 'descricao', e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }}
+                        />
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>
+                          {t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
+                        {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button onClick={() => setTransacoesDetectadas([])} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                  <button onClick={confirmarLancamentos} disabled={confirmando} style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
+                    {confirmando ? 'Lançando...' : `Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Histórico */}
