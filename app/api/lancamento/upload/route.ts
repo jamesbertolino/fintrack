@@ -1,5 +1,4 @@
 export const maxDuration = 60
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
@@ -7,17 +6,12 @@ import { createClient } from '@supabase/supabase-js'
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const formData = await request.formData()
   const arquivo = formData.get('arquivo') as File
 
-  if (!arquivo) {
-    return NextResponse.json({ error: 'Arquivo obrigatório' }, { status: 400 })
-  }
+  if (!arquivo) return NextResponse.json({ error: 'Arquivo obrigatório' }, { status: 400 })
 
   const tipo = arquivo.type
   const nome = arquivo.name.toLowerCase()
@@ -29,9 +23,6 @@ export async function POST(request: NextRequest) {
   return processarImagem(arquivo, user.id)
 }
 
-// ------------------------
-// Detectar banco
-// ------------------------
 async function detectarBanco(cabecalho: string): Promise<{ id: string; nome_curto: string } | null> {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,148 +38,98 @@ async function detectarBanco(cabecalho: string): Promise<{ id: string; nome_curt
 
   for (const banco of bancos) {
     if (!banco.padrao_csv?.length) continue
-
     const matches = banco.padrao_csv.filter((col: string) =>
       cabecalho.toLowerCase().includes(col.toLowerCase())
     )
-
-    if (matches.length >= 2) {
-      return { id: banco.id, nome_curto: banco.nome_curto }
-    }
+    if (matches.length >= 2) return { id: banco.id, nome_curto: banco.nome_curto }
   }
-
   return null
 }
 
-// ------------------------
-// CSV (CORRIGIDO)
-// ------------------------
 async function processarCSV(arquivo: File, userId: string) {
-  try {
-    const texto = await arquivo.text()
-    const linhas = texto.split('\n').filter((l: string) => l.trim())
+  const texto = await arquivo.text()
+  const cabecalho = texto.split('\n')[0]?.trim() || ''
+  const banco = await detectarBanco(cabecalho)
 
-    if (linhas.length <= 1) {
-      return NextResponse.json({ error: 'CSV vazio' }, { status: 400 })
-    }
+  const linhas = texto.split('\n').filter((l: string) => l.trim())
+  const cabecalhoLinha = linhas[0]
+  const MAX_LINHAS = 200
+  const csvParaIA = [cabecalhoLinha, ...linhas.slice(1, MAX_LINHAS + 1)].join('\n')
+  const totalLinhas = linhas.length - 1
 
-    const cabecalho = linhas[0]
-    const banco = await detectarBanco(cabecalho)
-
-    // 🔥 CHUNK (remove limite de 10)
-    const CHUNK_SIZE = 20
-    const chunks: string[][] = []
-
-    for (let i = 1; i < linhas.length; i += CHUNK_SIZE) {
-      chunks.push(linhas.slice(i, i + CHUNK_SIZE))
-    }
-
-    let todasTransacoes: any[] = []
-
-    for (const chunk of chunks) {
-      const csvChunk = [cabecalho, ...chunk].join('\n')
-
-      const prompt = `Analise este CSV de extrato bancário e extraia TODAS as transações.
-
-REGRAS:
-- NÃO limitar quantidade
-- NÃO resumir
-- Retornar 100% das transações deste trecho
-- Retornar APENAS JSON válido
+  const prompt = `Analise este CSV de extrato bancário e extraia AS TRANSAÇÕES.
+Retorne APENAS JSON válido sem texto adicional.
+Este arquivo tem ${totalLinhas} transações no total. Extraia TODAS as que estão abaixo.
 
 CSV:
-${csvChunk}
+${csvParaIA}
 
-Formato:
+Detecte automaticamente as colunas de: data, descrição, valor, tipo (débito/crédito).
+Ignore linhas de cabeçalho, totais e linhas vazias.
+Categorias disponíveis: Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros
+
+Retorne:
 {
   "transacoes": [
     {
-      "descricao": "",
-      "valor": 0,
+      "descricao": "Nome limpo da transação",
+      "valor": 100.00,
       "tipo": "debito" ou "credito",
-      "categoria": "",
-      "data_hora": ""
+      "categoria": "categoria",
+      "data_hora": "2026-04-26T10:00:00Z"
     }
-  ]
+  ],
+  "total_encontradas":  ${totalLinhas},
+  "resumo": "Encontrei X transações de DD/MM a DD/MM"
 }`
 
-      const iaResponse = await chamarIA(prompt, null)
-      const iaData = await iaResponse.json()
-
-      if (!iaData.ok) continue
-
-      if (Array.isArray(iaData.transacoes)) {
-        todasTransacoes.push(...iaData.transacoes)
-      }
-    }
-
-    return NextResponse.json({
-      ok: true,
-      transacoes: todasTransacoes,
-      total_encontradas: todasTransacoes.length,
-      banco_id: banco?.id || null,
-      banco_nome: banco?.nome_curto || null,
-    })
-
-  } catch (err: any) {
-    console.error('ERRO CSV:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+  const iaResponse = await chamarIA(prompt, null)
+  const iaData = await iaResponse.json()
+  if (!iaData.ok) return iaResponse
+  return NextResponse.json({
+    ...iaData,
+    banco_id:   banco?.id         || null,
+    banco_nome: banco?.nome_curto || null,
+  })
 }
 
-// ------------------------
-// IMAGEM (mantido)
-// ------------------------
 async function processarImagem(arquivo: File, userId: string) {
   const bytes = await arquivo.arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')
   const mediaType = arquivo.type || 'image/jpeg'
 
-  const prompt = `Analise esta imagem e extraia as transações financeiras.
+  const prompt = `Analise esta imagem (cupom, nota fiscal, fatura ou comprovante) e extraia as transações financeiras.
+Retorne APENAS JSON válido sem texto adicional.
 
-Retorne APENAS JSON válido.
+Categorias disponíveis: Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros
 
-Formato:
+Se for um cupom com vários itens, agrupe em UMA transação com o total.
+Se for uma fatura com várias compras, liste cada uma separadamente.
+
+Retorne:
 {
   "transacoes": [
     {
-      "descricao": "",
-      "valor": 0,
+      "descricao": "Nome limpo da transação",
+      "valor": 100.00,
       "tipo": "debito" ou "credito",
-      "categoria": "",
-      "data_hora": ""
+      "categoria": "categoria",
+      "data_hora": "2026-04-26T10:00:00Z"
     }
-  ]
+  ],
+  "total_encontradas": 1,
+  "resumo": "Descrição breve do documento"
 }`
 
   return chamarIA(prompt, { base64, mediaType })
 }
 
-// ------------------------
-// SAFE JSON
-// ------------------------
-function safeJSON(text: string) {
-  try {
-    return JSON.parse(text)
-  } catch {
-    try {
-      const clean = text.replace(/```json|```/g, '').trim()
-      return JSON.parse(clean)
-    } catch {
-      return null
-    }
-  }
-}
-
-// ------------------------
-// CHAMAR IA (CORRIGIDO)
-// ------------------------
 async function chamarIA(prompt: string, imagem: { base64: string; mediaType: string } | null) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
   if (anthropicKey) {
     try {
-      const content: any = imagem
+      const content: unknown[] = imagem
         ? [
             { type: 'image', source: { type: 'base64', media_type: imagem.mediaType, data: imagem.base64 } },
             { type: 'text', text: prompt },
@@ -210,19 +151,61 @@ async function chamarIA(prompt: string, imagem: { base64: string; mediaType: str
       })
 
       const data = await res.json()
-
       if (res.ok && data.content?.[0]?.text) {
-        const parsed = safeJSON(data.content[0].text)
-
-        if (!parsed) throw new Error('JSON inválido da IA')
-
-        return NextResponse.json({ ok: true, ...parsed })
+        const resultado = JSON.parse(data.content[0].text.replace(/```json|```/g, '').trim())
+        return NextResponse.json({ ok: true, ...resultado })
       }
-
-    } catch (err) {
-      console.error('Erro Anthropic:', err)
-    }
+    } catch { /* fallback OpenAI */ }
   }
 
-  return NextResponse.json({ error: 'Falha na IA' }, { status: 500 })
+  const openaiKey = process.env.OPENAI_API_KEY
+
+  if (openaiKey && imagem) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 8000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: `data:${imagem.mediaType};base64,${imagem.base64}` } },
+              { type: 'text', text: prompt },
+            ],
+          }],
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.choices?.[0]?.message?.content) {
+        const resultado = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim())
+        return NextResponse.json({ ok: true, ...resultado })
+      }
+    } catch { /* erro */ }
+  }
+
+  if (openaiKey && !imagem) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.choices?.[0]?.message?.content) {
+        const resultado = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim())
+        return NextResponse.json({ ok: true, ...resultado })
+      }
+    } catch { /* erro */ }
+  }
+
+  return NextResponse.json({ error: 'Não foi possível processar o arquivo' }, { status: 500 })
 }
