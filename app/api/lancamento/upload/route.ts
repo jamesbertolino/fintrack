@@ -1,3 +1,4 @@
+export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
@@ -47,14 +48,21 @@ async function detectarBanco(cabecalho: string): Promise<{ id: string; nome_curt
 
 async function processarCSV(arquivo: File, userId: string) {
   const texto = await arquivo.text()
-  const cabecalho = texto.split('\n')[0] || ''
+  const cabecalho = texto.split('\n')[0]?.trim() || ''
   const banco = await detectarBanco(cabecalho)
 
-  const prompt = `Analise este CSV de extrato bancário e extraia as transações.
+  const linhas = texto.split('\n').filter((l: string) => l.trim())
+  const cabecalhoLinha = linhas[0]
+  const MAX_LINHAS = 200
+  const csvParaIA = [cabecalhoLinha, ...linhas.slice(1, MAX_LINHAS + 1)].join('\n')
+  const totalLinhas = linhas.length - 1
+
+  const prompt = `Analise este CSV de extrato bancário e extraia AS TRANSAÇÕES.
 Retorne APENAS JSON válido sem texto adicional.
+Este arquivo tem ${totalLinhas} transações no total. Extraia TODAS as que estão abaixo.
 
 CSV:
-${texto.slice(0, 8000)}
+${csvParaIA}
 
 Detecte automaticamente as colunas de: data, descrição, valor, tipo (débito/crédito).
 Ignore linhas de cabeçalho, totais e linhas vazias.
