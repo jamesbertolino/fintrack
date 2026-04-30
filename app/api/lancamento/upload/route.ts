@@ -79,21 +79,32 @@ Retorne:
   const resultado = await chamarIATexto(prompt)
   if (!resultado) return null
 
-  // Valida se o resultado tem a estrutura esperada
+  const colunas = resultado.colunas as Record<string, unknown> | undefined
+
   if (
-    typeof resultado.banco === 'string' &&
-    typeof resultado.separador === 'string' &&
-    typeof resultado.linha_inicio_dados === 'number' &&
-    resultado.colunas &&
-    typeof resultado.colunas.data === 'number' &&
-    typeof resultado.colunas.descricao === 'number'
+    typeof resultado.banco !== 'string' ||
+    typeof resultado.separador !== 'string' ||
+    typeof resultado.linha_inicio_dados !== 'number' ||
+    !colunas ||
+    typeof colunas.data !== 'number' ||
+    typeof colunas.descricao !== 'number'
   ) {
-    return resultado as FormatoCSV
+    return null
   }
 
-  return null
+  return {
+    banco: resultado.banco,
+    separador: resultado.separador,
+    linha_inicio_dados: resultado.linha_inicio_dados,
+    colunas: {
+      data: colunas.data,
+      descricao: colunas.descricao,
+      valor: typeof colunas.valor === 'number' ? colunas.valor : null,
+      credito: typeof colunas.credito === 'number' ? colunas.credito : null,
+      debito: typeof colunas.debito === 'number' ? colunas.debito : null,
+    },
+  }
 }
-
 // Etapa 2: Parsear todas as linhas no servidor sem IA
 function parsearLinhasCSV(linhas: string[], formato: FormatoCSV): TransacaoBruta[] {
   const { separador, colunas, linha_inicio_dados } = formato
