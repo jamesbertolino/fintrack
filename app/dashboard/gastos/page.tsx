@@ -14,6 +14,7 @@ interface Transacao {
   categoria: string
   data_hora: string
   origem: string
+  conta_id?: string
 }
 
 const CORES: Record<string, string> = {
@@ -24,10 +25,15 @@ const CORES: Record<string, string> = {
   'Moradia':     '#fbbf24',
   'Educação':    '#60a5fa',
   'Receita':     '#4ade80',
+  'Salário':     '#4ade80',
+  'Freelance':   '#34d399',
+  'Investimento':'#818cf8',
+  'Presente':    '#f472b6',
   'Outros':      '#6b7280',
 }
 
 const CATEGORIAS = ['Todas', 'Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Educação', 'Receita', 'Outros']
+const TODAS_CATEGORIAS = ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Educação', 'Salário', 'Freelance', 'Investimento', 'Presente', 'Outros']
 
 function fmtBRL(v: number) {
   return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -38,14 +44,30 @@ export default function GastosPage() {
   const supabase = createClient()
   const { fmtData, fmtMes } = usePerfil()
 
-  const [transacoes, setTransacoes] = useState<Transacao[]>([])
-  const [loading, setLoading]       = useState(true)
-  const [catFiltro, setCatFiltro]   = useState('Todas')
-  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'debito' | 'credito'>('todos')
-  const [busca, setBusca]           = useState('')
-  const [periodo, setPeriodo]       = useState('30')
-  const [abaGrafico, setAbaGrafico] = useState<'categoria' | 'evolucao'>('categoria')
-  const [userId, setUserId]         = useState('')
+  const [transacoes, setTransacoes]   = useState<Transacao[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [catFiltro, setCatFiltro]     = useState('Todas')
+  const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
+  const [busca, setBusca]             = useState('')
+  const [periodo, setPeriodo]         = useState('30')
+  const [abaGrafico, setAbaGrafico]   = useState<'categoria' | 'evolucao'>('categoria')
+  const [userId, setUserId]           = useState('')
+  const [contas, setContas]           = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
+
+  // ─── seleção em lote ───
+  const [selecionados, setSelecionados]     = useState<string[]>([])
+  const [contaDestino, setContaDestino]     = useState('')
+  const [movendo, setMovendo]               = useState(false)
+  const [excluindoLote, setExcluindoLote]   = useState(false)
+
+  // ─── modal edição ───
+  const [modalAberto, setModalAberto]             = useState(false)
+  const [transacaoEditando, setTransacaoEditando] = useState<Transacao | null>(null)
+  const [editDescricao, setEditDescricao]         = useState('')
+  const [editCategoria, setEditCategoria]         = useState('')
+  const [editContaId, setEditContaId]             = useState('')
+  const [editDataHora, setEditDataHora]           = useState('')
+  const [salvandoEdicao, setSalvandoEdicao]       = useState(false)
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -73,6 +95,10 @@ export default function GastosPage() {
   }, [carregar])
 
   useEffect(() => {
+    fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
+  }, [])
+
+  useEffect(() => {
     if (!userId) return
     const channel = supabase
       .channel('gastos-realtime')
@@ -82,7 +108,6 @@ export default function GastosPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // Filtros aplicados
   const filtradas = useMemo(() => transacoes.filter(t => {
     if (catFiltro !== 'Todas' && t.categoria !== catFiltro) return false
     if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
@@ -90,12 +115,10 @@ export default function GastosPage() {
     return true
   }), [transacoes, catFiltro, tipoFiltro, busca])
 
-  // Métricas
   const totalReceitas = filtradas.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
   const totalDespesas = filtradas.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
   const saldo         = totalReceitas - totalDespesas
 
-  // Gastos por categoria
   const porCategoria = useMemo(() => {
     const acc: Record<string, number> = {}
     filtradas.filter(t => t.tipo === 'debito').forEach(t => {
@@ -106,7 +129,6 @@ export default function GastosPage() {
 
   const maxCat = porCategoria[0]?.[1] || 1
 
-  // Evolução por mês
   const porMes = useMemo(() => {
     const acc: Record<string, { receitas: number; despesas: number }> = {}
     transacoes.forEach(t => {
@@ -119,6 +141,71 @@ export default function GastosPage() {
   }, [transacoes])
 
   const maxMes = Math.max(...porMes.flatMap(([, v]) => [v.receitas, v.despesas]), 1)
+
+  // ─── seleção ───
+  function toggleSelecionado(id: string) {
+    setSelecionados(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+  }
+
+  function toggleTodos() {
+    setSelecionados(prev => prev.length === filtradas.length ? [] : filtradas.map(t => t.id))
+  }
+
+  async function excluirSelecionados() {
+    if (!selecionados.length) return
+    setExcluindoLote(true)
+    await Promise.all(selecionados.map(id => supabase.from('transactions').delete().eq('id', id)))
+    setSelecionados([])
+    setExcluindoLote(false)
+    carregar()
+  }
+
+  async function moverParaConta() {
+    if (!selecionados.length || !contaDestino) return
+    setMovendo(true)
+    await Promise.all(
+      selecionados.map(id =>
+        fetch(`/api/lancamento/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conta_id: contaDestino }),
+        })
+      )
+    )
+    setSelecionados([])
+    setContaDestino('')
+    setMovendo(false)
+    carregar()
+  }
+
+  // ─── modal edição ───
+  function abrirEdicao(t: Transacao) {
+    setTransacaoEditando(t)
+    setEditDescricao(t.descricao)
+    setEditCategoria(t.categoria)
+    setEditContaId(t.conta_id || '')
+    setEditDataHora(t.data_hora ? new Date(t.data_hora).toISOString().slice(0, 16) : '')
+    setModalAberto(true)
+  }
+
+  async function salvarEdicao() {
+    if (!transacaoEditando) return
+    setSalvandoEdicao(true)
+    await fetch(`/api/lancamento/${transacaoEditando.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        descricao: editDescricao,
+        categoria: editCategoria,
+        conta_id: editContaId || null,
+        data_hora: editDataHora ? new Date(editDataHora).toISOString() : transacaoEditando.data_hora,
+      }),
+    })
+    setSalvandoEdicao(false)
+    setModalAberto(false)
+    setTransacaoEditando(null)
+    carregar()
+  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
@@ -140,8 +227,6 @@ export default function GastosPage() {
           <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
           <span style={{ fontSize: 15, fontWeight: 500 }}>Gastos</span>
         </div>
-
-        {/* Período */}
         <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
           {[['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1 ano']].map(([v, l]) => (
             <button key={v} onClick={() => setPeriodo(v)} style={{
@@ -158,10 +243,10 @@ export default function GastosPage() {
         {/* Métricas */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: '1.25rem' }}>
           {[
-            { label: 'Receitas',     val: fmtBRL(totalReceitas), cor: '#4ade80' },
-            { label: 'Despesas',     val: fmtBRL(totalDespesas), cor: '#f87171' },
-            { label: 'Saldo',        val: fmtBRL(saldo),         cor: saldo >= 0 ? '#4ade80' : '#f87171' },
-            { label: 'Transações',   val: String(filtradas.length), cor: '#fff' },
+            { label: 'Receitas',   val: fmtBRL(totalReceitas), cor: '#4ade80' },
+            { label: 'Despesas',   val: fmtBRL(totalDespesas), cor: '#f87171' },
+            { label: 'Saldo',      val: fmtBRL(saldo),         cor: saldo >= 0 ? '#4ade80' : '#f87171' },
+            { label: 'Transações', val: String(filtradas.length), cor: '#fff' },
           ].map(m => (
             <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
@@ -186,7 +271,6 @@ export default function GastosPage() {
               ))}
             </div>
 
-            {/* Gráfico por categoria */}
             {abaGrafico === 'categoria' && (
               <div>
                 {porCategoria.length === 0 ? (
@@ -211,7 +295,6 @@ export default function GastosPage() {
               </div>
             )}
 
-            {/* Gráfico evolução mensal */}
             {abaGrafico === 'evolucao' && (
               <div>
                 {porMes.length === 0 ? (
@@ -250,7 +333,6 @@ export default function GastosPage() {
               <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>Sem dados no período selecionado</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Maior gasto */}
                 {porCategoria[0] && (
                   <div style={{ background: '#0a1a0a', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(249,115,22,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -261,8 +343,6 @@ export default function GastosPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Taxa de poupança */}
                 {totalReceitas > 0 && (
                   <div style={{ background: '#0a1a0a', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(74,222,128,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -275,8 +355,6 @@ export default function GastosPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Ticket médio */}
                 {filtradas.filter(t => t.tipo === 'debito').length > 0 && (
                   <div style={{ background: '#0a1a0a', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(34,211,238,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -289,8 +367,6 @@ export default function GastosPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Alerta estouro */}
                 {totalDespesas > totalReceitas && totalReceitas > 0 && (
                   <div style={{ background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(239,68,68,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -301,8 +377,6 @@ export default function GastosPage() {
                     </div>
                   </div>
                 )}
-
-                {/* Número de categorias */}
                 <div style={{ background: '#0a1a0a', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                   <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(167,139,250,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <span style={{ fontSize: 11 }}>🏷️</span>
@@ -318,22 +392,17 @@ export default function GastosPage() {
 
         {/* Filtros + tabela */}
         <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
+
           {/* Filtros */}
           <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Busca */}
             <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.3)' }}>
                 <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2"/>
                 <path d="M9 9l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
               </svg>
-              <input
-                value={busca} onChange={e => setBusca(e.target.value)}
-                placeholder="Buscar transação..."
-                style={{ width: '100%', padding: '7px 10px 7px 28px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }}
-              />
+              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar transação..."
+                style={{ width: '100%', padding: '7px 10px 7px 28px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }} />
             </div>
-
-            {/* Tipo */}
             <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
               {(['todos', 'debito', 'credito'] as const).map(t => (
                 <button key={t} onClick={() => setTipoFiltro(t)} style={{
@@ -345,8 +414,6 @@ export default function GastosPage() {
                 </button>
               ))}
             </div>
-
-            {/* Categoria */}
             <select value={catFiltro} onChange={e => setCatFiltro(e.target.value)} style={{
               padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
               borderRadius: 8, color: catFiltro === 'Todas' ? 'rgba(255,255,255,.5)' : '#fff',
@@ -354,21 +421,45 @@ export default function GastosPage() {
             }}>
               {CATEGORIAS.map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
             </select>
-
-            {/* Limpar filtros */}
             {(catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca) && (
               <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca('') }} style={{
                 padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
                 borderRadius: 8, color: '#f87171', fontSize: 11, cursor: 'pointer',
-              }}>
-                Limpar filtros
-              </button>
+              }}>Limpar filtros</button>
             )}
-
             <div style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
               {filtradas.length} de {transacoes.length} transações
             </div>
           </div>
+
+          {/* Barra de ações em lote — aparece quando há selecionados */}
+          {selecionados.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: '#0a1a0a', border: '1px solid #1a5a1a', borderRadius: 10 }}>
+              <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 500 }}>
+                {selecionados.length} selecionado{selecionados.length > 1 ? 's' : ''}
+              </span>
+              <div style={{ flex: 1 }} />
+              {contas.length > 0 && (
+                <>
+                  <select value={contaDestino} onChange={e => setContaDestino(e.target.value)}
+                    style={{ padding: '5px 10px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 6, color: '#fff', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                    <option value="">Mover para conta...</option>
+                    {contas.map(c => <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+                  </select>
+                  <button onClick={moverParaConta} disabled={!contaDestino || movendo}
+                    style={{ padding: '5px 12px', background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, color: '#4ade80', fontSize: 12, cursor: contaDestino ? 'pointer' : 'default', opacity: !contaDestino ? 0.4 : 1 }}>
+                    {movendo ? 'Movendo...' : 'Mover'}
+                  </button>
+                </>
+              )}
+              <button onClick={excluirSelecionados} disabled={excluindoLote}
+                style={{ padding: '5px 12px', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 6, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>
+                {excluindoLote ? 'Excluindo...' : 'Excluir selecionados'}
+              </button>
+              <button onClick={() => setSelecionados([])}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 18, lineHeight: 1 }}>×</button>
+            </div>
+          )}
 
           {/* Tabela */}
           {filtradas.length === 0 ? (
@@ -377,8 +468,12 @@ export default function GastosPage() {
             </div>
           ) : (
             <div>
-              {/* Header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 110px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4 }}>
+              {/* Header com checkbox selecionar todos */}
+              <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4, alignItems: 'center' }}>
+                <input type="checkbox"
+                  checked={selecionados.length === filtradas.length && filtradas.length > 0}
+                  onChange={toggleTodos}
+                  style={{ cursor: 'pointer', accentColor: '#4ade80', width: 14, height: 14 }} />
                 {['Descrição', 'Categoria', 'Data', 'Valor'].map(h => (
                   <div key={h} style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', textAlign: h === 'Valor' ? 'right' : 'left' }}>{h}</div>
                 ))}
@@ -386,22 +481,32 @@ export default function GastosPage() {
 
               {filtradas.map(t => (
                 <div key={t.id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 120px 120px 110px', gap: 10,
+                  display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10,
                   padding: '8px', borderRadius: 6, transition: 'background .12s',
                   borderBottom: '1px solid rgba(255,255,255,.04)',
+                  background: selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : 'transparent',
                 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  onMouseEnter={e => { if (!selecionados.includes(t.id)) e.currentTarget.style.background = 'rgba(255,255,255,.03)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : 'transparent' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {/* Checkbox */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <input type="checkbox" checked={selecionados.includes(t.id)} onChange={() => toggleSelecionado(t.id)}
+                      onClick={e => e.stopPropagation()}
+                      style={{ cursor: 'pointer', accentColor: '#4ade80', width: 14, height: 14 }} />
+                  </div>
+
+                  {/* Descrição — clicável para editar */}
+                  <div onClick={() => abrirEdicao(t)} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'pointer' }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                     <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
                     {t.origem === 'webhook' && (
                       <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', alignSelf: 'center' }}>{t.categoria}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', alignSelf: 'center' }}>{fmtData(t.data_hora)}</div>
+
+                  <div onClick={() => abrirEdicao(t)} style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', alignSelf: 'center', cursor: 'pointer' }}>{t.categoria}</div>
+                  <div onClick={() => abrirEdicao(t)} style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', alignSelf: 'center', cursor: 'pointer' }}>{fmtData(t.data_hora)}</div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', alignSelf: 'center' }}>
                     {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
                   </div>
@@ -409,7 +514,8 @@ export default function GastosPage() {
               ))}
 
               {/* Total */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 110px', gap: 10, padding: '10px 8px', borderTop: '1px solid #1a3a1a', marginTop: 4 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10, padding: '10px 8px', borderTop: '1px solid #1a3a1a', marginTop: 4 }}>
+                <div />
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)' }}>Total filtrado</div>
                 <div /><div />
                 <div style={{ fontSize: 13, fontWeight: 500, color: saldo >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
@@ -420,6 +526,65 @@ export default function GastosPage() {
           )}
         </div>
       </div>
+
+      {/* ─── Modal edição ─── */}
+      {modalAberto && transacaoEditando && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+          onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descrição</label>
+              <input value={editDescricao} onChange={e => setEditDescricao(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Categoria</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {TODAS_CATEGORIAS.map(c => (
+                  <button key={c} type="button" onClick={() => setEditCategoria(c)} style={{
+                    padding: '4px 10px', borderRadius: 20,
+                    border: `1px solid ${editCategoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
+                    background: editCategoria === c ? `${CORES[c] || '#4ade80'}18` : 'transparent',
+                    color: editCategoria === c ? CORES[c] || '#4ade80' : 'rgba(255,255,255,.4)',
+                    fontSize: 11, cursor: 'pointer',
+                  }}>{c}</button>
+                ))}
+              </div>
+            </div>
+
+            {contas.length > 0 && (
+              <div>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Conta</label>
+                <select value={editContaId} onChange={e => setEditContaId(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                  <option value="">Sem conta específica</option>
+                  {contas.map(c => <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Data e hora</label>
+              <input type="datetime-local" value={editDataHora} onChange={e => setEditDataHora(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button onClick={() => setModalAberto(false)}
+                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={salvarEdicao} disabled={salvandoEdicao}
+                style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: salvandoEdicao ? 'default' : 'pointer', opacity: salvandoEdicao ? 0.7 : 1 }}>
+                {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
