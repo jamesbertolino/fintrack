@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return processarCSV(arquivo, user.id)
   }
 
-  return processarImagem(arquivo, user.id)
+  return processarImagem(arquivo)
 }
 
 // ─────────────────────────────────────────────
@@ -44,6 +44,7 @@ interface TransacaoBruta {
   valor: number
   tipo: 'debito' | 'credito'
   data_hora: string
+  conta_id?: string
 }
 
 interface TransacaoFinal extends TransacaoBruta {
@@ -54,7 +55,6 @@ interface TransacaoFinal extends TransacaoBruta {
 // PIPELINE CSV — 3 ETAPAS
 // ─────────────────────────────────────────────
 
-// Etapa 1: Detectar banco e mapear colunas via IA (apenas 10 linhas)
 async function detectarFormatoCSV(primeirasLinhas: string): Promise<FormatoCSV | null> {
   const prompt = `Analise as primeiras linhas deste extrato bancário e identifique o formato.
 Retorne APENAS JSON válido sem texto adicional.
@@ -105,7 +105,7 @@ Retorne:
     },
   }
 }
-// Etapa 2: Parsear todas as linhas no servidor sem IA
+
 function parsearLinhasCSV(linhas: string[], formato: FormatoCSV): TransacaoBruta[] {
   const { separador, colunas, linha_inicio_dados } = formato
   const transacoes: TransacaoBruta[] = []
@@ -118,13 +118,11 @@ function parsearLinhasCSV(linhas: string[], formato: FormatoCSV): TransacaoBruta
     if (!linha) continue
 
     const cols = linha.split(separador)
-
     const dataRaw = cols[colunas.data]?.trim()
     const descricao = cols[colunas.descricao]?.trim()
 
     if (!dataRaw || !descricao) continue
 
-    // Parse da data — suporta DD/MM/YYYY e YYYY-MM-DD
     let data_hora: string
     if (dataRaw.includes('/')) {
       const [dia, mes, ano] = dataRaw.split('/')
@@ -143,7 +141,6 @@ function parsearLinhasCSV(linhas: string[], formato: FormatoCSV): TransacaoBruta
     } else {
       const credito = limparNumero(cols[colunas.credito ?? -1])
       const debito = limparNumero(cols[colunas.debito ?? -1])
-
       if (debito > 0) {
         valor = debito
         tipo = 'debito'
@@ -161,7 +158,6 @@ function parsearLinhasCSV(linhas: string[], formato: FormatoCSV): TransacaoBruta
   return transacoes
 }
 
-// Etapa 3: Categorizar em chunks de 100 descrições por vez
 async function categorizarEmChunks(transacoes: TransacaoBruta[]): Promise<TransacaoFinal[]> {
   const CHUNK_SIZE = 100
   const categoriasDisponiveis = 'Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros'
@@ -187,7 +183,6 @@ O array deve ter exatamente ${chunk.length} itens, na mesma ordem.`
 
     const iaResult = await chamarIATexto(prompt)
 
-    // Type guard para garantir que iaResult tem a propriedade categorias
     const categorias: string[] =
       iaResult &&
       typeof iaResult === 'object' &&
@@ -204,12 +199,12 @@ O array deve ter exatamente ${chunk.length} itens, na mesma ordem.`
   return resultado
 }
 
-// Função principal CSV
-async function processarCSV(arquivo: File, _userId: string) {
+async function processarCSV(arquivo: File, userId: string) {
+  const supabase = await createServerSupabaseClient()
+
   const texto = await arquivo.text()
   const linhas = texto.split('\n').filter((l: string) => l.trim())
 
-  // Etapa 1: detectar formato com as primeiras 10 linhas
   const primeirasLinhas = linhas.slice(0, 10).join('\n')
   const formato = await detectarFormatoCSV(primeirasLinhas)
 
@@ -220,7 +215,14 @@ async function processarCSV(arquivo: File, _userId: string) {
     )
   }
 
-  // Etapa 2: parsear todas as linhas no servidor
+  // Busca conta correspondente ao banco detectado
+  const { data: contaEncontrada } = await supabase
+    .from('contas')
+    .select('id, nome')
+    .eq('user_id', userId)
+    .ilike('nome', `%${formato.banco}%`)
+    .maybeSingle()
+
   const transacoesBrutas = parsearLinhasCSV(linhas, formato)
 
   if (transacoesBrutas.length === 0) {
@@ -230,8 +232,12 @@ async function processarCSV(arquivo: File, _userId: string) {
     )
   }
 
-  // Etapa 3: categorizar em chunks
   const transacoes = await categorizarEmChunks(transacoesBrutas)
+
+  // Vincula conta_id se encontrou correspondência
+  if (contaEncontrada) {
+    transacoes.forEach((t) => { t.conta_id = contaEncontrada.id })
+  }
 
   const dataInicio = transacoes[0]?.data_hora?.slice(0, 10)
   const dataFim = transacoes[transacoes.length - 1]?.data_hora?.slice(0, 10)
@@ -241,15 +247,17 @@ async function processarCSV(arquivo: File, _userId: string) {
     transacoes,
     total_encontradas: transacoes.length,
     banco_nome: formato.banco,
+    conta_vinculada: contaEncontrada ? contaEncontrada.nome : null,
+    banco_nao_encontrado: !contaEncontrada,
     resumo: `Encontrei ${transacoes.length} transações de ${dataInicio} a ${dataFim}`,
   })
 }
 
 // ─────────────────────────────────────────────
-// IMAGEM (mantido igual ao original)
+// IMAGEM
 // ─────────────────────────────────────────────
 
-async function processarImagem(arquivo: File, _userId: string) {
+async function processarImagem(arquivo: File) {
   const bytes = await arquivo.arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')
   const mediaType = arquivo.type || 'image/jpeg'
@@ -284,7 +292,6 @@ Retorne:
 // HELPERS DE IA
 // ─────────────────────────────────────────────
 
-// Apenas texto — retorna objeto tipado ou null
 async function chamarIATexto(prompt: string): Promise<Record<string, unknown> | null> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
@@ -332,7 +339,6 @@ async function chamarIATexto(prompt: string): Promise<Record<string, unknown> | 
   return null
 }
 
-// Texto + imagem — usado para processarImagem
 async function chamarIA(prompt: string, imagem: { base64: string; mediaType: string } | null) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
