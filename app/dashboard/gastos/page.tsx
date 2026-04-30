@@ -39,6 +39,10 @@ function fmtBRL(v: number) {
   return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function labelPeriodo(p: string) {
+  return p === '7' ? 'últimos 7 dias' : p === '30' ? 'últimos 30 dias' : p === '90' ? 'últimos 90 dias' : 'último ano'
+}
+
 export default function GastosPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -55,19 +59,19 @@ export default function GastosPage() {
   const [contas, setContas]           = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
 
   // ─── seleção em lote ───
-  const [selecionados, setSelecionados]     = useState<string[]>([])
-  const [contaDestino, setContaDestino]     = useState('')
-  const [movendo, setMovendo]               = useState(false)
-  const [excluindoLote, setExcluindoLote]   = useState(false)
+  const [selecionados, setSelecionados]   = useState<string[]>([])
+  const [contaDestino, setContaDestino]   = useState('')
+  const [movendo, setMovendo]             = useState(false)
+  const [excluindoLote, setExcluindoLote] = useState(false)
 
   // ─── modal edição ───
-  const [modalAberto, setModalAberto]             = useState(false)
-  const [transacaoEditando, setTransacaoEditando] = useState<Transacao | null>(null)
-  const [editDescricao, setEditDescricao]         = useState('')
-  const [editCategoria, setEditCategoria]         = useState('')
-  const [editContaId, setEditContaId]             = useState('')
-  const [editDataHora, setEditDataHora]           = useState('')
-  const [salvandoEdicao, setSalvandoEdicao]       = useState(false)
+  const [modalAberto, setModalAberto]               = useState(false)
+  const [transacaoEditando, setTransacaoEditando]   = useState<Transacao | null>(null)
+  const [editDescricao, setEditDescricao]           = useState('')
+  const [editCategoria, setEditCategoria]           = useState('')
+  const [editContaId, setEditContaId]               = useState('')
+  const [editDataHora, setEditDataHora]             = useState('')
+  const [salvandoEdicao, setSalvandoEdicao]         = useState(false)
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -108,6 +112,12 @@ export default function GastosPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
+  // ─── métricas do período completo (sem filtros de tipo/categoria/busca) ───
+  const totalReceitasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0), [transacoes])
+  const totalDespesasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0), [transacoes])
+  const saldoPeriodo          = totalReceitasPeriodo - totalDespesasPeriodo
+
+  // ─── transações filtradas ───
   const filtradas = useMemo(() => transacoes.filter(t => {
     if (catFiltro !== 'Todas' && t.categoria !== catFiltro) return false
     if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
@@ -115,9 +125,12 @@ export default function GastosPage() {
     return true
   }), [transacoes, catFiltro, tipoFiltro, busca])
 
-  const totalReceitas = filtradas.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
-  const totalDespesas = filtradas.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
-  const saldo         = totalReceitas - totalDespesas
+  const filtroAtivo = catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca !== ''
+
+  // métricas da seleção filtrada (para o rodapé da tabela)
+  const totalReceitasFiltradas = filtradas.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
+  const totalDespesasFiltradas = filtradas.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
+  const saldoFiltrado          = totalReceitasFiltradas - totalDespesasFiltradas
 
   const porCategoria = useMemo(() => {
     const acc: Record<string, number> = {}
@@ -240,26 +253,46 @@ export default function GastosPage() {
 
       <div style={{ padding: '1.5rem' }}>
 
-        {/* Métricas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: '1.25rem' }}>
+        {/* ── Cards de métricas — sempre período completo, nunca filtrado ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: filtroAtivo ? 6 : '1.25rem' }}>
           {[
-            { label: 'Receitas',   val: fmtBRL(totalReceitas), cor: '#4ade80' },
-            { label: 'Despesas',   val: fmtBRL(totalDespesas), cor: '#f87171' },
-            { label: 'Saldo',      val: fmtBRL(saldo),         cor: saldo >= 0 ? '#4ade80' : '#f87171' },
-            { label: 'Transações', val: String(filtradas.length), cor: '#fff' },
+            { label: 'Receitas',   val: fmtBRL(totalReceitasPeriodo),  cor: '#4ade80' },
+            { label: 'Despesas',   val: fmtBRL(totalDespesasPeriodo),  cor: '#f87171' },
+            { label: 'Saldo',      val: fmtBRL(saldoPeriodo),          cor: saldoPeriodo >= 0 ? '#4ade80' : '#f87171' },
+            { label: 'Transações', val: String(transacoes.length),     cor: '#fff' },
           ].map(m => (
             <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.25)' }}>{labelPeriodo(periodo)}</div>
+              </div>
               <div style={{ fontSize: 20, fontWeight: 500, color: m.cor }}>{m.val}</div>
             </div>
           ))}
         </div>
 
+        {/* ── Banner de contexto — aparece quando há filtro ativo ── */}
+        {filtroAtivo && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem', padding: '8px 14px', background: 'rgba(99,102,241,.08)', border: '1px solid rgba(99,102,241,.2)', borderRadius: 8 }}>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#818cf8" strokeWidth="1.2"/><path d="M6.5 5.5v4M6.5 4h.01" stroke="#818cf8" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>
+              Exibindo{' '}
+              {tipoFiltro !== 'todos' && <strong style={{ color: tipoFiltro === 'credito' ? '#4ade80' : '#f87171' }}>{tipoFiltro === 'credito' ? 'Receitas' : 'Despesas'}</strong>}
+              {catFiltro !== 'Todas' && <>{tipoFiltro !== 'todos' ? ' · ' : ''}<strong style={{ color: '#fff' }}>{catFiltro}</strong></>}
+              {busca && <>{(tipoFiltro !== 'todos' || catFiltro !== 'Todas') ? ' · ' : ''}"<strong style={{ color: '#fff' }}>{busca}</strong>"</>}
+              {' · '}<strong style={{ color: '#fff' }}>{filtradas.length}</strong> de <strong style={{ color: '#fff' }}>{transacoes.length}</strong> transações
+              {' · '}<span>Os totais acima refletem o período completo</span>
+            </span>
+            <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca('') }}
+              style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 18, lineHeight: 1 }}>×</button>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.25rem' }}>
 
           {/* Gráficos */}
           <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
-            <div style={{ display: 'flex', gap: 4, marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
               {(['categoria', 'evolucao'] as const).map(a => (
                 <button key={a} onClick={() => setAbaGrafico(a)} style={{
                   padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500,
@@ -269,6 +302,9 @@ export default function GastosPage() {
                   {a === 'categoria' ? 'Por categoria' : 'Evolução mensal'}
                 </button>
               ))}
+              {filtroAtivo && (
+                <span style={{ marginLeft: 'auto', fontSize: 10, color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>filtrado</span>
+              )}
             </div>
 
             {abaGrafico === 'categoria' && (
@@ -288,7 +324,7 @@ export default function GastosPage() {
                       <div style={{ height: '100%', width: `${(val / maxCat) * 100}%`, background: CORES[cat] || '#6b7280', borderRadius: 3, transition: 'width .5s' }} />
                     </div>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>
-                      {totalDespesas > 0 ? Math.round((val / totalDespesas) * 100) : 0}% do total
+                      {totalDespesasFiltradas > 0 ? Math.round((val / totalDespesasFiltradas) * 100) : 0}% do total
                     </div>
                   </div>
                 ))}
@@ -329,7 +365,7 @@ export default function GastosPage() {
           {/* Insights */}
           <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
             <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>Insights do período</div>
-            {filtradas.length === 0 ? (
+            {transacoes.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>Sem dados no período selecionado</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -343,37 +379,37 @@ export default function GastosPage() {
                     </div>
                   </div>
                 )}
-                {totalReceitas > 0 && (
+                {totalReceitasPeriodo > 0 && (
                   <div style={{ background: '#0a1a0a', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(74,222,128,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: 11 }}>💰</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>
-                      Taxa de poupança: <strong style={{ color: saldo >= 0 ? '#4ade80' : '#f87171' }}>
-                        {Math.round(((totalReceitas - totalDespesas) / totalReceitas) * 100)}%
+                      Taxa de poupança: <strong style={{ color: saldoPeriodo >= 0 ? '#4ade80' : '#f87171' }}>
+                        {Math.round(((totalReceitasPeriodo - totalDespesasPeriodo) / totalReceitasPeriodo) * 100)}%
                       </strong> das receitas
                     </div>
                   </div>
                 )}
-                {filtradas.filter(t => t.tipo === 'debito').length > 0 && (
+                {transacoes.filter(t => t.tipo === 'debito').length > 0 && (
                   <div style={{ background: '#0a1a0a', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(34,211,238,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: 11 }}>🧾</span>
                     </div>
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>
                       Ticket médio por gasto: <strong style={{ color: '#22d3ee' }}>
-                        {fmtBRL(totalDespesas / filtradas.filter(t => t.tipo === 'debito').length)}
+                        {fmtBRL(totalDespesasPeriodo / transacoes.filter(t => t.tipo === 'debito').length)}
                       </strong>
                     </div>
                   </div>
                 )}
-                {totalDespesas > totalReceitas && totalReceitas > 0 && (
+                {totalDespesasPeriodo > totalReceitasPeriodo && totalReceitasPeriodo > 0 && (
                   <div style={{ background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, padding: '10px 12px', display: 'flex', gap: 8 }}>
                     <div style={{ width: 20, height: 20, borderRadius: 5, background: 'rgba(239,68,68,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <span style={{ fontSize: 11 }}>⚠️</span>
                     </div>
                     <div style={{ fontSize: 12, color: '#f87171', lineHeight: 1.5 }}>
-                      Despesas superam receitas em <strong>{fmtBRL(totalDespesas - totalReceitas)}</strong> no período
+                      Despesas superam receitas em <strong>{fmtBRL(totalDespesasPeriodo - totalReceitasPeriodo)}</strong> no período
                     </div>
                   </div>
                 )}
@@ -382,7 +418,7 @@ export default function GastosPage() {
                     <span style={{ fontSize: 11 }}>🏷️</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }}>
-                    <strong style={{ color: '#a78bfa' }}>{porCategoria.length}</strong> categorias de gastos em {periodo === '365' ? '1 ano' : `${periodo} dias`}
+                    <strong style={{ color: '#a78bfa' }}>{porCategoria.length}</strong> categorias de gastos em {labelPeriodo(periodo)}
                   </div>
                 </div>
               </div>
@@ -421,22 +457,25 @@ export default function GastosPage() {
             }}>
               {CATEGORIAS.map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
             </select>
-            {(catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca) && (
+            {filtroAtivo && (
               <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca('') }} style={{
                 padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
                 borderRadius: 8, color: '#f87171', fontSize: 11, cursor: 'pointer',
               }}>Limpar filtros</button>
             )}
-            <div style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
+            <div style={{ marginLeft: 'auto', fontSize: 11, color: filtroAtivo ? '#818cf8' : 'rgba(255,255,255,.35)', fontWeight: filtroAtivo ? 500 : 400 }}>
               {filtradas.length} de {transacoes.length} transações
             </div>
           </div>
 
-          {/* Barra de ações em lote — aparece quando há selecionados */}
+          {/* Barra de ações em lote */}
           {selecionados.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: '#0a1a0a', border: '1px solid #1a5a1a', borderRadius: 10 }}>
               <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 500 }}>
                 {selecionados.length} selecionado{selecionados.length > 1 ? 's' : ''}
+              </span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>
+                {filtroAtivo ? '(da seleção filtrada)' : `(do período completo)`}
               </span>
               <div style={{ flex: 1 }} />
               {contas.length > 0 && (
@@ -468,7 +507,6 @@ export default function GastosPage() {
             </div>
           ) : (
             <div>
-              {/* Header com checkbox selecionar todos */}
               <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4, alignItems: 'center' }}>
                 <input type="checkbox"
                   checked={selecionados.length === filtradas.length && filtradas.length > 0}
@@ -489,14 +527,11 @@ export default function GastosPage() {
                   onMouseEnter={e => { if (!selecionados.includes(t.id)) e.currentTarget.style.background = 'rgba(255,255,255,.03)' }}
                   onMouseLeave={e => { e.currentTarget.style.background = selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : 'transparent' }}
                 >
-                  {/* Checkbox */}
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     <input type="checkbox" checked={selecionados.includes(t.id)} onChange={() => toggleSelecionado(t.id)}
                       onClick={e => e.stopPropagation()}
                       style={{ cursor: 'pointer', accentColor: '#4ade80', width: 14, height: 14 }} />
                   </div>
-
-                  {/* Descrição — clicável para editar */}
                   <div onClick={() => abrirEdicao(t)} style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'pointer' }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                     <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
@@ -504,7 +539,6 @@ export default function GastosPage() {
                       <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>
                     )}
                   </div>
-
                   <div onClick={() => abrirEdicao(t)} style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', alignSelf: 'center', cursor: 'pointer' }}>{t.categoria}</div>
                   <div onClick={() => abrirEdicao(t)} style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', alignSelf: 'center', cursor: 'pointer' }}>{fmtData(t.data_hora)}</div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', alignSelf: 'center' }}>
@@ -513,13 +547,18 @@ export default function GastosPage() {
                 </div>
               ))}
 
-              {/* Total */}
+              {/* Rodapé — mostra saldo do filtro quando filtro ativo, saldo do período quando não */}
               <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10, padding: '10px 8px', borderTop: '1px solid #1a3a1a', marginTop: 4 }}>
                 <div />
-                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)' }}>Total filtrado</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
+                  {filtroAtivo
+                    ? <span>Saldo da seleção <span style={{ color: 'rgba(255,255,255,.25)' }}>· {labelPeriodo(periodo)}: {saldoPeriodo >= 0 ? '+' : '-'}{fmtBRL(Math.abs(saldoPeriodo))}</span></span>
+                    : <span style={{ fontWeight: 500, color: 'rgba(255,255,255,.5)' }}>Saldo do período</span>
+                  }
+                </div>
                 <div /><div />
-                <div style={{ fontSize: 13, fontWeight: 500, color: saldo >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
-                  {saldo >= 0 ? '+' : '-'}{fmtBRL(Math.abs(saldo))}
+                <div style={{ fontSize: 13, fontWeight: 600, color: (filtroAtivo ? saldoFiltrado : saldoPeriodo) >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
+                  {(filtroAtivo ? saldoFiltrado : saldoPeriodo) >= 0 ? '+' : '-'}{fmtBRL(Math.abs(filtroAtivo ? saldoFiltrado : saldoPeriodo))}
                 </div>
               </div>
             </div>
