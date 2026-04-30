@@ -159,7 +159,7 @@ O array deve ter exatamente ${chunk.length} itens, na mesma ordem.`
 }
 
 // Função principal CSV reescrita
-async function processarCSV(arquivo: File, userId: string) {
+async function processarCSV(arquivo: File, _userId: string) {
   const texto = await arquivo.text()
   const linhas = texto.split('\n').filter((l: string) => l.trim())
 
@@ -203,7 +203,7 @@ async function processarCSV(arquivo: File, userId: string) {
 // IMAGEM (mantido igual ao original)
 // ─────────────────────────────────────────────
 
-async function processarImagem(arquivo: File, userId: string) {
+async function processarImagem(arquivo: File, _userId: string) {
   const bytes = await arquivo.arrayBuffer()
   const base64 = Buffer.from(bytes).toString('base64')
   const mediaType = arquivo.type || 'image/jpeg'
@@ -239,7 +239,7 @@ Retorne:
 // ─────────────────────────────────────────────
 
 // Apenas texto — usado na pipeline CSV
-async function chamarIATexto(prompt: string): Promise<any | null> {
+async function chamarIATexto(prompt: string): Promise<unknown | null> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
   if (anthropicKey) {
