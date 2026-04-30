@@ -1,7 +1,6 @@
 export const maxDuration = 60
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -23,75 +22,186 @@ export async function POST(request: NextRequest) {
   return processarImagem(arquivo, user.id)
 }
 
-async function detectarBanco(cabecalho: string): Promise<{ id: string; nome_curto: string } | null> {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+// ─────────────────────────────────────────────
+// PIPELINE CSV — 3 ETAPAS
+// ─────────────────────────────────────────────
 
-  const { data: bancos } = await supabase
-    .from('bancos')
-    .select('id, nome_curto, padrao_csv')
-    .not('padrao_csv', 'is', null)
-
-  if (!bancos) return null
-
-  for (const banco of bancos) {
-    if (!banco.padrao_csv?.length) continue
-    const matches = banco.padrao_csv.filter((col: string) =>
-      cabecalho.toLowerCase().includes(col.toLowerCase())
-    )
-    if (matches.length >= 2) return { id: banco.id, nome_curto: banco.nome_curto }
+// Etapa 1: Detectar banco e mapear colunas via IA (apenas 10 linhas)
+async function detectarFormatoCSV(primeirasLinhas: string): Promise<{
+  banco: string
+  separador: string
+  linha_inicio_dados: number
+  colunas: {
+    data: number
+    descricao: number
+    valor: number | null
+    credito: number | null
+    debito: number | null
   }
-  return null
-}
-
-async function processarCSV(arquivo: File, userId: string) {
-  const texto = await arquivo.text()
-  const cabecalho = texto.split('\n')[0]?.trim() || ''
-  const banco = await detectarBanco(cabecalho)
-
-  const linhas = texto.split('\n').filter((l: string) => l.trim())
-  const cabecalhoLinha = linhas[0]
-  const MAX_LINHAS = 200
-  const csvParaIA = [cabecalhoLinha, ...linhas.slice(1, MAX_LINHAS + 1)].join('\n')
-  const totalLinhas = linhas.length - 1
-
-  const prompt = `Analise este CSV de extrato bancário e extraia AS TRANSAÇÕES.
+} | null> {
+  const prompt = `Analise as primeiras linhas deste extrato bancário e identifique o formato.
 Retorne APENAS JSON válido sem texto adicional.
-Este arquivo tem ${totalLinhas} transações no total. Extraia TODAS as que estão abaixo.
 
-CSV:
-${csvParaIA}
-
-Detecte automaticamente as colunas de: data, descrição, valor, tipo (débito/crédito).
-Ignore linhas de cabeçalho, totais e linhas vazias.
-Categorias disponíveis: Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros
+Linhas:
+${primeirasLinhas}
 
 Retorne:
 {
-  "transacoes": [
-    {
-      "descricao": "Nome limpo da transação",
-      "valor": 100.00,
-      "tipo": "debito" ou "credito",
-      "categoria": "categoria",
-      "data_hora": "2026-04-26T10:00:00Z"
-    }
-  ],
-  "total_encontradas":  ${totalLinhas},
-  "resumo": "Encontrei X transações de DD/MM a DD/MM"
+  "banco": "nome do banco detectado ou 'Desconhecido'",
+  "separador": "caractere separador das colunas (;, ou TAB)",
+  "linha_inicio_dados": número da linha (0-based) onde começam os dados reais,
+  "colunas": {
+    "data": índice da coluna de data,
+    "descricao": índice da coluna de descrição/histórico,
+    "valor": índice da coluna de valor único (null se tiver crédito/débito separados),
+    "credito": índice da coluna de crédito (null se tiver valor único),
+    "debito": índice da coluna de débito (null se tiver valor único)
+  }
 }`
 
-  const iaResponse = await chamarIA(prompt, null)
-  const iaData = await iaResponse.json()
-  if (!iaData.ok) return iaResponse
+  return chamarIATexto(prompt)
+}
+
+// Etapa 2: Parsear todas as linhas no servidor sem IA
+function parsearLinhasCSV(
+  linhas: string[],
+  formato: NonNullable<Awaited<ReturnType<typeof detectarFormatoCSV>>>
+): Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string }> {
+  const { separador, colunas, linha_inicio_dados } = formato
+  const transacoes = []
+
+  for (let i = linha_inicio_dados; i < linhas.length; i++) {
+    const linha = linhas[i]?.trim()
+    if (!linha) continue
+
+    const cols = linha.split(separador)
+
+    const dataRaw = cols[colunas.data]?.trim()
+    const descricao = cols[colunas.descricao]?.trim()
+
+    if (!dataRaw || !descricao) continue
+
+    // Parse da data — suporta DD/MM/YYYY e YYYY-MM-DD
+    let data_hora: string
+    if (dataRaw.includes('/')) {
+      const [dia, mes, ano] = dataRaw.split('/')
+      data_hora = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}T12:00:00Z`
+    } else {
+      data_hora = `${dataRaw}T12:00:00Z`
+    }
+
+    let valor = 0
+    let tipo: 'debito' | 'credito' = 'debito'
+
+    const limparNumero = (raw: string | undefined) =>
+      parseFloat((raw || '0').replace(/\./g, '').replace(',', '.').trim()) || 0
+
+    if (colunas.valor !== null) {
+      const valorNum = limparNumero(cols[colunas.valor])
+      valor = Math.abs(valorNum)
+      tipo = valorNum < 0 ? 'debito' : 'credito'
+    } else {
+      const credito = limparNumero(cols[colunas.credito ?? -1])
+      const debito = limparNumero(cols[colunas.debito ?? -1])
+
+      if (debito > 0) {
+        valor = debito
+        tipo = 'debito'
+      } else {
+        valor = credito
+        tipo = 'credito'
+      }
+    }
+
+    if (valor === 0) continue
+
+    transacoes.push({ descricao, valor, tipo, data_hora })
+  }
+
+  return transacoes
+}
+
+// Etapa 3: Categorizar em chunks de 100 descrições por vez
+async function categorizarEmChunks(
+  transacoes: Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string }>
+): Promise<Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string; categoria: string }>> {
+  const CHUNK_SIZE = 100
+  const categoriasDisponiveis = 'Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros'
+  const resultado = []
+
+  for (let i = 0; i < transacoes.length; i += CHUNK_SIZE) {
+    const chunk = transacoes.slice(i, i + CHUNK_SIZE)
+    const lista = chunk.map((t, idx) => `${idx}: ${t.descricao}`).join('\n')
+
+    const prompt = `Categorize cada transação abaixo com uma das categorias disponíveis.
+Retorne APENAS JSON válido sem texto adicional.
+
+Categorias: ${categoriasDisponiveis}
+
+Transações:
+${lista}
+
+Retorne:
+{
+  "categorias": ["categoria0", "categoria1", ...]
+}
+O array deve ter exatamente ${chunk.length} itens, na mesma ordem.`
+
+    const iaResult = await chamarIATexto(prompt)
+    const categorias: string[] = iaResult?.categorias || chunk.map(() => 'Outros')
+
+    chunk.forEach((t, idx) => {
+      resultado.push({ ...t, categoria: categorias[idx] || 'Outros' })
+    })
+  }
+
+  return resultado
+}
+
+// Função principal CSV reescrita
+async function processarCSV(arquivo: File, userId: string) {
+  const texto = await arquivo.text()
+  const linhas = texto.split('\n').filter((l: string) => l.trim())
+
+  // Etapa 1: detectar formato com as primeiras 10 linhas
+  const primeirasLinhas = linhas.slice(0, 10).join('\n')
+  const formato = await detectarFormatoCSV(primeirasLinhas)
+
+  if (!formato) {
+    return NextResponse.json(
+      { error: 'Não foi possível identificar o formato do extrato' },
+      { status: 400 }
+    )
+  }
+
+  // Etapa 2: parsear todas as linhas no servidor
+  const transacoesBrutas = parsearLinhasCSV(linhas, formato)
+
+  if (transacoesBrutas.length === 0) {
+    return NextResponse.json(
+      { error: 'Nenhuma transação encontrada no arquivo' },
+      { status: 400 }
+    )
+  }
+
+  // Etapa 3: categorizar em chunks
+  const transacoes = await categorizarEmChunks(transacoesBrutas)
+
+  const dataInicio = transacoes[0]?.data_hora?.slice(0, 10)
+  const dataFim = transacoes[transacoes.length - 1]?.data_hora?.slice(0, 10)
+
   return NextResponse.json({
-    ...iaData,
-    banco_id:   banco?.id         || null,
-    banco_nome: banco?.nome_curto || null,
+    ok: true,
+    transacoes,
+    total_encontradas: transacoes.length,
+    banco_nome: formato.banco,
+    resumo: `Encontrei ${transacoes.length} transações de ${dataInicio} a ${dataFim}`,
   })
 }
+
+// ─────────────────────────────────────────────
+// IMAGEM (mantido igual ao original)
+// ─────────────────────────────────────────────
 
 async function processarImagem(arquivo: File, userId: string) {
   const bytes = await arquivo.arrayBuffer()
@@ -124,6 +234,59 @@ Retorne:
   return chamarIA(prompt, { base64, mediaType })
 }
 
+// ─────────────────────────────────────────────
+// HELPERS DE IA
+// ─────────────────────────────────────────────
+
+// Apenas texto — usado na pipeline CSV
+async function chamarIATexto(prompt: string): Promise<any | null> {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+
+  if (anthropicKey) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.content?.[0]?.text) {
+        return JSON.parse(data.content[0].text.replace(/```json|```/g, '').trim())
+      }
+    } catch { /* fallback OpenAI */ }
+  }
+
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 4000,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.choices?.[0]?.message?.content) {
+        return JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim())
+      }
+    } catch { /* erro */ }
+  }
+
+  return null
+}
+
+// Texto + imagem — usado para processarImagem
 async function chamarIA(prompt: string, imagem: { base64: string; mediaType: string } | null) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
@@ -164,10 +327,7 @@ async function chamarIA(prompt: string, imagem: { base64: string; mediaType: str
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
         body: JSON.stringify({
           model: 'gpt-4o',
           max_tokens: 8000,
@@ -178,25 +338,6 @@ async function chamarIA(prompt: string, imagem: { base64: string; mediaType: str
               { type: 'text', text: prompt },
             ],
           }],
-        }),
-      })
-      const data = await res.json()
-      if (res.ok && data.choices?.[0]?.message?.content) {
-        const resultado = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim())
-        return NextResponse.json({ ok: true, ...resultado })
-      }
-    } catch { /* erro */ }
-  }
-
-  if (openaiKey && !imagem) {
-    try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: 8000,
-          messages: [{ role: 'user', content: prompt }],
         }),
       })
       const data = await res.json()
