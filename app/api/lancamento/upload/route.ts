@@ -127,7 +127,7 @@ async function categorizarEmChunks(
 ): Promise<Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string; categoria: string }>> {
   const CHUNK_SIZE = 100
   const categoriasDisponiveis = 'Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros'
-  const resultado = []
+  const resultado: Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string; categoria: string }> = []
 
   for (let i = 0; i < transacoes.length; i += CHUNK_SIZE) {
     const chunk = transacoes.slice(i, i + CHUNK_SIZE)
