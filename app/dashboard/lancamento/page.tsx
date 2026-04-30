@@ -151,9 +151,9 @@ export default function LancamentoPage() {
     if (data) setHistorico(data)
   }, [supabase, router])
 
-  useEffect(() => {
-    carregarHistorico()
-  }, [carregarHistorico])
+useEffect(() => {
+  void carregarHistorico()
+}, [carregarHistorico])
 
   useEffect(() => {
     if (!userId) return
