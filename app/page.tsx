@@ -95,7 +95,7 @@ export default function LandingPage() {
           </div>
 
           <h1 className="hero-title" style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.15, letterSpacing: -1.5, marginBottom: 24, margin: '0 auto 24px' }}>
-            Poupe mais.<br />
+            Poupar mais.<br />
             <span style={{ color: '#4ade80' }}>Evolua sempre.</span><br />
             Conquiste seus sonhos.
           </h1>
@@ -290,17 +290,16 @@ export default function LandingPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
           <div>
             <PoupaUpLogo mode="compact" />
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginTop: 8 }}>Poupe. Evolua. Conquiste.</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginTop: 8 }}>Poupar. Evoluir. Conquistar.</div>
           </div>
           <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
             <a href="/login" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Entrar</a>
             <a href="/login" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Cadastrar</a>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Contato</span>
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.2)' }}>© 2026 PoupaUp · Poupe. Evolua. Conquiste.</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.2)' }}>© 2026 PoupaUp · Poupar. Evoluir. Conquistar.</div>
         </div>
       </footer>
-
     </div>
   )
 }
