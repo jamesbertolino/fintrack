@@ -23,11 +23,10 @@ export async function POST(request: NextRequest) {
 }
 
 // ─────────────────────────────────────────────
-// PIPELINE CSV — 3 ETAPAS
+// TIPOS
 // ─────────────────────────────────────────────
 
-// Etapa 1: Detectar banco e mapear colunas via IA (apenas 10 linhas)
-async function detectarFormatoCSV(primeirasLinhas: string): Promise<{
+interface FormatoCSV {
   banco: string
   separador: string
   linha_inicio_dados: number
@@ -38,7 +37,25 @@ async function detectarFormatoCSV(primeirasLinhas: string): Promise<{
     credito: number | null
     debito: number | null
   }
-} | null> {
+}
+
+interface TransacaoBruta {
+  descricao: string
+  valor: number
+  tipo: 'debito' | 'credito'
+  data_hora: string
+}
+
+interface TransacaoFinal extends TransacaoBruta {
+  categoria: string
+}
+
+// ─────────────────────────────────────────────
+// PIPELINE CSV — 3 ETAPAS
+// ─────────────────────────────────────────────
+
+// Etapa 1: Detectar banco e mapear colunas via IA (apenas 10 linhas)
+async function detectarFormatoCSV(primeirasLinhas: string): Promise<FormatoCSV | null> {
   const prompt = `Analise as primeiras linhas deste extrato bancário e identifique o formato.
 Retorne APENAS JSON válido sem texto adicional.
 
@@ -59,16 +76,31 @@ Retorne:
   }
 }`
 
-  return chamarIATexto(prompt)
+  const resultado = await chamarIATexto(prompt)
+  if (!resultado) return null
+
+  // Valida se o resultado tem a estrutura esperada
+  if (
+    typeof resultado.banco === 'string' &&
+    typeof resultado.separador === 'string' &&
+    typeof resultado.linha_inicio_dados === 'number' &&
+    resultado.colunas &&
+    typeof resultado.colunas.data === 'number' &&
+    typeof resultado.colunas.descricao === 'number'
+  ) {
+    return resultado as FormatoCSV
+  }
+
+  return null
 }
 
 // Etapa 2: Parsear todas as linhas no servidor sem IA
-function parsearLinhasCSV(
-  linhas: string[],
-  formato: NonNullable<Awaited<ReturnType<typeof detectarFormatoCSV>>>
-): Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string }> {
+function parsearLinhasCSV(linhas: string[], formato: FormatoCSV): TransacaoBruta[] {
   const { separador, colunas, linha_inicio_dados } = formato
-  const transacoes = []
+  const transacoes: TransacaoBruta[] = []
+
+  const limparNumero = (raw: string | undefined): number =>
+    parseFloat((raw || '0').replace(/\./g, '').replace(',', '.').trim()) || 0
 
   for (let i = linha_inicio_dados; i < linhas.length; i++) {
     const linha = linhas[i]?.trim()
@@ -92,9 +124,6 @@ function parsearLinhasCSV(
 
     let valor = 0
     let tipo: 'debito' | 'credito' = 'debito'
-
-    const limparNumero = (raw: string | undefined) =>
-      parseFloat((raw || '0').replace(/\./g, '').replace(',', '.').trim()) || 0
 
     if (colunas.valor !== null) {
       const valorNum = limparNumero(cols[colunas.valor])
@@ -122,12 +151,10 @@ function parsearLinhasCSV(
 }
 
 // Etapa 3: Categorizar em chunks de 100 descrições por vez
-async function categorizarEmChunks(
-  transacoes: Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string }>
-): Promise<Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string; categoria: string }>> {
+async function categorizarEmChunks(transacoes: TransacaoBruta[]): Promise<TransacaoFinal[]> {
   const CHUNK_SIZE = 100
   const categoriasDisponiveis = 'Alimentação, Transporte, Lazer, Saúde, Moradia, Educação, Salário, Freelance, Investimento, Outros'
-  const resultado: Array<{ descricao: string; valor: number; tipo: 'debito' | 'credito'; data_hora: string; categoria: string }> = []
+  const resultado: TransacaoFinal[] = []
 
   for (let i = 0; i < transacoes.length; i += CHUNK_SIZE) {
     const chunk = transacoes.slice(i, i + CHUNK_SIZE)
@@ -148,7 +175,15 @@ Retorne:
 O array deve ter exatamente ${chunk.length} itens, na mesma ordem.`
 
     const iaResult = await chamarIATexto(prompt)
-    const categorias: string[] = iaResult?.categorias || chunk.map(() => 'Outros')
+
+    // Type guard para garantir que iaResult tem a propriedade categorias
+    const categorias: string[] =
+      iaResult &&
+      typeof iaResult === 'object' &&
+      'categorias' in iaResult &&
+      Array.isArray((iaResult as { categorias: unknown }).categorias)
+        ? (iaResult as { categorias: string[] }).categorias
+        : chunk.map(() => 'Outros')
 
     chunk.forEach((t, idx) => {
       resultado.push({ ...t, categoria: categorias[idx] || 'Outros' })
@@ -158,7 +193,7 @@ O array deve ter exatamente ${chunk.length} itens, na mesma ordem.`
   return resultado
 }
 
-// Função principal CSV reescrita
+// Função principal CSV
 async function processarCSV(arquivo: File, _userId: string) {
   const texto = await arquivo.text()
   const linhas = texto.split('\n').filter((l: string) => l.trim())
@@ -238,8 +273,8 @@ Retorne:
 // HELPERS DE IA
 // ─────────────────────────────────────────────
 
-// Apenas texto — usado na pipeline CSV
-async function chamarIATexto(prompt: string): Promise<unknown | null> {
+// Apenas texto — retorna objeto tipado ou null
+async function chamarIATexto(prompt: string): Promise<Record<string, unknown> | null> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
   if (anthropicKey) {
@@ -259,7 +294,7 @@ async function chamarIATexto(prompt: string): Promise<unknown | null> {
       })
       const data = await res.json()
       if (res.ok && data.content?.[0]?.text) {
-        return JSON.parse(data.content[0].text.replace(/```json|```/g, '').trim())
+        return JSON.parse(data.content[0].text.replace(/```json|```/g, '').trim()) as Record<string, unknown>
       }
     } catch { /* fallback OpenAI */ }
   }
@@ -278,7 +313,7 @@ async function chamarIATexto(prompt: string): Promise<unknown | null> {
       })
       const data = await res.json()
       if (res.ok && data.choices?.[0]?.message?.content) {
-        return JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim())
+        return JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim()) as Record<string, unknown>
       }
     } catch { /* erro */ }
   }
