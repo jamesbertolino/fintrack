@@ -152,7 +152,7 @@ export default function LancamentoPage() {
   }, [supabase, router])
 
 useEffect(() => {
-  void carregarHistorico()
+  carregarHistorico() // eslint-disable-line react-hooks/set-state-in-effect
 }, [carregarHistorico])
 
   useEffect(() => {
