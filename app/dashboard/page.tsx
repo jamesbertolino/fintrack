@@ -54,7 +54,7 @@ const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
     }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/velocimetro.jpg"
+        src="/velocimetro.png"
         alt="PoupaUp"
         style={{
           width: '100%', height: '100%', objectFit: 'cover',
@@ -82,7 +82,7 @@ const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
           letterSpacing: '.1em', marginTop: 2,
           textTransform: 'uppercase',
         }}>
-          Poupe · Evolua · Conquiste
+          Poupar · Evoluir · Conquistar
         </div>
       </div>
     )}

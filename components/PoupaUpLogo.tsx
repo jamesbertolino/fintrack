@@ -40,7 +40,7 @@ export default function PoupaUpLogo({ mode = 'full' }: PoupaUpLogoProps) {
           <span style={{ color: '#4ade80' }}>Up</span>
         </div>
 
-        {/* Poupe. Evolua. Conquiste. */}
+        {/* Poupar. Evoluir. Conquistar. */}
         {mode === 'full' && (
           <div style={{
             display: 'flex',
@@ -52,9 +52,9 @@ export default function PoupaUpLogo({ mode = 'full' }: PoupaUpLogoProps) {
             whiteSpace: 'nowrap',
           }}>
             <div style={{ width: 12, height: 1, background: '#4ade80' }} />
-            <span style={{ color: 'rgba(255,255,255,0.75)' }}>Poupe.</span>
-            <span style={{ color: '#4ade80', fontWeight: 600 }}>&nbsp;Evolua.</span>
-            <span style={{ color: 'rgba(255,255,255,0.75)' }}>&nbsp;Conquiste.</span>
+            <span style={{ color: 'rgba(255,255,255,0.75)' }}>Poupar.</span>
+            <span style={{ color: '#4ade80', fontWeight: 600 }}>&nbsp;Evoluir.</span>
+            <span style={{ color: 'rgba(255,255,255,0.75)' }}>&nbsp;Conquistar.</span>
             <div style={{ width: 12, height: 1, background: '#4ade80' }} />
           </div>
         )}
