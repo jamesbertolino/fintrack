@@ -13,10 +13,12 @@ interface Transacao {
   categoria: string
   data_hora: string
   origem: string
+  conta_id?: string
 }
 
 const CATEGORIAS_DESPESA = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Outros']
 const CATEGORIAS_RECEITA = ['Salário','Freelance','Investimento','Presente','Outros']
+const TODAS_CATEGORIAS = [...new Set([...CATEGORIAS_DESPESA, ...CATEGORIAS_RECEITA])]
 
 const CORES: Record<string, string> = {
   'Alimentação': '#4ade80', 'Transporte': '#22d3ee', 'Lazer': '#f97316',
@@ -54,12 +56,8 @@ function inputParaUTC(dataLocal: string, timezone: string): string {
   const [data, hora] = dataLocal.split('T')
   const [ano, mes, dia] = data.split('-').map(Number)
   const [h, min] = hora.split(':').map(Number)
-
   const dataObj = new Date(Date.UTC(ano, mes - 1, dia, h, min))
-  const formatter = new Intl.DateTimeFormat('en', {
-    timeZone: timezone,
-    timeZoneName: 'shortOffset',
-  })
+  const formatter = new Intl.DateTimeFormat('en', { timeZone: timezone, timeZoneName: 'shortOffset' })
   const parts = formatter.formatToParts(dataObj)
   const offset = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+0'
   const match = offset.match(/GMT([+-]\d+)(?::(\d+))?/)
@@ -74,6 +72,7 @@ export default function LancamentoPage() {
   const supabase = createClient()
   const { fmtDataHora } = usePerfil()
 
+  // ─── form ───
   const [tipo, setTipo]             = useState<'debito' | 'credito'>('debito')
   const [valor, setValor]           = useState('')
   const [descricao, setDescricao]   = useState('')
@@ -84,14 +83,30 @@ export default function LancamentoPage() {
   const [salvando, setSalvando]     = useState(false)
   const [erro, setErro]             = useState('')
   const [sucesso, setSucesso]       = useState(false)
-  const [historico, setHistorico]   = useState<Transacao[]>([])
-  const [deletando, setDeletando]   = useState<string | null>(null)
   const [userId, setUserId]         = useState('')
   const [contas, setContas]         = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
   const [contaSelecionada, setConta] = useState('')
-  const [bancoDetectado, setBancoDetectado] = useState<{ id: string; nome_curto: string; cor: string | null } | null>(null)
-  const [contaUpload, setContaUpload] = useState('')
 
+  // ─── histórico ───
+  const [historico, setHistorico]   = useState<Transacao[]>([])
+  const [deletando, setDeletando]   = useState<string | null>(null)
+
+  // ─── seleção em lote ───
+  const [selecionados, setSelecionados] = useState<string[]>([])
+  const [movendo, setMovendo]           = useState(false)
+  const [contaDestino, setContaDestino] = useState('')
+  const [excluindoLote, setExcluindoLote] = useState(false)
+
+  // ─── modal edição ───
+  const [modalAberto, setModalAberto]       = useState(false)
+  const [transacaoEditando, setTransacaoEditando] = useState<Transacao | null>(null)
+  const [editDescricao, setEditDescricao]   = useState('')
+  const [editCategoria, setEditCategoria]   = useState('')
+  const [editContaId, setEditContaId]       = useState('')
+  const [editDataHora, setEditDataHora]     = useState('')
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+
+  // ─── upload ───
   const inputRef                    = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver]     = useState(false)
   const [processando, setProcessan] = useState(false)
@@ -100,8 +115,13 @@ export default function LancamentoPage() {
     descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
   }>>([])
   const [resumoDetectado, setResumo] = useState('')
+  const [bancoDetectado, setBancoDetectado] = useState<{ id: string; nome_curto: string; cor: string | null } | null>(null)
+  const [contaUpload, setContaUpload] = useState('')
 
-  // Busca timezone do perfil e inicializa o campo de data/hora corretamente
+  // ─── modal conta não encontrada ───
+  const [modalContaNaoEncontrada, setModalContaNaoEncontrada] = useState(false)
+  const [bancoNaoEncontrado, setBancoNaoEncontrado] = useState('')
+
   useEffect(() => {
     const client = createClient()
     client.auth.getUser().then(({ data: { user } }) => {
@@ -114,7 +134,6 @@ export default function LancamentoPage() {
     })
   }, [])
 
-  // useCallback declarado ANTES do useEffect que o chama
   useEffect(() => {
     fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
   }, [])
@@ -123,19 +142,16 @@ export default function LancamentoPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     setUserId(user.id)
-
     const { data } = await supabase
       .from('transactions')
       .select('*')
       .eq('user_id', user.id)
       .order('data_hora', { ascending: false })
       .limit(15)
-
     if (data) setHistorico(data)
   }, [supabase, router])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarHistorico()
   }, [carregarHistorico])
 
@@ -149,7 +165,6 @@ export default function LancamentoPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  // Trocar tipo e categoria juntos — sem useEffect
   function handleSetTipo(t: 'debito' | 'credito') {
     setTipo(t)
     setCategoria(t === 'debito' ? 'Alimentação' : 'Salário')
@@ -178,11 +193,9 @@ export default function LancamentoPage() {
     const v = valorNumerico()
     if (!v || v <= 0) { setErro('Digite um valor válido'); return }
     if (!descricao.trim()) { setErro('Digite uma descrição'); return }
-
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
     const { error } = await supabase.from('transactions').insert({
       user_id: user.id,
       descricao: descricao.trim(),
@@ -190,12 +203,10 @@ export default function LancamentoPage() {
       tipo,
       categoria,
       data_hora: inputParaUTC(dataHora, timezone),
-      origem:   'manual',
+      origem: 'manual',
       conta_id: contaSelecionada || null,
     })
-
     if (error) { setErro('Erro ao salvar: ' + error.message); setSalvando(false); return }
-
     setSalvando(false)
     setSucesso(true)
     setValor('')
@@ -208,26 +219,32 @@ export default function LancamentoPage() {
   async function handleUpload(arquivo: File) {
     if (!arquivo) return
     if (arquivo.size > 10 * 1024 * 1024) { setErro('Arquivo muito grande. Máx 10MB'); return }
-
     setProcessan(true)
     setTransacoesDetectadas([])
     setErro('')
-
     const form = new FormData()
     form.append('arquivo', arquivo)
-
     const res = await fetch('/api/lancamento/upload', { method: 'POST', body: form })
     const data = await res.json()
-
     setProcessan(false)
-
     if (!data.ok || !data.transacoes?.length) {
       setErro(data.error || 'Não foi possível extrair transações do documento')
       return
     }
-
     setTransacoesDetectadas(data.transacoes)
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
+
+    // Se a API já vinculou uma conta, pré-seleciona
+    if (data.conta_vinculada) {
+      const contaMatch = contas.find(c => c.bancos?.nome_curto === data.conta_vinculada || c.nome === data.conta_vinculada)
+      if (contaMatch) setContaUpload(contaMatch.id)
+    }
+
+    // Se não encontrou conta correspondente, abre modal de aviso
+    if (data.banco_nao_encontrado) {
+      setBancoNaoEncontrado(data.banco_nome || 'Desconhecido')
+      setModalContaNaoEncontrada(true)
+    }
 
     if (data.banco_id) {
       const bancoDados = await (await fetch('/api/bancos')).json()
@@ -240,8 +257,8 @@ export default function LancamentoPage() {
     }
   }
 
-  function editarTransacao(i: number, campo: string, valor: string) {
-    setTransacoesDetectadas(prev => prev.map((t, idx) => idx === i ? { ...t, [campo]: valor } : t))
+  function editarTransacao(i: number, campo: string, val: string) {
+    setTransacoesDetectadas(prev => prev.map((t, idx) => idx === i ? { ...t, [campo]: val } : t))
   }
 
   function removerTransacao(i: number) {
@@ -257,7 +274,6 @@ export default function LancamentoPage() {
     })
     const data = await res.json()
     setConfirman(false)
-
     if (data.ok) {
       setTransacoesDetectadas([])
       setResumo('')
@@ -278,11 +294,77 @@ export default function LancamentoPage() {
     carregarHistorico()
   }
 
+  // ─── seleção em lote ───
+  function toggleSelecionado(id: string) {
+    setSelecionados(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+  }
+
+  function toggleTodos() {
+    setSelecionados(prev => prev.length === historico.length ? [] : historico.map(t => t.id))
+  }
+
+  async function excluirSelecionados() {
+    if (!selecionados.length) return
+    setExcluindoLote(true)
+    await Promise.all(selecionados.map(id => supabase.from('transactions').delete().eq('id', id)))
+    setSelecionados([])
+    setExcluindoLote(false)
+    carregarHistorico()
+  }
+
+  async function moverParaConta() {
+    if (!selecionados.length || !contaDestino) return
+    setMovendo(true)
+    await Promise.all(
+      selecionados.map(id =>
+        fetch(`/api/lancamento/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conta_id: contaDestino }),
+        })
+      )
+    )
+    setSelecionados([])
+    setContaDestino('')
+    setMovendo(false)
+    carregarHistorico()
+  }
+
+  // ─── modal edição ───
+  function abrirEdicao(t: Transacao) {
+    setTransacaoEditando(t)
+    setEditDescricao(t.descricao)
+    setEditCategoria(t.categoria)
+    setEditContaId(t.conta_id || '')
+    setEditDataHora(t.data_hora ? new Date(t.data_hora).toISOString().slice(0, 16) : '')
+    setModalAberto(true)
+  }
+
+  async function salvarEdicao() {
+    if (!transacaoEditando) return
+    setSalvandoEdicao(true)
+    await fetch(`/api/lancamento/${transacaoEditando.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        descricao: editDescricao,
+        categoria: editCategoria,
+        conta_id: editContaId || null,
+        data_hora: editDataHora ? new Date(editDataHora).toISOString() : transacaoEditando.data_hora,
+      }),
+    })
+    setSalvandoEdicao(false)
+    setModalAberto(false)
+    setTransacaoEditando(null)
+    carregarHistorico()
+  }
+
   const categorias = tipo === 'debito' ? CATEGORIAS_DESPESA : CATEGORIAS_RECEITA
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
 
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 12 }}>
         <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -294,7 +376,7 @@ export default function LancamentoPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', minHeight: 'calc(100vh - 53px)' }}>
 
-        {/* Formulário */}
+        {/* ─── Formulário ─── */}
         <div style={{ borderRight: '1px solid #1a3a1a', padding: '1.5rem', overflowY: 'auto' }}>
 
           <div style={{ display: 'flex', background: 'rgba(0,0,0,.4)', border: '1px solid #1a3a1a', borderRadius: 12, padding: 4, marginBottom: '1.5rem' }}>
@@ -361,16 +443,11 @@ export default function LancamentoPage() {
             {contas.length > 0 && (
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conta (opcional)</label>
-                <select
-                  value={contaSelecionada}
-                  onChange={e => setConta(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-                >
+                <select value={contaSelecionada} onChange={e => setConta(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
                   <option value="">Sem conta específica</option>
                   {contas.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.bancos?.nome_curto || '—'} · {c.nome} ({c.tipo})
-                    </option>
+                    <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} · {c.nome} ({c.tipo})</option>
                   ))}
                 </select>
               </div>
@@ -411,40 +488,21 @@ export default function LancamentoPage() {
             </button>
           </form>
 
-          {/* Seção upload */}
+          {/* Upload */}
           <div style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>📎 Importar documento</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
-              Foto de cupom, nota fiscal, fatura PDF ou extrato CSV
-            </div>
-
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Foto de cupom, nota fiscal, fatura PDF ou extrato CSV</div>
             <div
               onClick={() => inputRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
               onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]) }}
-              style={{
-                border: `2px dashed ${dragOver ? '#4ade80' : '#1a3a1a'}`,
-                borderRadius: 12, padding: '1.5rem',
-                textAlign: 'center', cursor: 'pointer',
-                background: dragOver ? 'rgba(74,222,128,.05)' : 'transparent',
-                transition: 'all .2s',
-              }}
+              style={{ border: `2px dashed ${dragOver ? '#4ade80' : '#1a3a1a'}`, borderRadius: 12, padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'rgba(74,222,128,.05)' : 'transparent', transition: 'all .2s' }}
             >
               <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>
-                Clique ou arraste o arquivo aqui
-              </div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
-                JPG, PNG, PDF, CSV — máx 10MB
-              </div>
-              <input
-                ref={inputRef}
-                type="file"
-                accept=".jpg,.jpeg,.png,.webp,.pdf,.csv"
-                style={{ display: 'none' }}
-                onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])}
-              />
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>Clique ou arraste o arquivo aqui</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>JPG, PNG, PDF, CSV — máx 10MB</div>
+              <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.csv" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
             </div>
 
             {processando && (
@@ -457,52 +515,36 @@ export default function LancamentoPage() {
 
             {transacoesDetectadas.length > 0 && !processando && (
               <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#4ade80' }}>
-                  ✅ {resumoDetectado} — Revise antes de confirmar:
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#4ade80' }}>✅ {resumoDetectado} — Revise antes de confirmar:</div>
 
                 {bancoDetectado && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, marginBottom: 12 }}>
                     <div style={{ width: 24, height: 24, borderRadius: 4, background: bancoDetectado.cor || '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                       {bancoDetectado.nome_curto[0]}
                     </div>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>
-                      Banco detectado: <strong style={{ color: '#fff' }}>{bancoDetectado.nome_curto}</strong>
-                    </span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Banco detectado: <strong style={{ color: '#fff' }}>{bancoDetectado.nome_curto}</strong></span>
                   </div>
                 )}
 
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Vincular à conta</label>
-                  <select
-                    value={contaUpload}
-                    onChange={e => setContaUpload(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-                  >
+                  <select value={contaUpload} onChange={e => setContaUpload(e.target.value)}
+                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
                     <option value="">Sem conta específica</option>
-                    {contas
-                      .filter(c => !bancoDetectado || c.bancos?.id === bancoDetectado.id)
-                      .map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.bancos?.nome_curto || '—'} — {c.nome}
-                        </option>
-                      ))
-                    }
+                    {contas.filter(c => !bancoDetectado || c.bancos?.id === bancoDetectado.id).map(c => (
+                      <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} — {c.nome}</option>
+                    ))}
                   </select>
                 </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
                   {transacoesDetectadas.map((t, i) => (
                     <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 14, flexShrink: 0 }}>✕</button>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <input
-                          value={t.descricao}
-                          onChange={e => editarTransacao(i, 'descricao', e.target.value)}
-                          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }}
-                        />
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>
-                          {t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}
-                        </div>
+                        <input value={t.descricao} onChange={e => editarTransacao(i, 'descricao', e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }} />
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>{t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}</div>
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
                         {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
@@ -510,11 +552,14 @@ export default function LancamentoPage() {
                     </div>
                   ))}
                 </div>
+
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload('') }} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                  <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload('') }}
+                    style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
                     Cancelar
                   </button>
-                  <button onClick={confirmarLancamentos} disabled={confirmando} style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
+                  <button onClick={confirmarLancamentos} disabled={confirmando}
+                    style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
                     {confirmando ? 'Lançando...' : `Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
                   </button>
                 </div>
@@ -523,12 +568,35 @@ export default function LancamentoPage() {
           </div>
         </div>
 
-        {/* Histórico */}
+        {/* ─── Histórico ─── */}
         <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500 }}>Lançamentos recentes</div>
             <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>
           </div>
+
+          {/* Barra de ações em lote */}
+          {selecionados.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '10px 14px', background: '#0a1a0a', border: '1px solid #1a5a1a', borderRadius: 10 }}>
+              <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 500 }}>{selecionados.length} selecionado{selecionados.length > 1 ? 's' : ''}</span>
+              <div style={{ flex: 1 }} />
+              <select value={contaDestino} onChange={e => setContaDestino(e.target.value)}
+                style={{ padding: '5px 10px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 6, color: '#fff', fontSize: 12, outline: 'none', cursor: 'pointer' }}>
+                <option value="">Mover para conta...</option>
+                {contas.map(c => <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+              </select>
+              <button onClick={moverParaConta} disabled={!contaDestino || movendo}
+                style={{ padding: '5px 12px', background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, color: '#4ade80', fontSize: 12, cursor: contaDestino ? 'pointer' : 'default', opacity: !contaDestino ? 0.4 : 1 }}>
+                {movendo ? 'Movendo...' : 'Mover'}
+              </button>
+              <button onClick={excluirSelecionados} disabled={excluindoLote}
+                style={{ padding: '5px 12px', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 6, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>
+                {excluindoLote ? 'Excluindo...' : 'Excluir'}
+              </button>
+              <button onClick={() => setSelecionados([])}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 18, lineHeight: 1 }}>×</button>
+            </div>
+          )}
 
           {historico.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
@@ -536,38 +604,140 @@ export default function LancamentoPage() {
               Nenhum lançamento ainda.<br />Use o formulário ao lado para começar.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {historico.map(t => (
-                <div key={t.id} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12 }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#1a5a1a')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a3a1a')}
-                >
-                  <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${CORES[t.categoria] || '#6b7280'}18`, border: `1px solid ${CORES[t.categoria] || '#6b7280'}33`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280' }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</span>
-                      {t.origem === 'manual' && <span style={{ fontSize: 9, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.35)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>manual</span>}
-                      {t.origem === 'webhook' && <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>}
+            <>
+              {/* Selecionar todos */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingLeft: 4 }}>
+                <input type="checkbox" checked={selecionados.length === historico.length && historico.length > 0}
+                  onChange={toggleTodos}
+                  style={{ cursor: 'pointer', accentColor: '#4ade80', width: 14, height: 14 }} />
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>Selecionar todos</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {historico.map(t => (
+                  <div key={t.id} style={{
+                    background: selecionados.includes(t.id) ? '#0d2a0d' : '#111',
+                    border: `1px solid ${selecionados.includes(t.id) ? '#1a5a1a' : '#1a3a1a'}`,
+                    borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 12, transition: 'all .15s',
+                  }}>
+                    {/* Checkbox */}
+                    <input type="checkbox" checked={selecionados.includes(t.id)} onChange={() => toggleSelecionado(t.id)}
+                      onClick={e => e.stopPropagation()}
+                      style={{ cursor: 'pointer', accentColor: '#4ade80', width: 14, height: 14, flexShrink: 0 }} />
+
+                    {/* Ícone categoria — clicável para editar */}
+                    <div onClick={() => abrirEdicao(t)} style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: `${CORES[t.categoria] || '#6b7280'}18`, border: `1px solid ${CORES[t.categoria] || '#6b7280'}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280' }} />
                     </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{t.categoria} · {fmtDataHora(t.data_hora)}</div>
+
+                    {/* Conteúdo — clicável para editar */}
+                    <div onClick={() => abrirEdicao(t)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</span>
+                        {t.origem === 'manual' && <span style={{ fontSize: 9, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.35)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>manual</span>}
+                        {t.origem === 'webhook' && <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{t.categoria} · {fmtDataHora(t.data_hora)}</div>
+                    </div>
+
+                    <div style={{ fontSize: 14, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
+                      {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
+                    </div>
+
+                    {/* Lixeira */}
+                    <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 4, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.2)')}>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
-                    {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
-                  </div>
-                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 4, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}
-                    onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,.2)')}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
+
+      {/* ─── Modal edição ─── */}
+      {modalAberto && transacaoEditando && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+          onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descrição</label>
+              <input value={editDescricao} onChange={e => setEditDescricao(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Categoria</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {TODAS_CATEGORIAS.map(c => (
+                  <button key={c} type="button" onClick={() => setEditCategoria(c)} style={{
+                    padding: '4px 10px', borderRadius: 20, border: `1px solid ${editCategoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
+                    background: editCategoria === c ? `${CORES[c] || '#4ade80'}18` : 'transparent',
+                    color: editCategoria === c ? CORES[c] || '#4ade80' : 'rgba(255,255,255,.4)',
+                    fontSize: 11, cursor: 'pointer',
+                  }}>{c}</button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Conta</label>
+              <select value={editContaId} onChange={e => setEditContaId(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                <option value="">Sem conta específica</option>
+                {contas.map(c => <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Data e hora</label>
+              <input type="datetime-local" value={editDataHora} onChange={e => setEditDataHora(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button onClick={() => setModalAberto(false)}
+                style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={salvarEdicao} disabled={salvandoEdicao}
+                style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: salvandoEdicao ? 'default' : 'pointer', opacity: salvandoEdicao ? 0.7 : 1 }}>
+                {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Modal banco não encontrado ─── */}
+      {modalContaNaoEncontrada && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Conta não encontrada</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.6 }}>
+              O banco <strong style={{ color: '#fff' }}>{bancoNaoEncontrado}</strong> foi detectado no extrato, mas você não tem nenhuma conta cadastrada com esse nome.
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>O que deseja fazer?</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => setModalContaNaoEncontrada(false)}
+                style={{ padding: '10px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, color: '#4ade80', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                Continuar sem conta específica e escolher depois
+              </button>
+              <button onClick={() => { setModalContaNaoEncontrada(false); router.push('/dashboard/contas') }}
+                style={{ padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                Ir para Contas e cadastrar ou vincular
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
