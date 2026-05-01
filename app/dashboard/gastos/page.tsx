@@ -279,7 +279,7 @@ export default function GastosPage() {
               Exibindo{' '}
               {tipoFiltro !== 'todos' && <strong style={{ color: tipoFiltro === 'credito' ? '#4ade80' : '#f87171' }}>{tipoFiltro === 'credito' ? 'Receitas' : 'Despesas'}</strong>}
               {catFiltro !== 'Todas' && <>{tipoFiltro !== 'todos' ? ' · ' : ''}<strong style={{ color: '#fff' }}>{catFiltro}</strong></>}
-              {busca && <>{(tipoFiltro !== 'todos' || catFiltro !== 'Todas') ? ' · ' : ''}"<strong style={{ color: '#fff' }}>{busca}</strong>"</>}
+             {busca && <>{(tipoFiltro !== 'todos' || catFiltro !== 'Todas') ? ' · ' : ''}{'"'}<strong style={{ color: '#fff' }}>{busca}</strong>{'"'}</>}
               {' · '}<strong style={{ color: '#fff' }}>{filtradas.length}</strong> de <strong style={{ color: '#fff' }}>{transacoes.length}</strong> transações
               {' · '}<span>Os totais acima refletem o período completo</span>
             </span>
