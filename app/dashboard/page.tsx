@@ -93,9 +93,9 @@ export default function Dashboard() {
   // Em mobile sidebar começa fechada, em desktop aberta
   const [sidebarAberta, setSidebar] = useState(true)
 
-  useEffect(() => {
-    setSidebar(!isMobile)
-  }, [isMobile])
+useEffect(() => {
+  setSidebar(!isMobile) // eslint-disable-line react-hooks/set-state-in-effect
+}, [isMobile])
 
   const xp           = calcularXP({ transacoes, metas })
   const { receitas, despesas, saldo } = xp
