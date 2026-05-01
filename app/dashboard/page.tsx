@@ -48,59 +48,40 @@ const CORES: Record<string, string> = {
 
 const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    <div style={{
-      width: 36, height: 36, flexShrink: 0, position: 'relative',
-      borderRadius: 8, overflow: 'hidden',
-    }}>
+    <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 8, overflow: 'hidden' }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/velocimetro.png"
-        alt="PoupaUp"
-        style={{
-          width: '100%', height: '100%', objectFit: 'cover',
-          animation: 'pulse-logo 2s ease-in-out',
-        }}
-      />
+      <img src="/velocimetro.png" alt="PoupaUp" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     </div>
-
     {!collapsed && (
       <div style={{ lineHeight: 1 }}>
-        <div style={{
-          fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em',
-          background: 'linear-gradient(135deg, #fff 40%, #4ade80 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-        }}>
-          Poupa<span style={{
-            background: 'linear-gradient(135deg, #4ade80, #a3e635)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}>Up</span>
+        <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #fff 40%, #4ade80 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          Poupa<span style={{ background: 'linear-gradient(135deg, #4ade80, #a3e635)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Up</span>
         </div>
-        <div style={{
-          fontSize: 8, color: 'rgba(255,255,255,.3)',
-          letterSpacing: '.1em', marginTop: 2,
-          textTransform: 'uppercase',
-        }}>
+        <div style={{ fontSize: 8, color: 'rgba(255,255,255,.3)', letterSpacing: '.1em', marginTop: 2, textTransform: 'uppercase' }}>
           Poupar · Evoluir · Conquistar
         </div>
       </div>
     )}
-
-    <style>{`
-      @keyframes pulse-logo {
-        0% { transform: scale(0.8); opacity: 0.5; }
-        50% { transform: scale(1.05); opacity: 1; }
-        100% { transform: scale(1); opacity: 1; }
-      }
-    `}</style>
   </div>
 )
+
+// Hook simples para detectar largura da tela
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isMobile
+}
 
 export default function Dashboard() {
   const router = useRouter()
   const supabase = createClient()
   const { fmtData, timezone, idioma } = usePerfil()
+  const isMobile = useIsMobile()
 
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
@@ -108,7 +89,13 @@ export default function Dashboard() {
   const [contas, setContas]         = useState<Conta[]>([])
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
+
+  // Em mobile sidebar começa fechada, em desktop aberta
   const [sidebarAberta, setSidebar] = useState(true)
+
+  useEffect(() => {
+    setSidebar(!isMobile)
+  }, [isMobile])
 
   const xp           = calcularXP({ transacoes, metas })
   const { receitas, despesas, saldo } = xp
@@ -135,16 +122,14 @@ export default function Dashboard() {
     if (tx)   setTransacoes(tx)
     if (mt)   setMetas(mt)
 
-    const contasRes  = await fetch('/api/contas')
+    const contasRes   = await fetch('/api/contas')
     const contasDados = await contasRes.json()
     setContas(contasDados.contas || [])
-
     setLoading(false)
   }, [supabase, router])
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>
-
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -155,7 +140,6 @@ export default function Dashboard() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => { carregarDados() })
         .subscribe()
     }
-
     init()
     return () => { if (channel) supabase.removeChannel(channel) }
   }, [carregarDados, supabase])
@@ -173,49 +157,84 @@ export default function Dashboard() {
   )
 
   const NAV_ITEMS = [
-    { id: 'inicio',      label: 'Início',        icon: 'M3 9l4-4 4 4 4-4' },
-    { id: 'lancamento',  label: 'Lançamento',     icon: 'M6 1v12M1 6h10',                href: '/dashboard/lancamento' },
-    { id: 'gastos',      label: 'Gastos',         icon: 'M2 4h10M2 7h7M2 10h5',         href: '/dashboard/gastos' },
-    { id: 'metas',       label: 'Metas',          icon: 'M7 1l1.5 4H13l-4 3 1.5 4L7 10l-4 2.5L4.5 8 .5 5H5z', href: '/dashboard/metas' },
-    { id: 'ia',          label: 'Assistente IA',  icon: 'M2 7a5 5 0 0 1 10 0',          href: '/dashboard/ia' },
-    { id: 'notificacoes',label: 'Notificações',   icon: 'M7 2a4 4 0 00-4 4v2l-1 1v1h10v-1l-1-1V6a4 4 0 00-4-4zM5.5 12a1.5 1.5 0 003 0', href: '/dashboard/notificacoes' },
-    //{ id: 'evolucao',    label: 'Evolução',       icon: 'M2 10l3-3 3 3 4-6' },
-    { id: 'evolucao', label: 'Evolução', icon: 'M2 10l3-3 3 3 4-6', href: '/dashboard/evolucao' },
-    { id: 'contas', label: 'Contas', icon: 'M2 4h10a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zM1 7h12', href: '/dashboard/contas' },
+    { id: 'inicio',       label: 'Início',       icon: 'M3 9l4-4 4 4 4-4' },
+    { id: 'lancamento',   label: 'Lançamento',   icon: 'M6 1v12M1 6h10',                href: '/dashboard/lancamento' },
+    { id: 'gastos',       label: 'Gastos',       icon: 'M2 4h10M2 7h7M2 10h5',         href: '/dashboard/gastos' },
+    { id: 'metas',        label: 'Metas',        icon: 'M7 1l1.5 4H13l-4 3 1.5 4L7 10l-4 2.5L4.5 8 .5 5H5z', href: '/dashboard/metas' },
+    { id: 'ia',           label: 'Assistente IA',icon: 'M2 7a5 5 0 0 1 10 0',          href: '/dashboard/ia' },
+    { id: 'notificacoes', label: 'Notificações', icon: 'M7 2a4 4 0 00-4 4v2l-1 1v1h10v-1l-1-1V6a4 4 0 00-4-4zM5.5 12a1.5 1.5 0 003 0', href: '/dashboard/notificacoes' },
+    { id: 'evolucao',     label: 'Evolução',     icon: 'M2 10l3-3 3 3 4-6',            href: '/dashboard/evolucao' },
+    { id: 'contas',       label: 'Contas',       icon: 'M2 4h10a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zM1 7h12', href: '/dashboard/contas' },
   ]
 
+  // largura do sidebar — em mobile sempre 200 quando aberto (drawer), em desktop colapsa para 56
+  const sidebarWidth = isMobile ? 200 : (sidebarAberta ? 200 : 56)
+  const collapsed    = !isMobile && !sidebarAberta
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13 }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative' }}>
+
+      {/* Overlay escuro em mobile quando sidebar aberta */}
+      {isMobile && sidebarAberta && (
+        <div
+          onClick={() => setSidebar(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 40 }}
+        />
+      )}
 
       {/* ── Sidebar ── */}
-      <aside style={{ width: sidebarAberta ? 200 : 56, background: '#0a1a0a', borderRight: '1px solid #1a3a1a', display: 'flex', flexDirection: 'column', transition: 'width .2s', flexShrink: 0 }}>
-
-        <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <LogoPoupaUp collapsed={!sidebarAberta} />
+      <aside style={{
+        width: sidebarWidth,
+        background: '#0a1a0a',
+        borderRight: '1px solid #1a3a1a',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'width .2s, transform .2s',
+        flexShrink: 0,
+        // Em mobile: posição fixa como drawer
+        ...(isMobile ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          zIndex: 50,
+          transform: sidebarAberta ? 'translateX(0)' : 'translateX(-100%)',
+          width: 200,
+        } : {}),
+      }}>
+        <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+          <LogoPoupaUp collapsed={collapsed} />
         </div>
 
         <nav style={{ flex: 1, padding: '0.75rem 0' }}>
           {NAV_ITEMS.map(item => (
             <button key={item.id}
-              onClick={() => ('href' in item && item.href) ? router.push(item.href) : setPagina(item.id)}
+              onClick={() => {
+                if ('href' in item && item.href) router.push(item.href)
+                else setPagina(item.id)
+                if (isMobile) setSidebar(false)
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: sidebarAberta ? '8px 1rem' : '8px 14px',
-                width: '100%', background: paginaAtiva === item.id ? 'rgba(74,222,128,.1)' : 'transparent',
-                border: 'none', borderLeft: paginaAtiva === item.id ? '2px solid #4ade80' : '2px solid transparent',
-                cursor: 'pointer', color: paginaAtiva === item.id ? '#4ade80' : 'rgba(255,255,255,.45)',
+                padding: !collapsed ? '8px 1rem' : '8px 14px',
+                width: '100%',
+                background: paginaAtiva === item.id ? 'rgba(74,222,128,.1)' : 'transparent',
+                border: 'none',
+                borderLeft: paginaAtiva === item.id ? '2px solid #4ade80' : '2px solid transparent',
+                cursor: 'pointer',
+                color: paginaAtiva === item.id ? '#4ade80' : 'rgba(255,255,255,.45)',
                 fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
                 <path d={item.icon} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              {sidebarAberta && item.label}
+              {!collapsed && item.label}
             </button>
           ))}
         </nav>
 
-        {sidebarAberta && (
+        {!collapsed && (
           <div style={{ margin: '0 .75rem 1rem', background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, padding: '10px 12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Nível {nivel.nivel}</span>
@@ -230,35 +249,46 @@ export default function Dashboard() {
 
         <button onClick={sair} style={{
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: sidebarAberta ? '10px 1rem' : '10px 14px',
+          padding: !collapsed ? '10px 1rem' : '10px 14px',
           background: 'transparent', border: 'none', borderTop: '1px solid #1a3a1a',
           color: 'rgba(255,255,255,.3)', cursor: 'pointer', fontSize: 12, width: '100%',
         }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M5 7h7M10 4l3 3-3 3M6 3H3a1 1 0 00-1 1v6a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          {sidebarAberta && 'Sair'}
+          {!collapsed && 'Sair'}
         </button>
       </aside>
 
-      {/* ── Conteúdo ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* ── Conteúdo principal ── */}
+      <main style={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        // Em mobile o main ocupa tudo (sidebar está por cima)
+        marginLeft: isMobile ? 0 : undefined,
+        minWidth: 0,
+      }}>
 
         {/* Topbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 4, flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
             </button>
             <span style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}>
               {{ inicio: 'Início', evolucao: 'Evolução' }[paginaAtiva] || 'PoupaUp'}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 20, padding: '4px 10px' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
-              <span style={{ fontSize: 11, color: '#4ade80' }}>webhook ativo</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {/* Badge webhook — oculto em telas muito pequenas */}
+            {!isMobile && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 20, padding: '4px 10px' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80' }} />
+                <span style={{ fontSize: 11, color: '#4ade80' }}>webhook ativo</span>
+              </div>
+            )}
             <SinoNotificacoes />
             <Avatar
               url={profile?.avatar_url}
@@ -269,14 +299,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Páginas */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '1.25rem 1.5rem' }}>
+        {/* Conteúdo das páginas */}
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
 
           {/* INÍCIO */}
           {paginaAtiva === 'inicio' && (
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: 18, fontWeight: 500, color: '#fff', marginBottom: 2 }}>
+                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 500, color: '#fff', marginBottom: 2 }}>
                   Olá, {profile?.nome || 'usuário'} 👋
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
@@ -284,22 +314,24 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: '1.25rem' }}>
+              {/* Cards métricas — 2 colunas em mobile, 4 em desktop */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
                 {[
                   { label: 'Saldo',    val: formatBRL(saldo),    cor: saldo >= 0 ? '#4ade80' : '#f87171' },
                   { label: 'Receitas', val: formatBRL(receitas), cor: '#4ade80' },
                   { label: 'Gastos',   val: formatBRL(despesas), cor: '#f87171' },
                   { label: 'XP total', val: `${xpTotal} XP`,    cor: '#fbbf24' },
                 ].map(m => (
-                  <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
-                    <div style={{ fontSize: 18, fontWeight: 500, color: m.cor }}>{m.val}</div>
+                  <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
+                    <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 500, color: m.cor, wordBreak: 'break-all' }}>{m.val}</div>
                   </div>
                 ))}
               </div>
 
+              {/* Saldos por conta */}
               {contas.length > 0 && (
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: 12 }}>
+                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldos por conta</span>
                     <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver detalhes →</button>
@@ -308,16 +340,14 @@ export default function Dashboard() {
                     {contas.slice(0, 4).map(c => (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.bancos?.cor || '#4ade80', flexShrink: 0 }} />
-                        <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)' }}>{c.nome}</span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? '#4ade80' : '#f87171' }}>
+                        <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nome}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? '#4ade80' : '#f87171', flexShrink: 0 }}>
                           {c.mostrar_saldo ? `R$ ${c.saldo.toFixed(2).replace('.', ',')}` : '••••••'}
                         </span>
                       </div>
                     ))}
                     {contas.length > 4 && (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>
-                        +{contas.length - 4} contas
-                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{contas.length - 4} contas</div>
                     )}
                     <div style={{ borderTop: '1px solid #1a3a1a', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
@@ -329,7 +359,8 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 12, marginBottom: 12 }}>
+              {/* Insights + Por categoria — coluna única em mobile */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
                 <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Insights</span>
@@ -360,17 +391,18 @@ export default function Dashboard() {
                       <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
                         <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[cat] || '#6b7280', flexShrink: 0 }} />
                         <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat}</span>
-                        <div style={{ width: 50, height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
                           <div style={{ height: '100%', width: `${Math.round((val/maxCategoria)*100)}%`, background: CORES[cat] || '#6b7280', borderRadius: 2 }} />
                         </div>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: '#fff', minWidth: 50, textAlign: 'right' }}>{formatBRL(val)}</span>
+                        <span style={{ fontSize: 10, fontWeight: 500, color: '#fff', minWidth: 48, textAlign: 'right', flexShrink: 0 }}>{formatBRL(val)}</span>
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Últimas transações + Metas — coluna única em mobile */}
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                 <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimas transações</span>
@@ -388,7 +420,7 @@ export default function Dashboard() {
                         <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
                         {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
                       </div>
                     </div>
@@ -428,7 +460,7 @@ export default function Dashboard() {
           {/* EVOLUÇÃO */}
           {paginaAtiva === 'evolucao' && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1.25rem' }}>
                 {[
                   { label: 'Nível',    val: `Lv.${nivel.nivel}`, cor: '#4ade80' },
                   { label: 'XP total', val: String(xpTotal),     cor: '#fbbf24' },
@@ -437,13 +469,13 @@ export default function Dashboard() {
                 ].map(m => (
                   <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 500, color: m.cor }}>{m.val}</div>
+                    <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 500, color: m.cor }}>{m.val}</div>
                   </div>
                 ))}
               </div>
               <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Conquistas</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,minmax(0,1fr))', gap: 10 }}>
                   {[
                     { nome: 'Primeira conta', desc: 'Cadastrou-se',        conquistado: true,                   cor: '#4ade80', bg: 'rgba(74,222,128,.15)' },
                     { nome: 'Primeiro gasto', desc: 'Registrou transação', conquistado: transacoes.length > 0,  cor: '#fbbf24', bg: 'rgba(251,191,36,.15)' },
@@ -482,8 +514,8 @@ function gerarInsights(transacoes: Transacao[], saldo: number) {
   const porCat   = despesas.reduce((acc, t) => { acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc }, {} as Record<string,number>)
   const topCat   = Object.entries(porCat).sort((a,b) => b[1]-a[1])[0]
 
-  if (topCat)            insights.push({ texto: `Maior categoria: <strong>${topCat[0]}</strong> com ${formatBRL(topCat[1])}.`, icon: 'M4.5 7.5l4 4', cor: '#f97316', bg: 'rgba(249,115,22,.15)' })
-  if (saldo > 0)         insights.push({ texto: `Saldo positivo de <strong>${formatBRL(saldo)}</strong>. Ótimo caminho!`, icon: 'M1 7.5l3 3 6-6', cor: '#4ade80', bg: 'rgba(74,222,128,.15)' })
+  if (topCat)               insights.push({ texto: `Maior categoria: <strong>${topCat[0]}</strong> com ${formatBRL(topCat[1])}.`, icon: 'M4.5 7.5l4 4', cor: '#f97316', bg: 'rgba(249,115,22,.15)' })
+  if (saldo > 0)            insights.push({ texto: `Saldo positivo de <strong>${formatBRL(saldo)}</strong>. Ótimo caminho!`, icon: 'M1 7.5l3 3 6-6', cor: '#4ade80', bg: 'rgba(74,222,128,.15)' })
   if (despesas.length >= 3) insights.push({ texto: `<strong>${despesas.length} transações</strong> registradas este período.`, icon: 'M1 4h8M1 7h5', cor: '#22d3ee', bg: 'rgba(34,211,238,.15)' })
 
   return insights
