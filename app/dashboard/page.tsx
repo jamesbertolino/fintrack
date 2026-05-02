@@ -9,6 +9,7 @@ import Avatar from '@/components/Avatar'
 import MissoesWidget from '@/components/MissoesWidget'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel } from '@/lib/calcularXP'
+import { useCores } from '@/components/ThemeProvider'
 
 interface Transacao {
   id: string
@@ -83,6 +84,7 @@ export default function Dashboard() {
   const supabase = createClient()
   const { fmtData, timezone, idioma } = usePerfil()
   const isMobile = useIsMobile()
+  const cores = useCores()
 
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
@@ -151,7 +153,7 @@ useEffect(() => {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#080b0f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
       <PoupaUpLogo mode="compact" />
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando...</div>
     </div>
@@ -173,7 +175,7 @@ useEffect(() => {
   const collapsed    = !isMobile && !sidebarAberta
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#080b0f', fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative', color: cores.text }}>
 
       {/* Overlay escuro em mobile quando sidebar aberta */}
       {isMobile && sidebarAberta && (
@@ -186,8 +188,8 @@ useEffect(() => {
       {/* ── Sidebar ── */}
       <aside style={{
         width: sidebarWidth,
-        background: 'linear-gradient(180deg, #0a1205 0%, #080b0f 100%)',
-        borderRight: '1px solid #1e2d1e',
+        background: cores.sidebarBg,
+        borderRight: `1px solid ${cores.border}`,
         display: 'flex',
         flexDirection: 'column',
         transition: 'width .2s, transform .2s',
@@ -202,7 +204,7 @@ useEffect(() => {
         } : {}),
       }}>
         {/* Logo */}
-        <div style={{ padding: '1rem', borderBottom: '1px solid #1e2d1e', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        <div style={{ padding: '1rem', borderBottom: `1px solid ${cores.border}`, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
           <LogoPoupaUp collapsed={collapsed} />
         </div>
 
@@ -210,7 +212,7 @@ useEffect(() => {
         {!collapsed && profile && (
           <div
             onClick={() => router.push('/dashboard/perfil')}
-            style={{ padding: '10px 1rem', borderBottom: '1px solid #1e2d1e', display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
+            style={{ padding: '10px 1rem', borderBottom: `1px solid ${cores.border}`, display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
           >
             <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -239,11 +241,11 @@ useEffect(() => {
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: !collapsed ? '7px 1rem' : '7px 14px',
                 width: '100%',
-                background: paginaAtiva === item.id ? 'rgba(74,222,128,.1)' : 'transparent',
+                background: paginaAtiva === item.id ? cores.navActive : 'transparent',
                 border: 'none',
-                borderLeft: paginaAtiva === item.id ? '2px solid #4ade80' : '2px solid transparent',
+                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.navActiveColor}` : '2px solid transparent',
                 cursor: 'pointer',
-                color: paginaAtiva === item.id ? '#4ade80' : 'rgba(255,255,255,.45)',
+                color: paginaAtiva === item.id ? cores.navActiveColor : cores.textMuted,
                 fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
@@ -273,11 +275,11 @@ useEffect(() => {
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: !collapsed ? '7px 1rem' : '7px 14px',
                 width: '100%',
-                background: paginaAtiva === item.id ? 'rgba(74,222,128,.1)' : 'transparent',
+                background: paginaAtiva === item.id ? cores.navActive : 'transparent',
                 border: 'none',
-                borderLeft: paginaAtiva === item.id ? '2px solid #4ade80' : '2px solid transparent',
+                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.navActiveColor}` : '2px solid transparent',
                 cursor: 'pointer',
-                color: paginaAtiva === item.id ? '#4ade80' : 'rgba(255,255,255,.45)',
+                color: paginaAtiva === item.id ? cores.navActiveColor : cores.textMuted,
                 fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
@@ -327,8 +329,8 @@ useEffect(() => {
         <button onClick={sair} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: !collapsed ? '10px 1rem' : '10px 14px',
-          background: 'transparent', border: 'none', borderTop: '1px solid #1a3a1a',
-          color: 'rgba(255,255,255,.3)', cursor: 'pointer', fontSize: 12, width: '100%',
+          background: 'transparent', border: 'none', borderTop: `1px solid ${cores.borderMid}`,
+          color: cores.textFaint, cursor: 'pointer', fontSize: 12, width: '100%',
         }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M5 7h7M10 4l3 3-3 3M6 3H3a1 1 0 00-1 1v6a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -349,7 +351,7 @@ useEffect(() => {
       }}>
 
         {/* Topbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: '1px solid #1e2d1e', background: 'linear-gradient(90deg, #0a1205, #080b0f)', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg, gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 4, flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Cinzel } from 'next/font/google'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
 const geist = Geist({ subsets: ['latin'] })
 const cinzel = Cinzel({
@@ -35,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ` }} />
       </head>
       <body className={`${geist.className} ${cinzel.variable}`} style={{ margin: 0, padding: 0 }}>
-        {children}
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   )

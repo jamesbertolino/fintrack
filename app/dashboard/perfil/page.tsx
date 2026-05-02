@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import Avatar from '@/components/Avatar'
 import ModalAvatar from '@/components/ModalAvatar'
+import { useTema, useCores } from '@/components/ThemeProvider'
 
 interface Profile {
   id: string
@@ -71,7 +72,8 @@ export default function PerfilPage() {
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
-  const [tema, setTema] = useState<'escuro' | 'claro'>('escuro')
+  const { tema, alterarTema: alterarTemaCtx } = useTema()
+  const cores = useCores()
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -158,8 +160,6 @@ export default function PerfilPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
-    const temaSalvo = localStorage.getItem('poupaup_tema') as 'escuro' | 'claro' | null
-    if (temaSalvo) setTema(temaSalvo)
   }, [carregar])
 
   async function salvarPerfil(e: React.FormEvent) {
@@ -415,12 +415,6 @@ export default function PerfilPage() {
     setTimeout(() => setSucesso(''), 3000)
   }
 
-  function alterarTema(novoTema: 'escuro' | 'claro') {
-    setTema(novoTema)
-    localStorage.setItem('poupaup_tema', novoTema)
-    document.documentElement.setAttribute('data-tema', novoTema)
-  }
-
   function copiarUrlWebhook() {
     const url = `${window.location.origin}/api/webhook/${profile?.id}`
     navigator.clipboard.writeText(url)
@@ -429,28 +423,28 @@ export default function PerfilPage() {
   }
 
   const inputStyle = {
-    width: '100%', padding: '9px 12px', background: '#0a1a0a',
-    border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff',
+    width: '100%', padding: '9px 12px', background: cores.inputBg,
+    border: `1px solid ${cores.inputBorder}`, borderRadius: 8, color: cores.text,
     fontSize: 13, outline: 'none',
   }
 
   const labelStyle = {
     display: 'block', fontSize: 10, fontWeight: 500,
-    color: 'rgba(255,255,255,.4)', marginBottom: 5,
+    color: cores.textMuted, marginBottom: 5,
     textTransform: 'uppercase' as const, letterSpacing: '.05em',
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', fontFamily: 'system-ui' }}>Carregando perfil...</div>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 13, color: cores.textMuted, fontFamily: 'system-ui' }}>Carregando perfil...</div>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: cores.text }}>
 
       {/* Topbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '.875rem 1.5rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg }}>
         <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
           Dashboard
@@ -462,7 +456,7 @@ export default function PerfilPage() {
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '1.5rem' }}>
 
         {/* Avatar + nome */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: '1.5rem', padding: '1.25rem', background: '#111', border: '1px solid #1a3a1a', borderRadius: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: '1.5rem', padding: '1.25rem', background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 14 }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <Avatar url={profile?.avatar_url} nome={profile?.nome || 'U'} size={56} onClick={() => setModalAv(true)} />
             <div style={{ position: 'absolute', bottom: 0, right: 0, width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '2px solid #0a0a0a' }} onClick={() => setModalAv(true)}>
@@ -484,7 +478,7 @@ export default function PerfilPage() {
         </div>
 
         {/* Abas */}
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', gap: 4, background: cores.surfaceAlt, border: `1px solid ${cores.borderMid}`, borderRadius: 8, padding: 3, marginBottom: '1.25rem' }}>
           {([
             { id: 'perfil',        label: 'Dados pessoais' },
             { id: 'configuracoes', label: 'Configurações' },
@@ -496,7 +490,7 @@ export default function PerfilPage() {
             <button key={a.id} onClick={() => { setAbaSel(a.id); setErro(''); setSucesso('') }} style={{
               flex: 1, padding: '7px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
               background: abaSel === a.id ? '#16a34a' : 'transparent',
-              color: abaSel === a.id ? '#fff' : 'rgba(255,255,255,.4)',
+              color: abaSel === a.id ? '#fff' : cores.textMuted,
             }}>{a.label}</button>
           ))}
         </div>
@@ -510,7 +504,7 @@ export default function PerfilPage() {
 
         {/* ── DADOS PESSOAIS ── */}
         {abaSel === 'perfil' && (
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+          <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
             <form onSubmit={salvarPerfil}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
@@ -552,13 +546,13 @@ export default function PerfilPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* Tema */}
-            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Tema</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 16 }}>Escolha a aparência do aplicativo</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 16 }}>Escolha a aparência do aplicativo</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {/* Tema Escuro */}
                 <button
-                  onClick={() => alterarTema('escuro')}
+                  onClick={() => alterarTemaCtx('escuro')}
                   style={{
                     padding: '14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
                     background: tema === 'escuro' ? 'rgba(74,222,128,.08)' : 'rgba(255,255,255,.03)',
@@ -590,7 +584,7 @@ export default function PerfilPage() {
 
                 {/* Tema Claro */}
                 <button
-                  onClick={() => alterarTema('claro')}
+                  onClick={() => alterarTemaCtx('claro')}
                   style={{
                     padding: '14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
                     background: tema === 'claro' ? 'rgba(22,163,74,.08)' : 'rgba(255,255,255,.03)',
@@ -628,9 +622,9 @@ export default function PerfilPage() {
             </div>
 
             {/* Idioma */}
-            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Idioma</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Idioma usado nas datas e formatações do app</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 12 }}>Idioma usado nas datas e formatações do app</div>
               <select
                 value={form.idioma}
                 onChange={e => setForm(p => ({ ...p, idioma: e.target.value }))}
@@ -650,9 +644,9 @@ export default function PerfilPage() {
             </div>
 
             {/* Fuso horário */}
-            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Fuso horário</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Usado para exibir datas e horas corretamente no app e nas mensagens WhatsApp</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 12 }}>Usado para exibir datas e horas corretamente no app e nas mensagens WhatsApp</div>
               <select
                 value={form.timezone}
                 onChange={e => setForm(p => ({ ...p, timezone: e.target.value }))}
