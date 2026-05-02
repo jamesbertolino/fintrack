@@ -16,6 +16,15 @@ interface Transacao {
   conta_id?: string
 }
 
+interface TransacaoDetectada {
+  descricao: string
+  valor: number
+  tipo: string
+  categoria: string
+  data_hora: string
+  nao_categorizado?: boolean
+}
+
 const CATEGORIAS_DESPESA = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Outros']
 const CATEGORIAS_RECEITA = ['Salário','Freelance','Investimento','Presente','Outros']
 const TODAS_CATEGORIAS = [...new Set([...CATEGORIAS_DESPESA, ...CATEGORIAS_RECEITA])]
@@ -124,12 +133,13 @@ export default function LancamentoPage() {
   const [dragOver, setDragOver]     = useState(false)
   const [processando, setProcessan] = useState(false)
   const [confirmando, setConfirman] = useState(false)
-  const [transacoesDetectadas, setTransacoesDetectadas] = useState<Array<{
-    descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
-  }>>([])
+  const [transacoesDetectadas, setTransacoesDetectadas] = useState<TransacaoDetectada[]>([])
   const [resumoDetectado, setResumo] = useState('')
+  const [tipoDocumento, setTipoDocumento] = useState('')
   const [bancoDetectado, setBancoDetectado] = useState<{ id: string; nome_curto: string; cor: string | null } | null>(null)
   const [contaUpload, setContaUpload] = useState('')
+  // Controle de edição inline de categoria (índice do item em edição)
+  const [editandoCategoriaIdx, setEditandoCategoriaIdx] = useState<number | null>(null)
 
   // ─── modal conta não encontrada ───
   const [modalContaNaoEncontrada, setModalContaNaoEncontrada] = useState(false)
@@ -266,9 +276,10 @@ useEffect(() => {
 
   async function handleUpload(arquivo: File) {
     if (!arquivo) return
-    if (arquivo.size > 10 * 1024 * 1024) { setErro('Arquivo muito grande. Máx 10MB'); return }
+    if (arquivo.size > 15 * 1024 * 1024) { setErro('Arquivo muito grande. Máx 15MB'); return }
     setProcessan(true)
     setTransacoesDetectadas([])
+    setEditandoCategoriaIdx(null)
     setErro('')
     const form = new FormData()
     form.append('arquivo', arquivo)
@@ -281,19 +292,16 @@ useEffect(() => {
     }
     setTransacoesDetectadas(data.transacoes)
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
+    setTipoDocumento(data.tipo_documento || '')
 
-    // Se a API já vinculou uma conta, pré-seleciona
     if (data.conta_vinculada) {
       const contaMatch = contas.find(c => c.bancos?.nome_curto === data.conta_vinculada || c.nome === data.conta_vinculada)
       if (contaMatch) setContaUpload(contaMatch.id)
     }
-
-    // Se não encontrou conta correspondente, abre modal de aviso
     if (data.banco_nao_encontrado) {
       setBancoNaoEncontrado(data.banco_nome || 'Desconhecido')
       setModalContaNaoEncontrada(true)
     }
-
     if (data.banco_id) {
       const bancoDados = await (await fetch('/api/bancos')).json()
       const banco = bancoDados.bancos?.find((b: { id: string }) => b.id === data.banco_id)
@@ -306,11 +314,20 @@ useEffect(() => {
   }
 
   function editarTransacao(i: number, campo: string, val: string) {
-    setTransacoesDetectadas(prev => prev.map((t, idx) => idx === i ? { ...t, [campo]: val } : t))
+    setTransacoesDetectadas(prev => prev.map((t, idx) =>
+      idx === i ? { ...t, [campo]: val, ...(campo === 'categoria' ? { nao_categorizado: false } : {}) } : t
+    ))
   }
 
   function removerTransacao(i: number) {
     setTransacoesDetectadas(prev => prev.filter((_, idx) => idx !== i))
+    setEditandoCategoriaIdx(null)
+  }
+
+  function categorizarNaoCategorizadosComoOutros() {
+    setTransacoesDetectadas(prev => prev.map(t =>
+      t.nao_categorizado ? { ...t, categoria: 'Outros', nao_categorizado: false } : t
+    ))
   }
 
   async function confirmarLancamentos() {
@@ -539,7 +556,7 @@ useEffect(() => {
           {/* Upload */}
           <div style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>📎 Importar documento</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Foto de cupom, nota fiscal, fatura PDF ou extrato CSV</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Extrato bancário, fatura de cartão, holerite, nota fiscal, cupom, recibo — PDF, imagem ou CSV</div>
             <div
               onClick={() => inputRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -549,8 +566,13 @@ useEffect(() => {
             >
               <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>Clique ou arraste o arquivo aqui</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>JPG, PNG, PDF, CSV — máx 10MB</div>
-              <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.csv" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleUpload(e.target.files[0])} />
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>PDF · JPG · PNG · WEBP · CSV — máx 15MB</div>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                {['Extrato', 'Fatura', 'Holerite', 'Nota fiscal', 'Cupom', 'Recibo'].map(t => (
+                  <span key={t} style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.15)', color: 'rgba(74,222,128,.7)' }}>{t}</span>
+                ))}
+              </div>
+              <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.csv" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { handleUpload(e.target.files[0]); e.target.value = '' } }} />
             </div>
 
             {processando && (
@@ -565,23 +587,31 @@ useEffect(() => {
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#4ade80' }}>✅ {resumoDetectado} — Revise antes de confirmar:</div>
 
-                {bancoDetectado && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, marginBottom: 12 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: 4, background: bancoDetectado.cor || '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                      {bancoDetectado.nome_curto[0]}
+                {/* Banco detectado + tipo de documento */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                  {bancoDetectado && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 3, background: bancoDetectado.cor || '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                        {bancoDetectado.nome_curto[0]}
+                      </div>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.7)' }}>{bancoDetectado.nome_curto}</span>
                     </div>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>Banco detectado: <strong style={{ color: '#fff' }}>{bancoDetectado.nome_curto}</strong></span>
-                  </div>
-                )}
+                  )}
+                  {tipoDocumento && (
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(74,222,128,.8)' }}>
+                        {{ extrato_bancario: '🏦 Extrato', fatura_cartao: '💳 Fatura', nota_fiscal: '🧾 Nota fiscal', holerite: '📋 Holerite', recibo: '🧾 Recibo', outro: '📄 Documento' }[tipoDocumento] || tipoDocumento}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
+                {/* Vincular conta */}
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Vincular à conta</label>
                   <select
                     value={contaUpload}
-                    onChange={e => {
-                      if (e.target.value === '__nova__') { abrirModalNovaConta() }
-                      else setContaUpload(e.target.value)
-                    }}
+                    onChange={e => { if (e.target.value === '__nova__') abrirModalNovaConta(); else setContaUpload(e.target.value) }}
                     style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
                   >
                     <option value="">Sem conta específica</option>
@@ -592,30 +622,93 @@ useEffect(() => {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
-                  {transacoesDetectadas.map((t, i) => (
-                    <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 14, flexShrink: 0 }}>✕</button>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <input value={t.descricao} onChange={e => editarTransacao(i, 'descricao', e.target.value)}
-                          style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }} />
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>{t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}</div>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
-                        {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
-                      </div>
+                {/* ── Transações categorizadas ─────────────────────────── */}
+                {transacoesDetectadas.filter(t => !t.nao_categorizado).length > 0 && (
+                  <>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+                      ✅ Categorizados ({transacoesDetectadas.filter(t => !t.nao_categorizado).length})
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 240, overflowY: 'auto', marginBottom: 10 }}>
+                      {transacoesDetectadas.map((t, i) => t.nao_categorizado ? null : (
+                        <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✕</button>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <input value={t.descricao} onChange={e => editarTransacao(i, 'descricao', e.target.value)}
+                              style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: `${CORES[t.categoria] || '#6b7280'}18`, color: CORES[t.categoria] || '#6b7280', border: `1px solid ${CORES[t.categoria] || '#6b7280'}33`, cursor: 'pointer' }}
+                                onClick={() => setEditandoCategoriaIdx(editandoCategoriaIdx === i ? null : i)}>
+                                {t.categoria} ▾
+                              </span>
+                              {editandoCategoriaIdx === i && (
+                                <select autoFocus value={t.categoria}
+                                  onChange={e => { editarTransacao(i, 'categoria', e.target.value); setEditandoCategoriaIdx(null) }}
+                                  onBlur={() => setEditandoCategoriaIdx(null)}
+                                  style={{ fontSize: 11, padding: '2px 6px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 6, color: '#fff', outline: 'none' }}>
+                                  {TODAS_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              )}
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload('') }}
+                {/* ── Transações não categorizadas ─────────────────────── */}
+                {transacoesDetectadas.filter(t => t.nao_categorizado).length > 0 && (
+                  <div style={{ background: 'rgba(251,191,36,.04)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
+                        ⚠ Sem categoria ({transacoesDetectadas.filter(t => t.nao_categorizado).length})
+                      </div>
+                      <button
+                        onClick={categorizarNaoCategorizadosComoOutros}
+                        style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(251,191,36,.12)', border: '1px solid rgba(251,191,36,.3)', borderRadius: 6, color: '#fbbf24', cursor: 'pointer' }}
+                      >
+                        Lançar todos como &quot;Outros&quot;
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
+                      {transacoesDetectadas.map((t, i) => !t.nao_categorizado ? null : (
+                        <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(251,191,36,.15)', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✕</button>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <input value={t.descricao} onChange={e => editarTransacao(i, 'descricao', e.target.value)}
+                              style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                              <select
+                                value={t.categoria}
+                                onChange={e => editarTransacao(i, 'categoria', e.target.value)}
+                                style={{ fontSize: 11, padding: '2px 8px', background: '#0a0a0a', border: '1px solid rgba(251,191,36,.3)', borderRadius: 6, color: '#fbbf24', outline: 'none', cursor: 'pointer' }}>
+                                {TODAS_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload(''); setTipoDocumento('') }}
                     style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
                     Cancelar
                   </button>
-                  <button onClick={confirmarLancamentos} disabled={confirmando}
-                    style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
-                    {confirmando ? 'Lançando...' : `Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
+                  <button onClick={confirmarLancamentos} disabled={confirmando || transacoesDetectadas.some(t => t.nao_categorizado)}
+                    title={transacoesDetectadas.some(t => t.nao_categorizado) ? 'Categorize todos os itens antes de confirmar' : ''}
+                    style={{ flex: 2, padding: '10px', background: transacoesDetectadas.some(t => t.nao_categorizado) ? '#374151' : '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: (confirmando || transacoesDetectadas.some(t => t.nao_categorizado)) ? 'not-allowed' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
+                    {confirmando ? 'Lançando...' : transacoesDetectadas.some(t => t.nao_categorizado) ? `Categorize os ${transacoesDetectadas.filter(t => t.nao_categorizado).length} itens pendentes` : `Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
                   </button>
                 </div>
               </div>

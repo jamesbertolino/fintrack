@@ -3,19 +3,29 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
+export interface TransacaoDetectada {
+  descricao: string
+  valor: number
+  tipo: string
+  categoria: string
+  data_hora: string
+  nao_categorizado?: boolean
+}
+
 // ─── Detecta categoria por palavra-chave ─────────────────────────────────────
-function detectarCategoria(desc: string): string {
+function detectarCategoria(desc: string): { categoria: string; nao_categorizado: boolean } {
   const d = desc.toLowerCase()
-  if (d.includes('mercado') || d.includes('supermercado') || d.includes('ifood') || d.includes('restaurante') || d.includes('alimenta') || d.includes('padaria') || d.includes('lanchon')) return 'Alimentação'
-  if (d.includes('uber') || d.includes('99pop') || d.includes('combustiv') || d.includes('posto') || d.includes('transporte') || d.includes('ônibus') || d.includes('onibus') || d.includes('metro') || d.includes('passagem')) return 'Transporte'
-  if (d.includes('netflix') || d.includes('spotify') || d.includes('cinema') || d.includes('lazer') || d.includes('jogo') || d.includes('steam')) return 'Lazer'
-  if (d.includes('farmácia') || d.includes('farmacia') || d.includes('saúde') || d.includes('saude') || d.includes('médico') || d.includes('medico') || d.includes('hospital') || d.includes('drogaria') || d.includes('clinica')) return 'Saúde'
-  if (d.includes('aluguel') || d.includes('condomínio') || d.includes('condominio') || d.includes('conta de agua') || d.includes('água') || d.includes('energia') || d.includes('moradia') || d.includes('luz') || d.includes('gas')) return 'Moradia'
-  if (d.includes('escola') || d.includes('faculdade') || d.includes('curso') || d.includes('educação') || d.includes('educacao') || d.includes('universidade')) return 'Educação'
-  if (d.includes('salário') || d.includes('salario') || d.includes('folha') || d.includes('pagamento recebido')) return 'Salário'
-  if (d.includes('freelance') || d.includes('free-lance')) return 'Freelance'
-  if (d.includes('rendimento') || d.includes('investimento') || d.includes('dividendo') || d.includes('juros')) return 'Investimento'
-  return 'Outros'
+  if (d.match(/mercado|supermercado|ifood|restauran|alimenta|padaria|lanchon|açougue|hortifrut|pao de acucar|extra|carrefour|atacadao|assai|supa/)) return { categoria: 'Alimentação', nao_categorizado: false }
+  if (d.match(/uber|99pop|cabify|combustiv|gasolina|etanol|posto |transporte|ônibus|onibus|metro|passagem|bilhete|estacion|pedagio|táxi|taxi|mototaxi/)) return { categoria: 'Transporte', nao_categorizado: false }
+  if (d.match(/netflix|spotify|amazon prime|hbo|disney|globoplay|cinema|parque|lazer|game|steam|playstation|xbox|ingresso|show|teatro|bar |balada/)) return { categoria: 'Lazer', nao_categorizado: false }
+  if (d.match(/farmácia|farmacia|drogaria|saúde|saude|médico|medico|hospital|clinica|dentista|exame|laboratorio|plano de saude|unimed|amil|convenio/)) return { categoria: 'Saúde', nao_categorizado: false }
+  if (d.match(/aluguel|condomin|água|agua|energia|luz |gas |internet|telefone|moradia|iptu|conta de /)) return { categoria: 'Moradia', nao_categorizado: false }
+  if (d.match(/escola|faculdade|curso|educaç|educac|universidade|colégio|colegio|mensalidade|material escolar/)) return { categoria: 'Educação', nao_categorizado: false }
+  if (d.match(/salário|salario|folha|pgto|pagamento recebido|vencimento|remuneracao|proventos/)) return { categoria: 'Salário', nao_categorizado: false }
+  if (d.match(/freelance|free-lance|serviço prestado|honorario/)) return { categoria: 'Freelance', nao_categorizado: false }
+  if (d.match(/rendimento|investimento|dividendo|juros|cdb|lci|lca|tesouro|acoes|acão|fundo /)) return { categoria: 'Investimento', nao_categorizado: false }
+  if (d.match(/presente|gift|mimo/)) return { categoria: 'Presente', nao_categorizado: false }
+  return { categoria: 'Outros', nao_categorizado: true }
 }
 
 // ─── Converte valor BR para número ───────────────────────────────────────────
@@ -36,26 +46,19 @@ function parseData(val: string): string {
   return new Date().toISOString()
 }
 
-// ─── Processa CSV formato bancos BR (separador ;) ────────────────────────────
-function processarCSV(texto: string): Array<{
-  descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
-}> {
+// ─── Processa CSV ─────────────────────────────────────────────────────────────
+function processarCSV(texto: string): TransacaoDetectada[] {
   const linhas = texto.split('\n').map(l => l.trim())
-  const resultado = []
+  const resultado: TransacaoDetectada[] = []
 
   let idxCabecalho = -1
   for (let i = 0; i < linhas.length; i++) {
     const l = linhas[i].toLowerCase()
-    if (l.includes('data') && l.includes('hist')) {
-      idxCabecalho = i
-      break
-    }
+    if (l.includes('data') && l.includes('hist')) { idxCabecalho = i; break }
   }
-
   if (idxCabecalho === -1) return []
 
   const cabecalho = linhas[idxCabecalho].split(';').map(c => c.toLowerCase().trim().replace(/"/g, ''))
-
   const iData    = cabecalho.findIndex(c => c === 'data')
   const iHist    = cabecalho.findIndex(c => c.includes('hist'))
   const iCredito = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred'))
@@ -66,74 +69,67 @@ function processarCSV(texto: string): Array<{
   for (let i = idxCabecalho + 1; i < linhas.length; i++) {
     const linha = linhas[i]
     if (!linha || linha.startsWith(';') || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos') || linha.startsWith(';;Total')) continue
-
     const cols = linha.split(';').map(c => c.trim().replace(/"/g, ''))
     const dataVal = cols[iData] || ''
     const hist    = cols[iHist] || ''
-
     if (!dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || !hist) continue
     if (hist.includes('COD. LANC')) continue
-
     const credito = iCredito !== -1 ? parseBRL(cols[iCredito]) : 0
     const debito  = iDebito  !== -1 ? parseBRL(cols[iDebito])  : 0
-
     if (credito === 0 && debito === 0) continue
-
     const tipo  = credito > 0 ? 'credito' : 'debito'
     const valor = credito > 0 ? credito : debito
-
-    resultado.push({
-      descricao: hist.trim(),
-      valor,
-      tipo,
-      categoria: detectarCategoria(hist),
-      data_hora: parseData(dataVal),
-    })
+    const { categoria, nao_categorizado } = detectarCategoria(hist)
+    resultado.push({ descricao: hist.trim(), valor, tipo, categoria, data_hora: parseData(dataVal), nao_categorizado })
   }
-
   return resultado
 }
 
-// ─── Processa PDF via OpenAI Assistants (sem dependência externa) ─────────────
-async function processarPDF(bytes: ArrayBuffer): Promise<{
-  transacoes: Array<{ descricao: string; valor: number; tipo: string; categoria: string; data_hora: string }>
-  banco_nome: string | null
-  resumo: string
-}> {
-  const openaiKey = process.env.OPENAI_API_KEY
-  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+// ─── Prompt padrão para IA ────────────────────────────────────────────────────
+const PROMPT_BASE = `Você é um extrator de dados financeiros especializado em documentos brasileiros.
+Analise o documento e extraia TODAS as transações financeiras visíveis.
 
-  const prompt = `Você é um extrator de dados financeiros especializado em extratos bancários brasileiros.
-Analise este extrato bancário em PDF e extraia TODAS as transações visíveis.
+Tipos de documento aceitos: extrato bancário, fatura de cartão, nota fiscal, holerite, recibo, comprovante, cupom fiscal.
 
-Retorne APENAS JSON válido, sem texto adicional, sem markdown, sem blocos de código.
+Retorne APENAS JSON válido, sem texto adicional, sem markdown.
 
 Categorias disponíveis: ${CATEGORIAS.join(', ')}
 
 Formato obrigatório:
 {
-  "banco_nome": "nome do banco detectado ou null",
-  "resumo": "ex: 23 transações encontradas de Jan/2025",
+  "tipo_documento": "extrato_bancario | fatura_cartao | nota_fiscal | holerite | recibo | outro",
+  "banco_nome": "nome do banco/emitente ou null",
+  "resumo": "ex: 23 transações de Jan/2025",
   "transacoes": [
     {
-      "descricao": "descrição limpa da transação",
+      "descricao": "descrição limpa e legível da transação",
       "valor": 150.00,
       "tipo": "debito ou credito",
-      "categoria": "categoria válida da lista",
+      "categoria": "categoria mais provável da lista",
+      "nao_categorizado": false,
       "data_hora": "2025-01-15T00:00:00.000Z"
     }
   ]
 }
 
-Regras:
-- tipo "debito" para gastos/saídas/compras/pagamentos/débitos
-- tipo "credito" para receitas/entradas/depósitos/salário/créditos
+Regras de categorização:
+- Use a categoria mais específica possível
+- Defina nao_categorizado: true SOMENTE quando a descrição for ambígua (ex: siglas, códigos, PIX genérico sem destinatário claro, TED sem descrição)
+- Defina nao_categorizado: false quando conseguir inferir a categoria com boa certeza
+- tipo "debito" para gastos/saídas/compras/pagamentos/débitos/descontos
+- tipo "credito" para receitas/entradas/depósitos/salário/créditos/proventos
 - valor sempre número positivo
+- Para holerites: salário líquido = credito, descontos = debito
+- Para notas fiscais: itens comprados = debito
 - data_hora sempre ISO 8601, se sem hora use T00:00:00.000Z
-- Ignore linhas de saldo, totais e rodapés
-- Extraia TODAS as transações, sem omitir nenhuma`
+- Ignore totais, saldos, cabeçalhos e rodapés
+- Extraia TODAS as transações sem omitir nenhuma`
 
-  // Passo 1 — faz upload do PDF para a OpenAI
+// ─── Processa PDF via OpenAI ───────────────────────────────────────────────────
+async function processarPDF(bytes: ArrayBuffer) {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+
   const blob = new Blob([bytes], { type: 'application/pdf' })
   const form = new FormData()
   form.append('file', blob, 'extrato.pdf')
@@ -144,60 +140,58 @@ Regras:
     headers: { 'Authorization': `Bearer ${openaiKey}` },
     body: form,
   })
-
   const uploadData = await uploadRes.json()
   if (!uploadRes.ok) throw new Error(uploadData.error?.message || 'Erro ao fazer upload do PDF')
 
   const fileId = uploadData.id
-
   try {
-    // Passo 2 — envia para o gpt-4o com o file_id
     const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
       body: JSON.stringify({
         model: 'gpt-4o',
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt,
-              },
-              {
-                type: 'file',
-                file: { file_id: fileId },
-              },
-            ],
-          },
-        ],
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: [{ type: 'text', text: PROMPT_BASE }, { type: 'file', file: { file_id: fileId } }] }],
       }),
     })
-
     const chatData = await chatRes.json()
     if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
-
     const texto = chatData.choices?.[0]?.message?.content || ''
-    const limpo = texto.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(limpo)
-
-    return {
-      transacoes: parsed.transacoes || [],
-      banco_nome: parsed.banco_nome || null,
-      resumo: parsed.resumo || `${parsed.transacoes?.length || 0} transações encontradas`,
-    }
+    return JSON.parse(texto.replace(/```json|```/g, '').trim())
   } finally {
-    // Passo 3 — deleta o arquivo da OpenAI após uso
     await fetch(`https://api.openai.com/v1/files/${fileId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${openaiKey}` },
+      method: 'DELETE', headers: { 'Authorization': `Bearer ${openaiKey}` },
     }).catch(() => {})
   }
+}
+
+// ─── Processa imagem via OpenAI Vision ────────────────────────────────────────
+async function processarImagem(bytes: ArrayBuffer, mimeType: string) {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+
+  const base64 = Buffer.from(bytes).toString('base64')
+  const dataUrl = `data:${mimeType};base64,${base64}`
+
+  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: PROMPT_BASE },
+          { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
+        ],
+      }],
+    }),
+  })
+  const chatData = await chatRes.json()
+  if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI Vision')
+  const texto = chatData.choices?.[0]?.message?.content || ''
+  return JSON.parse(texto.replace(/```json|```/g, '').trim())
 }
 
 // ─── Handler principal ───────────────────────────────────────────────────────
@@ -218,57 +212,77 @@ export async function POST(request: NextRequest) {
     if (nome.endsWith('.csv')) {
       const texto = new TextDecoder('utf-8').decode(bytes)
       const transacoes = processarCSV(texto)
-
-      if (!transacoes.length)
-        return NextResponse.json({ error: 'Nenhuma transação encontrada no CSV' }, { status: 400 })
-
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no CSV' }, { status: 400 })
+      const naoCat = transacoes.filter(t => t.nao_categorizado).length
       return NextResponse.json({
-        ok: true,
-        transacoes,
-        resumo: `${transacoes.length} transações encontradas no CSV`,
+        ok: true, transacoes,
+        resumo: `${transacoes.length} transações encontradas no CSV${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        tipo_documento: 'extrato_bancario',
       })
     }
 
     // ── PDF ──────────────────────────────────────────────────────────────────
     if (nome.endsWith('.pdf')) {
-      const { transacoes, banco_nome, resumo } = await processarPDF(bytes)
+      const parsed = await processarPDF(bytes)
+      const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => ({
+        ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
+      }))
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF' }, { status: 400 })
 
-      if (!transacoes.length)
-        return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF' }, { status: 400 })
-
+      const banco_nome = parsed.banco_nome || null
       let banco_id: string | null = null
       let banco_nao_encontrado = false
 
       if (banco_nome) {
         const { data: bancos } = await supabase.from('bancos').select('id, nome, nome_curto')
-        const bancoMatch = bancos?.find(b =>
+        const match = bancos?.find(b =>
           b.nome.toLowerCase().includes(banco_nome.toLowerCase()) ||
           b.nome_curto.toLowerCase().includes(banco_nome.toLowerCase()) ||
           banco_nome.toLowerCase().includes(b.nome_curto.toLowerCase())
         )
-        if (bancoMatch) {
-          banco_id = bancoMatch.id
-        } else {
-          banco_nao_encontrado = true
-        }
+        if (match) banco_id = match.id
+        else banco_nao_encontrado = true
       }
 
+      const naoCat = transacoes.filter(t => t.nao_categorizado).length
       return NextResponse.json({
-        ok: true,
-        transacoes,
-        resumo,
-        banco_nome,
-        banco_id,
-        banco_nao_encontrado,
+        ok: true, transacoes,
+        resumo: `${transacoes.length} transações${naoCat ? ` (${naoCat} sem categoria)` : ''} — ${parsed.resumo || ''}`.trim(),
+        banco_nome, banco_id, banco_nao_encontrado,
+        tipo_documento: parsed.tipo_documento || 'extrato_bancario',
         conta_vinculada: banco_nome,
       })
     }
 
-    return NextResponse.json({ error: 'Formato não suportado. Envie um arquivo .csv ou .pdf' }, { status: 400 })
+    // ── Imagens ───────────────────────────────────────────────────────────────
+    const MIME_TIPOS: Record<string, string> = {
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.png': 'image/png', '.webp': 'image/webp',
+      '.gif': 'image/gif',
+    }
+    const ext = nome.match(/\.\w+$/)?.[0] || ''
+    const mimeType = MIME_TIPOS[ext]
+
+    if (mimeType) {
+      const parsed = await processarImagem(bytes, mimeType)
+      const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => ({
+        ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
+      }))
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
+
+      const naoCat = transacoes.filter(t => t.nao_categorizado).length
+      return NextResponse.json({
+        ok: true, transacoes,
+        resumo: `${transacoes.length} itens detectados na imagem${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        tipo_documento: parsed.tipo_documento || 'outro',
+        banco_nome: parsed.banco_nome || null,
+      })
+    }
+
+    return NextResponse.json({ error: 'Formato não suportado. Envie PDF, CSV, JPG, PNG ou WEBP' }, { status: 400 })
 
   } catch (err) {
     console.error('[upload] erro:', err)
-    const msg = err instanceof Error ? err.message : 'Erro interno'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Erro interno' }, { status: 500 })
   }
 }
