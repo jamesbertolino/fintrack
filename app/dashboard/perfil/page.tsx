@@ -58,7 +58,7 @@ export default function PerfilPage() {
   const [salvando, setSalvando]     = useState(false)
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
-  const [abaSel, setAbaSel]         = useState<'perfil' | 'webhook' | 'grupo' | 'plano' | 'seguranca'>('perfil')
+  const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca'>('perfil')
   const [grupo, setGrupo]           = useState<Grupo | null>(null)
   const [membros, setMembros]       = useState<GrupoMembro[]>([])
   const [novoNumero, setNovoNum]    = useState('')
@@ -71,6 +71,7 @@ export default function PerfilPage() {
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
+  const [tema, setTema] = useState<'escuro' | 'claro'>('escuro')
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -157,6 +158,8 @@ export default function PerfilPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
+    const temaSalvo = localStorage.getItem('poupaup_tema') as 'escuro' | 'claro' | null
+    if (temaSalvo) setTema(temaSalvo) // eslint-disable-line react-hooks/set-state-in-effect
   }, [carregar])
 
   async function salvarPerfil(e: React.FormEvent) {
@@ -401,6 +404,12 @@ export default function PerfilPage() {
     }
   }
 
+  function alterarTema(novoTema: 'escuro' | 'claro') {
+    setTema(novoTema)
+    localStorage.setItem('poupaup_tema', novoTema)
+    document.documentElement.setAttribute('data-tema', novoTema)
+  }
+
   function copiarUrlWebhook() {
     const url = `${window.location.origin}/api/webhook/${profile?.id}`
     navigator.clipboard.writeText(url)
@@ -466,11 +475,12 @@ export default function PerfilPage() {
         {/* Abas */}
         <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, marginBottom: '1.25rem' }}>
           {([
-            { id: 'perfil',    label: 'Dados pessoais' },
-            { id: 'webhook',   label: 'Webhook' },
-            { id: 'grupo',     label: 'Grupo' },
-            { id: 'plano',     label: 'Plano' },
-            { id: 'seguranca', label: 'Segurança' },
+            { id: 'perfil',        label: 'Dados pessoais' },
+            { id: 'configuracoes', label: 'Configurações' },
+            { id: 'webhook',       label: 'Webhook' },
+            { id: 'grupo',         label: 'Grupo' },
+            { id: 'plano',         label: 'Plano' },
+            { id: 'seguranca',     label: 'Segurança' },
           ] as const).map(a => (
             <button key={a.id} onClick={() => { setAbaSel(a.id); setErro(''); setSucesso('') }} style={{
               flex: 1, padding: '7px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
@@ -514,63 +524,6 @@ export default function PerfilPage() {
                   Número autorizado a enviar mensagens e receber alertas via WhatsApp. Formato: <strong style={{color: 'rgba(255,255,255,.5)'}}>5511999999999</strong>
                 </div>
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <label style={labelStyle}>Idioma</label>
-                <select
-                  value={form.idioma}
-                  onChange={e => setForm(p => ({ ...p, idioma: e.target.value }))}
-                  style={{ ...inputStyle, cursor: 'pointer' }}
-                >
-                  <option value="pt-BR">🇧🇷 Português (Brasil)</option>
-                  <option value="en-US">🇺🇸 English (US)</option>
-                  <option value="es-ES">🇪🇸 Español</option>
-                </select>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>Fuso horário (Timezone)</label>
-                <select
-                  value={form.timezone}
-                  onChange={e => setForm(p => ({ ...p, timezone: e.target.value }))}
-                  style={{ ...inputStyle, cursor: 'pointer' }}
-                >
-                  <optgroup label="Brasil">
-                    <option value="America/Sao_Paulo">🇧🇷 Brasília (GMT-3)</option>
-                    <option value="America/Manaus">🇧🇷 Manaus (GMT-4)</option>
-                    <option value="America/Belem">🇧🇷 Belém (GMT-3)</option>
-                    <option value="America/Fortaleza">🇧🇷 Fortaleza (GMT-3)</option>
-                    <option value="America/Recife">🇧🇷 Recife (GMT-3)</option>
-                    <option value="America/Noronha">🇧🇷 Fernando de Noronha (GMT-2)</option>
-                    <option value="America/Porto_Velho">🇧🇷 Porto Velho (GMT-4)</option>
-                    <option value="America/Boa_Vista">🇧🇷 Boa Vista (GMT-4)</option>
-                    <option value="America/Rio_Branco">🇧🇷 Rio Branco (GMT-5)</option>
-                  </optgroup>
-                  <optgroup label="América do Sul">
-                    <option value="America/Argentina/Buenos_Aires">🇦🇷 Buenos Aires (GMT-3)</option>
-                    <option value="America/Santiago">🇨🇱 Santiago (GMT-3)</option>
-                    <option value="America/Lima">🇵🇪 Lima (GMT-5)</option>
-                    <option value="America/Bogota">🇨🇴 Bogotá (GMT-5)</option>
-                  </optgroup>
-                  <optgroup label="América do Norte">
-                    <option value="America/New_York">🇺🇸 New York (GMT-5)</option>
-                    <option value="America/Chicago">🇺🇸 Chicago (GMT-6)</option>
-                    <option value="America/Denver">🇺🇸 Denver (GMT-7)</option>
-                    <option value="America/Los_Angeles">🇺🇸 Los Angeles (GMT-8)</option>
-                    <option value="America/Toronto">🇨🇦 Toronto (GMT-5)</option>
-                  </optgroup>
-                  <optgroup label="Europa">
-                    <option value="Europe/Lisbon">🇵🇹 Lisboa (GMT+0)</option>
-                    <option value="Europe/London">🇬🇧 Londres (GMT+0)</option>
-                    <option value="Europe/Paris">🇫🇷 Paris (GMT+1)</option>
-                    <option value="Europe/Berlin">🇩🇪 Berlin (GMT+1)</option>
-                  </optgroup>
-                  <optgroup label="UTC">
-                    <option value="UTC">🌍 UTC (GMT+0)</option>
-                  </optgroup>
-                </select>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
-                  Usado para exibir datas e horas corretamente no app e nas mensagens WhatsApp.
-                </div>
-              </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={labelStyle}>E-mail</label>
                 <input value={email} disabled style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }} />
@@ -580,6 +533,163 @@ export default function PerfilPage() {
                 {salvando ? 'Salvando...' : 'Salvar alterações'}
               </button>
             </form>
+          </div>
+        )}
+
+        {/* ── CONFIGURAÇÕES ── */}
+        {abaSel === 'configuracoes' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Tema */}
+            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Tema</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 16 }}>Escolha a aparência do aplicativo</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {/* Tema Escuro */}
+                <button
+                  onClick={() => alterarTema('escuro')}
+                  style={{
+                    padding: '14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                    background: tema === 'escuro' ? 'rgba(74,222,128,.08)' : 'rgba(255,255,255,.03)',
+                    border: `2px solid ${tema === 'escuro' ? '#4ade80' : '#1a3a1a'}`,
+                    transition: 'all .15s',
+                  }}
+                >
+                  {/* Preview escuro */}
+                  <div style={{ background: '#0a0a0a', borderRadius: 6, padding: '8px', marginBottom: 10, border: '1px solid #222' }}>
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+                      <div style={{ height: 4, width: '60%', background: '#1a3a1a', borderRadius: 2 }} />
+                      <div style={{ height: 4, width: '30%', background: '#4ade8033', borderRadius: 2 }} />
+                    </div>
+                    <div style={{ height: 3, width: '80%', background: '#111', borderRadius: 2, marginBottom: 3 }} />
+                    <div style={{ height: 3, width: '50%', background: '#111', borderRadius: 2 }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 1 }}>🌙 Escuro</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Padrão do PoupaUp</div>
+                    </div>
+                    {tema === 'escuro' && (
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                  </div>
+                </button>
+
+                {/* Tema Claro */}
+                <button
+                  onClick={() => alterarTema('claro')}
+                  style={{
+                    padding: '14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                    background: tema === 'claro' ? 'rgba(22,163,74,.08)' : 'rgba(255,255,255,.03)',
+                    border: `2px solid ${tema === 'claro' ? '#16a34a' : '#1a3a1a'}`,
+                    transition: 'all .15s',
+                  }}
+                >
+                  {/* Preview claro */}
+                  <div style={{ background: '#f5f5f5', borderRadius: 6, padding: '8px', marginBottom: 10, border: '1px solid #e0e0e0' }}>
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+                      <div style={{ height: 4, width: '60%', background: '#d0d0d0', borderRadius: 2 }} />
+                      <div style={{ height: 4, width: '30%', background: '#16a34a55', borderRadius: 2 }} />
+                    </div>
+                    <div style={{ height: 3, width: '80%', background: '#e8e8e8', borderRadius: 2, marginBottom: 3 }} />
+                    <div style={{ height: 3, width: '50%', background: '#e8e8e8', borderRadius: 2 }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 1 }}>☀️ Claro</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Fundo branco</div>
+                    </div>
+                    {tema === 'claro' && (
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              </div>
+              {tema === 'claro' && (
+                <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, fontSize: 11, color: '#fbbf24' }}>
+                  ⚠️ Tema claro disponível — algumas telas ainda estão sendo adaptadas.
+                </div>
+              )}
+            </div>
+
+            {/* Idioma */}
+            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Idioma</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Idioma usado nas datas e formatações do app</div>
+              <select
+                value={form.idioma}
+                onChange={e => setForm(p => ({ ...p, idioma: e.target.value }))}
+                style={{ ...inputStyle, cursor: 'pointer', marginBottom: 12 }}
+              >
+                <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+                <option value="en-US">🇺🇸 English (US)</option>
+                <option value="es-ES">🇪🇸 Español</option>
+              </select>
+              <button
+                onClick={salvarPerfil as unknown as React.MouseEventHandler}
+                disabled={salvando}
+                style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}
+              >
+                {salvando ? 'Salvando...' : 'Salvar idioma'}
+              </button>
+            </div>
+
+            {/* Fuso horário */}
+            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Fuso horário</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Usado para exibir datas e horas corretamente no app e nas mensagens WhatsApp</div>
+              <select
+                value={form.timezone}
+                onChange={e => setForm(p => ({ ...p, timezone: e.target.value }))}
+                style={{ ...inputStyle, cursor: 'pointer', marginBottom: 12 }}
+              >
+                <optgroup label="Brasil">
+                  <option value="America/Sao_Paulo">🇧🇷 Brasília (GMT-3)</option>
+                  <option value="America/Manaus">🇧🇷 Manaus (GMT-4)</option>
+                  <option value="America/Belem">🇧🇷 Belém (GMT-3)</option>
+                  <option value="America/Fortaleza">🇧🇷 Fortaleza (GMT-3)</option>
+                  <option value="America/Recife">🇧🇷 Recife (GMT-3)</option>
+                  <option value="America/Noronha">🇧🇷 Fernando de Noronha (GMT-2)</option>
+                  <option value="America/Porto_Velho">🇧🇷 Porto Velho (GMT-4)</option>
+                  <option value="America/Boa_Vista">🇧🇷 Boa Vista (GMT-4)</option>
+                  <option value="America/Rio_Branco">🇧🇷 Rio Branco (GMT-5)</option>
+                </optgroup>
+                <optgroup label="América do Sul">
+                  <option value="America/Argentina/Buenos_Aires">🇦🇷 Buenos Aires (GMT-3)</option>
+                  <option value="America/Santiago">🇨🇱 Santiago (GMT-3)</option>
+                  <option value="America/Lima">🇵🇪 Lima (GMT-5)</option>
+                  <option value="America/Bogota">🇨🇴 Bogotá (GMT-5)</option>
+                </optgroup>
+                <optgroup label="América do Norte">
+                  <option value="America/New_York">🇺🇸 New York (GMT-5)</option>
+                  <option value="America/Chicago">🇺🇸 Chicago (GMT-6)</option>
+                  <option value="America/Denver">🇺🇸 Denver (GMT-7)</option>
+                  <option value="America/Los_Angeles">🇺🇸 Los Angeles (GMT-8)</option>
+                  <option value="America/Toronto">🇨🇦 Toronto (GMT-5)</option>
+                </optgroup>
+                <optgroup label="Europa">
+                  <option value="Europe/Lisbon">🇵🇹 Lisboa (GMT+0)</option>
+                  <option value="Europe/London">🇬🇧 Londres (GMT+0)</option>
+                  <option value="Europe/Paris">🇫🇷 Paris (GMT+1)</option>
+                  <option value="Europe/Berlin">🇩🇪 Berlin (GMT+1)</option>
+                </optgroup>
+                <optgroup label="UTC">
+                  <option value="UTC">🌍 UTC (GMT+0)</option>
+                </optgroup>
+              </select>
+              <button
+                onClick={salvarPerfil as unknown as React.MouseEventHandler}
+                disabled={salvando}
+                style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}
+              >
+                {salvando ? 'Salvando...' : 'Salvar fuso horário'}
+              </button>
+            </div>
+
           </div>
         )}
 
