@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel, NIVEIS } from '@/lib/calcularXP'
 import { CONQUISTAS } from '@/lib/conquistas'
 
@@ -32,11 +31,8 @@ interface MembroRanking {
   cor: string
 }
 
-function fmtBRL(v: number) {
-  return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 function Avatar({ nome, url, size = 32, cor }: { nome: string; url?: string | null; size?: number; cor: string }) {
+  // eslint-disable-next-line @next/next/no-img-element
   if (url) return <img src={url} alt={nome} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: `2px solid ${cor}` }} />
   const initials = nome.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
   return (
@@ -51,7 +47,6 @@ const MEDALHAS = ['👑', '⚔️', '🛡️', '🗡️', '🏹']
 export default function EvolucaoPage() {
   const router = useRouter()
   const supabase = createClient()
-  const { fmtDataHora } = usePerfil()
 
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
   const [metas, setMetas]           = useState<Meta[]>([])
@@ -90,8 +85,17 @@ export default function EvolucaoPage() {
     }
   }, [])
 
-  useEffect(() => { carregar() }, [carregar])
-  useEffect(() => { if (abaSel === 'ranking') carregarRanking() }, [abaSel, carregarRanking])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    carregar()
+  }, [carregar])
+
+  useEffect(() => {
+    if (abaSel === 'ranking') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      carregarRanking()
+    }
+  }, [abaSel, carregarRanking])
 
   const xp         = calcularXP({ transacoes, metas })
   const { saldo, xpTotal, xpTransacoes, xpSaldo, xpMetas: xpMetasTotal } = xp
@@ -132,21 +136,6 @@ export default function EvolucaoPage() {
   const conquistadas    = conquistasComEstado.filter(c => c.conquistado)
   const naoConquistadas = conquistasComEstado.filter(c => !c.conquistado)
   const xpConquistas    = conquistadas.reduce((a, c) => a + c.xp, 0)
-
-  const historico = [
-    ...transacoes.slice(0, 8).map(t => ({
-      data: t.data_hora,
-      desc: t.tipo === 'credito' ? `Receita registrada: ${fmtBRL(t.valor)}` : `Gasto registrado`,
-      xp: 10,
-      cor: '#4ade80',
-    })),
-    ...metas.filter(m => m.ativo).map(m => ({
-      data: new Date().toISOString(),
-      desc: `Meta ativa: ${m.nome}`,
-      xp: 50,
-      cor: '#a78bfa',
-    })),
-  ].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 10)
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#080b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
