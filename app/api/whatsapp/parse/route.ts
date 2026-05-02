@@ -39,33 +39,29 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const prompt = `
-Você extrai dados financeiros de texto livre.
-Responda APENAS com JSON válido. Sem explicações.
+const prompt = `
+Extraia dados financeiros de um texto.
+
+Responda APENAS com JSON válido.
 
 Entrada: "${mensagem}"
 
 Categorias: ${CATEGORIAS.join(', ')}
 
 REGRAS:
-- Sempre tente identificar: valor + descrição.
-- Valor pode estar antes ou depois do texto.
+- Encontre um valor numérico (antes ou depois do texto).
 - Aceite formatos: 50 | 50.00 | 50,00 | 1.000,50 | R$50 | 50 reais | +100 | -100
-- Se não houver número → reconhecido: false e valor: null.
-- Nunca invente valor.
-
-TIPO:
-- "credito": salário, recebimento, entrada, ganho, depósito
-- "debito": compra, gasto, pagamento, conta, serviço, estabelecimento
-- Se for apenas um lugar/serviço (ex: "mercado 50") → debito
-- Se ambíguo → reconhecido: false
+- Se não houver valor → "reconhecido": false e "valor": null
+- Nunca invente valores
 
 PROCESSO:
-1. Extraia o número (valor)
-2. O restante do texto = descrição (limpa e capitalizada)
-3. Normalize valor para float com 2 casas (50,00 → 50.00)
-4. Classifique tipo
-5. Associe a categoria mais próxima
+- O número = "valor" (normalize para float com 2 casas)
+- O restante do texto = "descricao" (curta e limpa)
+- Classifique:
+  - "credito" → entrada de dinheiro
+  - "debito" → saída de dinheiro
+  - Se ambíguo → null
+- Associe a categoria mais próxima
 
 SAÍDA:
 {
