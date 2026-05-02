@@ -51,19 +51,29 @@ Categorias: ${CATEGORIAS.join(', ')}
 REGRAS:
 - Encontre um valor numérico (antes ou depois do texto)
 - Aceite formatos: 50 | 50.00 | 50,00 | 1.000,50 | R$50 | 50 reais | +100 | -100
-- Se não houver valor → "reconhecido": false e "valor": null
 - Nunca invente valores
 
 PROCESSO:
-- O número = "valor" (float com 2 casas)
-- O restante do texto = "descricao" (curta e limpa)
-- Classifique:
-  - "credito" → entrada de dinheiro
-  - "debito" → saída de dinheiro
-  - Se não souber → null
-- Categoria:
-  - Se encontrar similar → usar
-  - Se não → "diversos"
+- Se NÃO houver número:
+  {
+    "descricao": "gasto nao identificado, tente com outro formato",
+    "valor": null,
+    "tipo": null,
+    "categoria": "diversos",
+    "reconhecido": false
+  }
+
+- Se houver número:
+  - "valor" = número (float com 2 casas)
+  - "descricao" = restante do texto (curta e limpa)
+  - "tipo":
+    - entrada → "credito"
+    - saída → "debito"
+    - se não souber → null
+  - "categoria":
+    - se encontrar similar → usar
+    - senão → "diversos"
+  - "reconhecido": true
 
 SAÍDA:
 {
