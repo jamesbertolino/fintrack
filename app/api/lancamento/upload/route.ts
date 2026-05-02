@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { PDFParse } from 'pdf-parse'
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
@@ -95,7 +94,7 @@ function processarCSV(texto: string): Array<{
   return resultado
 }
 
-// ─── Processa PDF: extrai texto e envia para OpenAI ──────────────────────────
+// ─── Processa PDF via OpenAI Assistants (sem dependência externa) ─────────────
 async function processarPDF(bytes: ArrayBuffer): Promise<{
   transacoes: Array<{ descricao: string; valor: number; tipo: string; categoria: string; data_hora: string }>
   banco_nome: string | null
@@ -104,17 +103,8 @@ async function processarPDF(bytes: ArrayBuffer): Promise<{
   const openaiKey = process.env.OPENAI_API_KEY
   if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
 
-  // Extrai texto do PDF
-  const buffer = Buffer.from(bytes)
-  const parser = new PDFParse({ data: buffer })
-  const pdfData = await parser.getText()
-  const textoPDF = pdfData.text
-
-  if (!textoPDF || textoPDF.trim().length < 20)
-    throw new Error('Não foi possível extrair texto do PDF')
-
   const prompt = `Você é um extrator de dados financeiros especializado em extratos bancários brasileiros.
-Analise o texto abaixo de um extrato bancário e extraia TODAS as transações.
+Analise este extrato bancário em PDF e extraia TODAS as transações visíveis.
 
 Retorne APENAS JSON válido, sem texto adicional, sem markdown, sem blocos de código.
 
@@ -141,35 +131,72 @@ Regras:
 - valor sempre número positivo
 - data_hora sempre ISO 8601, se sem hora use T00:00:00.000Z
 - Ignore linhas de saldo, totais e rodapés
-- Extraia TODAS as transações, sem omitir nenhuma
+- Extraia TODAS as transações, sem omitir nenhuma`
 
-TEXTO DO EXTRATO:
-${textoPDF}`
+  // Passo 1 — faz upload do PDF para a OpenAI
+  const blob = new Blob([bytes], { type: 'application/pdf' })
+  const form = new FormData()
+  form.append('file', blob, 'extrato.pdf')
+  form.append('purpose', 'assistants')
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const uploadRes = await fetch('https://api.openai.com/v1/files', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openaiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      max_tokens: 4000,
-      messages: [{ role: 'user', content: prompt }],
-    }),
+    headers: { 'Authorization': `Bearer ${openaiKey}` },
+    body: form,
   })
 
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.error?.message || 'Erro na OpenAI')
+  const uploadData = await uploadRes.json()
+  if (!uploadRes.ok) throw new Error(uploadData.error?.message || 'Erro ao fazer upload do PDF')
 
-  const texto = data.choices?.[0]?.message?.content || ''
-  const limpo = texto.replace(/```json|```/g, '').trim()
-  const parsed = JSON.parse(limpo)
+  const fileId = uploadData.id
 
-  return {
-    transacoes: parsed.transacoes || [],
-    banco_nome: parsed.banco_nome || null,
-    resumo: parsed.resumo || `${parsed.transacoes?.length || 0} transações encontradas`,
+  try {
+    // Passo 2 — envia para o gpt-4o com o file_id
+    const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: prompt,
+              },
+              {
+                type: 'file',
+                file: { file_id: fileId },
+              },
+            ],
+          },
+        ],
+      }),
+    })
+
+    const chatData = await chatRes.json()
+    if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
+
+    const texto = chatData.choices?.[0]?.message?.content || ''
+    const limpo = texto.replace(/```json|```/g, '').trim()
+    const parsed = JSON.parse(limpo)
+
+    return {
+      transacoes: parsed.transacoes || [],
+      banco_nome: parsed.banco_nome || null,
+      resumo: parsed.resumo || `${parsed.transacoes?.length || 0} transações encontradas`,
+    }
+  } finally {
+    // Passo 3 — deleta o arquivo da OpenAI após uso
+    await fetch(`https://api.openai.com/v1/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${openaiKey}` },
+    }).catch(() => {})
   }
 }
 
