@@ -235,15 +235,37 @@ useEffect(() => {
         </nav>
 
         {!collapsed && (
-          <div style={{ margin: '0 .75rem 1rem', background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, padding: '10px 12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Nível {nivel.nivel}</span>
-              <span style={{ fontSize: 10, color: '#4ade80' }}>{nivel.nome}</span>
+          <div
+            onClick={() => router.push('/dashboard/evolucao')}
+            style={{ margin: '0 .75rem 1rem', background: 'rgba(0,0,0,.3)', border: `1px solid ${nivel.cor}33`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', transition: 'border-color .2s' }}
+          >
+            {/* Título do nível */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em' }}>⚔ {nivel.nome}</span>
+              </div>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>Lv.{nivel.nivel}</span>
             </div>
-            <div style={{ height: 4, background: 'rgba(255,255,255,.08)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${nivel.pct}%`, background: '#4ade80', borderRadius: 2, transition: 'width .5s' }} />
+            {/* Barra shimmer */}
+            <div style={{ height: 6, background: 'rgba(255,255,255,.06)', borderRadius: 999, overflow: 'hidden', border: `1px solid ${nivel.cor}22` }}>
+              <div style={{
+                height: '100%',
+                width: `${nivel.pct}%`,
+                borderRadius: 999,
+                background: `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor}, #d4a017)`,
+                backgroundSize: '200% 100%',
+                animation: 'xp-shimmer 3s linear infinite',
+                transition: 'width .8s cubic-bezier(0.34,1.56,0.64,1)',
+              }} />
             </div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>{nivel.xpNoNivel} / {nivel.xpParaProximo} XP</div>
+            {/* XP */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>{nivel.xpNoNivel.toLocaleString()} XP</span>
+              {nivel.proximoNivel
+                ? <span style={{ fontSize: 9, color: 'rgba(255,255,255,.2)' }}>falta {(nivel.xpParaProximo - nivel.xpNoNivel).toLocaleString()} p/ {nivel.proximoNivel.nome}</span>
+                : <span style={{ fontSize: 9, color: '#d4a017' }}>👑 Rei</span>
+              }
+            </div>
           </div>
         )}
 

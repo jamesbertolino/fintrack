@@ -1,7 +1,12 @@
 import type { Metadata } from 'next'
-import { Geist } from 'next/font/google'
+import { Geist, Cinzel } from 'next/font/google'
 
 const geist = Geist({ subsets: ['latin'] })
+const cinzel = Cinzel({
+  subsets: ['latin'],
+  variable: '--font-cinzel',
+  weight: ['400', '600', '700', '900'],
+})
 
 export const metadata: Metadata = {
   title: 'PoupaUp — Poupe. Evolua. Conquiste.',
@@ -20,7 +25,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={geist.className} style={{ margin: 0, padding: 0 }}>
+      <body className={`${geist.className} ${cinzel.variable}`} style={{ margin: 0, padding: 0 }}>
         {children}
       </body>
     </html>

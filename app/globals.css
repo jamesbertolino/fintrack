@@ -3,6 +3,16 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Tokens medievais — light (não usado na prática, app é dark-only) */
+  --rpg-bg:          #f5f0e8;
+  --rpg-surface:     #ede8dc;
+  --rpg-border:      #c8b89a;
+  --rpg-gold:        #d4a017;
+  --rpg-gold-light:  #f0c040;
+  --rpg-green:       #4ade80;
+  --rpg-crimson:     #8b1a1a;
+  --rpg-text-muted:  rgba(0,0,0,0.45);
 }
 
 @theme inline {
@@ -10,12 +20,27 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-cinzel);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #080b0f;
     --foreground: #ededed;
+
+    /* Tokens medievais — dark (tema principal) */
+    --rpg-bg:          #080b0f;
+    --rpg-surface:     #0d1117;
+    --rpg-surface-alt: #0a1205;
+    --rpg-border:      #1e2d1e;
+    --rpg-border-gold: #3d2e00;
+    --rpg-gold:        #d4a017;
+    --rpg-gold-light:  #f0c040;
+    --rpg-green:       #4ade80;
+    --rpg-crimson:     #8b1a1a;
+    --rpg-text-muted:  rgba(255,255,255,0.4);
+    --rpg-glow-green:  0 0 12px rgba(74,222,128,0.25);
+    --rpg-glow-gold:   0 0 12px rgba(212,160,23,0.3);
   }
 }
 
@@ -23,4 +48,77 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ─── Fonte de display medieval ─────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-cinzel), 'Georgia', serif;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Card pedra lavrada ─────────────────────────────────────────────────────── */
+.card-stone {
+  background: linear-gradient(145deg, var(--rpg-surface), #111820);
+  border: 1px solid var(--rpg-border);
+  box-shadow:
+    inset 0 1px 0 rgba(212,160,23,0.08),
+    0 4px 24px rgba(0,0,0,0.5);
+}
+
+/* ─── Barra de XP ────────────────────────────────────────────────────────────── */
+.xp-bar-track {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--rpg-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d4a017, #f0c040, #4ade80);
+  background-size: 200% 100%;
+  animation: xp-shimmer 3s linear infinite;
+  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes xp-shimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ─── Badge de nível ─────────────────────────────────────────────────────────── */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* ─── Divisor ornamental ──────────────────────────────────────────────────────── */
+.divider-ornament {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rpg-gold);
+  opacity: 0.4;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+}
+.divider-ornament::before,
+.divider-ornament::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--rpg-gold));
+}
+.divider-ornament::after {
+  background: linear-gradient(90deg, var(--rpg-gold), transparent);
 }
