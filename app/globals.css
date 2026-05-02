@@ -48,6 +48,84 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ─── Tema claro via data-tema ───────────────────────────────────────────────── */
+[data-tema="claro"] {
+  --background: #f5f7fa;
+  --foreground: #111827;
+  --rpg-bg:          #f5f7fa;
+  --rpg-surface:     #ffffff;
+  --rpg-surface-alt: #f0f4f0;
+  --rpg-border:      #d1d5db;
+  --rpg-border-gold: #d4a017;
+  --rpg-text-muted:  rgba(0,0,0,0.45);
+  --rpg-glow-green:  0 0 12px rgba(22,163,74,0.15);
+  --rpg-glow-gold:   0 0 12px rgba(212,160,23,0.2);
+}
+
+[data-tema="claro"] body {
+  background: #f5f7fa;
+  color: #111827;
+}
+
+/* Overrides para superfícies principais no tema claro */
+[data-tema="claro"] aside {
+  background: linear-gradient(180deg, #e8f5e9 0%, #f0f4f0 100%) !important;
+  border-right-color: #c8e6c9 !important;
+}
+
+[data-tema="claro"] nav button {
+  color: rgba(0,0,0,0.55) !important;
+}
+
+[data-tema="claro"] nav button[style*="rgba(74,222,128"] {
+  background: rgba(22,163,74,0.1) !important;
+  color: #16a34a !important;
+}
+
+[data-tema="claro"] main {
+  background: #f5f7fa !important;
+}
+
+/* Cards no tema claro */
+[data-tema="claro"] [style*="background: linear-gradient(145deg, #0d1117"],
+[data-tema="claro"] [style*="background: linear-gradient(145deg, #0d1117, #111820)"] {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+  color: #111827 !important;
+}
+
+[data-tema="claro"] [style*="background: #111"] {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+[data-tema="claro"] [style*="color: #fff"],
+[data-tema="claro"] [style*="color: rgb(255, 255, 255)"] {
+  color: #111827;
+}
+
+[data-tema="claro"] [style*="color: rgba(255,255,255,."] {
+  color: rgba(0,0,0,0.55);
+}
+
+/* Topbar no tema claro */
+[data-tema="claro"] [style*="background: linear-gradient(90deg, #0a1205"] {
+  background: linear-gradient(90deg, #e8f5e9, #f0f4f0) !important;
+  border-bottom-color: #c8e6c9 !important;
+}
+
+[data-tema="claro"] [style*="background: #0a1205"],
+[data-tema="claro"] [style*="background: #0a1a0a"] {
+  background: #e8f5e9 !important;
+}
+
+[data-tema="claro"] [style*="background: #080b0f"],
+[data-tema="claro"] [style*="background: #0a0a0a"] {
+  background: #f5f7fa !important;
 }
 
 /* ─── Fonte de display medieval ─────────────────────────────────────────────── */

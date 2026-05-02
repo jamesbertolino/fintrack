@@ -25,6 +25,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Aplica o tema antes do render para evitar flash */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          try {
+            var t = localStorage.getItem('poupaup_tema');
+            if (t) document.documentElement.setAttribute('data-tema', t);
+          } catch(e) {}
+        ` }} />
+      </head>
       <body className={`${geist.className} ${cinzel.variable}`} style={{ margin: 0, padding: 0 }}>
         {children}
       </body>

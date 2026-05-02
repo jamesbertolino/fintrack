@@ -159,7 +159,7 @@ export default function PerfilPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
     const temaSalvo = localStorage.getItem('poupaup_tema') as 'escuro' | 'claro' | null
-    if (temaSalvo) setTema(temaSalvo) // eslint-disable-line react-hooks/set-state-in-effect
+    if (temaSalvo) setTema(temaSalvo)
   }, [carregar])
 
   async function salvarPerfil(e: React.FormEvent) {
