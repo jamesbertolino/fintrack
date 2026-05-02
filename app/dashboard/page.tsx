@@ -151,7 +151,7 @@ useEffect(() => {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#080b0f', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
       <PoupaUpLogo mode="compact" />
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando...</div>
     </div>
@@ -173,7 +173,7 @@ useEffect(() => {
   const collapsed    = !isMobile && !sidebarAberta
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#080b0f', fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative' }}>
 
       {/* Overlay escuro em mobile quando sidebar aberta */}
       {isMobile && sidebarAberta && (
@@ -186,29 +186,49 @@ useEffect(() => {
       {/* ── Sidebar ── */}
       <aside style={{
         width: sidebarWidth,
-        background: '#0a1a0a',
-        borderRight: '1px solid #1a3a1a',
+        background: 'linear-gradient(180deg, #0a1205 0%, #080b0f 100%)',
+        borderRight: '1px solid #1e2d1e',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width .2s, transform .2s',
         flexShrink: 0,
-        // Em mobile: posição fixa como drawer
         ...(isMobile ? {
           position: 'fixed',
-          top: 0,
-          left: 0,
+          top: 0, left: 0,
           height: '100vh',
           zIndex: 50,
           transform: sidebarAberta ? 'translateX(0)' : 'translateX(-100%)',
           width: 200,
         } : {}),
       }}>
-        <div style={{ padding: '1rem', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        {/* Logo */}
+        <div style={{ padding: '1rem', borderBottom: '1px solid #1e2d1e', display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
           <LogoPoupaUp collapsed={collapsed} />
         </div>
 
-        <nav style={{ flex: 1, padding: '0.75rem 0' }}>
-          {NAV_ITEMS.map(item => (
+        {/* Perfil resumido */}
+        {!collapsed && profile && (
+          <div
+            onClick={() => router.push('/dashboard/perfil')}
+            style={{ padding: '10px 1rem', borderBottom: '1px solid #1e2d1e', display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
+          >
+            <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
+              <div style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>⚔ {nivel.nome}</div>
+            </div>
+          </div>
+        )}
+
+        <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
+          {/* Separador "Câmara Real" */}
+          {!collapsed && (
+            <div style={{ padding: '6px 1rem 4px', fontSize: 9, color: 'rgba(212,160,23,.4)', textTransform: 'uppercase', letterSpacing: '.15em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
+              Câmara Real
+            </div>
+          )}
+
+          {NAV_ITEMS.slice(0, 4).map(item => (
             <button key={item.id}
               onClick={() => {
                 if ('href' in item && item.href) router.push(item.href)
@@ -217,7 +237,41 @@ useEffect(() => {
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: !collapsed ? '8px 1rem' : '8px 14px',
+                padding: !collapsed ? '7px 1rem' : '7px 14px',
+                width: '100%',
+                background: paginaAtiva === item.id ? 'rgba(74,222,128,.1)' : 'transparent',
+                border: 'none',
+                borderLeft: paginaAtiva === item.id ? '2px solid #4ade80' : '2px solid transparent',
+                cursor: 'pointer',
+                color: paginaAtiva === item.id ? '#4ade80' : 'rgba(255,255,255,.45)',
+                fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
+                transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
+              }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                <path d={item.icon} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {!collapsed && item.label}
+            </button>
+          ))}
+
+          {/* Separador "Salão do Herói" */}
+          {!collapsed && (
+            <div style={{ padding: '10px 1rem 4px', fontSize: 9, color: 'rgba(212,160,23,.4)', textTransform: 'uppercase', letterSpacing: '.15em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
+              Salão do Herói
+            </div>
+          )}
+          {collapsed && <div style={{ height: 1, background: '#1e2d1e', margin: '6px 10px' }} />}
+
+          {NAV_ITEMS.slice(4).map(item => (
+            <button key={item.id}
+              onClick={() => {
+                if ('href' in item && item.href) router.push(item.href)
+                else setPagina(item.id)
+                if (isMobile) setSidebar(false)
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: !collapsed ? '7px 1rem' : '7px 14px',
                 width: '100%',
                 background: paginaAtiva === item.id ? 'rgba(74,222,128,.1)' : 'transparent',
                 border: 'none',
@@ -295,14 +349,21 @@ useEffect(() => {
       }}>
 
         {/* Topbar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: '1px solid #1e2d1e', background: 'linear-gradient(90deg, #0a1205, #080b0f)', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 4, flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
             </button>
-            <span style={{ fontSize: 15, fontWeight: 500, color: '#fff' }}>
-              {{ inicio: 'Início', evolucao: 'Evolução' }[paginaAtiva] || 'PoupaUp'}
-            </span>
+            <div>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>
+                {{ inicio: 'Início', evolucao: 'Evolução' }[paginaAtiva] || 'PoupaUp'}
+              </span>
+              {paginaAtiva === 'inicio' && !isMobile && (
+                <span style={{ marginLeft: 8, fontSize: 10, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
+                  ⚔ {nivel.nome}
+                </span>
+              )}
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {/* Badge webhook — oculto em telas muito pequenas */}
@@ -317,6 +378,7 @@ useEffect(() => {
               url={profile?.avatar_url}
               nome={profile?.nome || 'U'}
               size={30}
+              nivel={nivel.nivel}
               onClick={() => router.push('/dashboard/perfil')}
             />
           </div>
@@ -340,21 +402,30 @@ useEffect(() => {
               {/* Cards métricas — 2 colunas em mobile, 4 em desktop */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
                 {[
-                  { label: 'Saldo',    val: formatBRL(saldo),    cor: saldo >= 0 ? '#4ade80' : '#f87171' },
-                  { label: 'Receitas', val: formatBRL(receitas), cor: '#4ade80' },
-                  { label: 'Gastos',   val: formatBRL(despesas), cor: '#f87171' },
-                  { label: 'XP total', val: `${xpTotal} XP`,    cor: '#fbbf24' },
+                  { label: 'Saldo',    val: formatBRL(saldo),    cor: saldo >= 0 ? '#4ade80' : '#f87171', icone: saldo >= 0 ? '💰' : '⚠️' },
+                  { label: 'Receitas', val: formatBRL(receitas), cor: '#4ade80',  icone: '📈' },
+                  { label: 'Gastos',   val: formatBRL(despesas), cor: '#f87171',  icone: '📉' },
+                  { label: 'XP total', val: `${xpTotal} XP`,    cor: '#d4a017',  icone: '⚔' },
                 ].map(m => (
-                  <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
-                    <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 500, color: m.cor, wordBreak: 'break-all' }}>{m.val}</div>
+                  <div key={m.label} style={{
+                    background: 'linear-gradient(145deg, #0d1117, #111820)',
+                    border: '1px solid #1e2d1e',
+                    borderRadius: 10,
+                    padding: '10px 12px',
+                    boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</span>
+                      <span style={{ fontSize: 12 }}>{m.icone}</span>
+                    </div>
+                    <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600, color: m.cor, wordBreak: 'break-all', fontVariantNumeric: 'tabular-nums' }}>{m.val}</div>
                   </div>
                 ))}
               </div>
 
               {/* Saldos por conta */}
               {contas.length > 0 && (
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: 10 }}>
+                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldos por conta</span>
                     <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver detalhes →</button>
@@ -384,7 +455,7 @@ useEffect(() => {
 
               {/* Insights + Por categoria — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Insights</span>
                     <span style={{ fontSize: 10, background: 'rgba(74,222,128,.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 4 }}>{insights.length} novos</span>
@@ -394,7 +465,7 @@ useEffect(() => {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {insights.map((ins, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 8, background: '#0a1a0a', borderRadius: 8, padding: '8px 10px' }}>
+                        <div key={i} style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,.03)', border: '1px solid #1e2d1e', borderRadius: 8, padding: '8px 10px' }}>
                           <div style={{ width: 18, height: 18, borderRadius: 5, background: ins.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                             <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d={ins.icon} stroke={ins.cor} strokeWidth="1.3" strokeLinecap="round"/></svg>
                           </div>
@@ -405,7 +476,7 @@ useEffect(() => {
                   )}
                 </div>
 
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
                   <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>Por categoria</div>
                   {Object.keys(porCategoria).length === 0 ? (
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: '1rem' }}>Nenhum gasto ainda</div>
@@ -431,7 +502,7 @@ useEffect(() => {
 
               {/* Últimas transações + Metas — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimas transações</span>
                     <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
@@ -455,7 +526,7 @@ useEffect(() => {
                   ))}
                 </div>
 
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
+                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Metas</span>
                     <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
@@ -501,7 +572,7 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
-              <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
+              <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Conquistas</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,minmax(0,1fr))', gap: 10 }}>
                   {[
