@@ -858,34 +858,55 @@ export default function PerfilPage() {
             )}
 
             {/* Conta padrão */}
-            {grupo && contasPerfil.length > 0 && (
-              <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Conta padrão para lançamentos do grupo</div>
-                <select
-                  value={contaPadrao}
-                  onChange={async e => {
-                    const val = e.target.value
-                    setContaPadrao(val)
-                    const { data: { user } } = await supabase.auth.getUser()
-                    if (!user) return
-                    await supabase.from('profiles').update({ conta_padrao_id: val || null }).eq('id', user.id)
-                    setSucesso('Conta padrão atualizada!')
-                    setTimeout(() => setSucesso(''), 2000)
-                  }}
-                  style={inputStyle}
-                >
-                  <option value="">Sem conta padrão (genérico)</option>
-                  {contasPerfil.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.bancos?.nome_curto || '—'} — {c.nome}
-                    </option>
-                  ))}
-                </select>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
-                  Lançamentos via WhatsApp sem conta especificada usarão esta conta.
+            {grupo && contasPerfil.length > 0 && (() => {
+              const contaAtual = contasPerfil.find(c => c.id === contaPadrao)
+              return (
+                <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Conta padrão para lançamentos do grupo</div>
+                  <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 12 }}>
+                    Lançamentos via WhatsApp sem conta especificada usarão esta conta.
+                  </div>
+
+                  {/* Preview da conta selecionada */}
+                  {contaAtual ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, marginBottom: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                        {(contaAtual.bancos?.nome_curto || contaAtual.nome)[0]}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>{contaAtual.bancos?.nome_curto || '—'} — {contaAtual.nome}</div>
+                        <div style={{ fontSize: 10, color: cores.textMuted }}>Conta padrão ativa</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '8px 12px', background: cores.surfaceAlt, border: `1px solid ${cores.borderMid}`, borderRadius: 8, marginBottom: 10, fontSize: 12, color: cores.textMuted }}>
+                      Nenhuma conta padrão definida — lançamentos ficam sem vínculo.
+                    </div>
+                  )}
+
+                  <select
+                    value={contaPadrao}
+                    onChange={async e => {
+                      const val = e.target.value
+                      setContaPadrao(val)
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (!user) return
+                      await supabase.from('profiles').update({ conta_padrao_id: val || null }).eq('id', user.id)
+                      setSucesso('Conta padrão atualizada!')
+                      setTimeout(() => setSucesso(''), 2000)
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="">Sem conta padrão</option>
+                    {contasPerfil.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.bancos?.nome_curto || '—'} — {c.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* Sair / Encerrar grupo */}
             {grupo && (() => {

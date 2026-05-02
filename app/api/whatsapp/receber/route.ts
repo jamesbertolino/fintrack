@@ -137,6 +137,12 @@ export async function POST(request: NextRequest) {
         descricao: string; valor: number; tipo: string; categoria: string
       }
 
+      const { data: profilePadrao } = await supabase
+        .from('profiles')
+        .select('conta_padrao_id')
+        .eq('id', pendente.user_id)
+        .single()
+
       await supabase.from('transactions').insert({
         user_id:           pendente.user_id,
         descricao:         interpretacao.descricao,
@@ -147,6 +153,7 @@ export async function POST(request: NextRequest) {
         origem:            'whatsapp',
         grupo_id:          grupo.id,
         tipo_visibilidade: respostaPendente,
+        conta_id:          profilePadrao?.conta_padrao_id || null,
       })
 
       await supabase.from('whatsapp_pendentes').delete().eq('id', pendente.id)

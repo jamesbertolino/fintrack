@@ -122,6 +122,12 @@ Formato:
     })
   }
 
+  const { data: profileFull } = await supabase
+    .from('profiles')
+    .select('conta_padrao_id')
+    .eq('id', profile.id)
+    .single()
+
   const { data: transacao, error } = await supabase
     .from('transactions')
     .insert({
@@ -133,6 +139,7 @@ Formato:
       data_hora: new Date().toISOString(),
       origem:    'whatsapp',
       grupo_id:  grupo_id || null,
+      conta_id:  profileFull?.conta_padrao_id || null,
     })
     .select('id')
     .single()

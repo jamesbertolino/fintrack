@@ -91,6 +91,9 @@ export default function LancamentoPage() {
   const [historico, setHistorico]   = useState<Transacao[]>([])
   const [deletando, setDeletando]   = useState<string | null>(null)
 
+  // ─── filtro de conta no histórico ───
+  const [filtroContaId, setFiltroContaId] = useState('')
+
   // ─── seleção em lote ───
   const [selecionados, setSelecionados] = useState<string[]>([])
   const [movendo, setMovendo]           = useState(false)
@@ -138,22 +141,25 @@ export default function LancamentoPage() {
     fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
   }, [])
 
-  const carregarHistorico = useCallback(async () => {
+  const carregarHistorico = useCallback(async (contaFiltro?: string) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     setUserId(user.id)
-    const { data } = await supabase
+    let query = supabase
       .from('transactions')
       .select('*')
       .eq('user_id', user.id)
       .order('data_hora', { ascending: false })
-      .limit(15)
+      .limit(50)
+    if (contaFiltro === '__sem_conta__') query = query.is('conta_id', null)
+    else if (contaFiltro) query = query.eq('conta_id', contaFiltro)
+    const { data } = await query
     if (data) setHistorico(data)
   }, [supabase, router])
 
 useEffect(() => {
-  carregarHistorico() // eslint-disable-line react-hooks/set-state-in-effect
-}, [carregarHistorico])
+  carregarHistorico(filtroContaId || undefined) // eslint-disable-line react-hooks/set-state-in-effect
+}, [carregarHistorico, filtroContaId])
 
   useEffect(() => {
     if (!userId) return
@@ -574,6 +580,29 @@ useEffect(() => {
             <div style={{ fontSize: 14, fontWeight: 500 }}>Lançamentos recentes</div>
             <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>
           </div>
+
+          {/* Filtro por conta */}
+          {contas.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ flexShrink: 0, color: 'rgba(255,255,255,.35)' }}>
+                <path d="M1 3h11M3 6.5h7M5 10h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+              <select
+                value={filtroContaId}
+                onChange={e => setFiltroContaId(e.target.value)}
+                style={{ flex: 1, padding: '6px 10px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: filtroContaId ? '#fff' : 'rgba(255,255,255,.4)', fontSize: 12, outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="">Todas as contas</option>
+                {contas.map(c => (
+                  <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>
+                ))}
+                <option value="__sem_conta__">Sem conta vinculada</option>
+              </select>
+              {filtroContaId && (
+                <button onClick={() => setFiltroContaId('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 16, lineHeight: 1, padding: '0 4px' }}>×</button>
+              )}
+            </div>
+          )}
 
           {/* Barra de ações em lote */}
           {selecionados.length > 0 && (
