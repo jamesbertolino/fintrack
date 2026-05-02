@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import pdfParse from 'pdf-parse'
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
@@ -7,7 +8,7 @@ const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Edu
 function detectarCategoria(desc: string): string {
   const d = desc.toLowerCase()
   if (d.includes('mercado') || d.includes('supermercado') || d.includes('ifood') || d.includes('restaurante') || d.includes('alimenta') || d.includes('padaria') || d.includes('lanchon')) return 'Alimentação'
-  if (d.includes('uber') || d.includes('99pop') || d.includes('combustiv') || d.includes('posto') || d.includes('transporte') || d.includes('ônibus') || d.includes('onibus') || d.includes('metro') || d.includes('cartao visa electron') || d.includes('passagem')) return 'Transporte'
+  if (d.includes('uber') || d.includes('99pop') || d.includes('combustiv') || d.includes('posto') || d.includes('transporte') || d.includes('ônibus') || d.includes('onibus') || d.includes('metro') || d.includes('passagem')) return 'Transporte'
   if (d.includes('netflix') || d.includes('spotify') || d.includes('cinema') || d.includes('lazer') || d.includes('jogo') || d.includes('steam')) return 'Lazer'
   if (d.includes('farmácia') || d.includes('farmacia') || d.includes('saúde') || d.includes('saude') || d.includes('médico') || d.includes('medico') || d.includes('hospital') || d.includes('drogaria') || d.includes('clinica')) return 'Saúde'
   if (d.includes('aluguel') || d.includes('condomínio') || d.includes('condominio') || d.includes('conta de agua') || d.includes('água') || d.includes('energia') || d.includes('moradia') || d.includes('luz') || d.includes('gas')) return 'Moradia'
@@ -21,7 +22,6 @@ function detectarCategoria(desc: string): string {
 // ─── Converte valor BR para número ───────────────────────────────────────────
 function parseBRL(val: string): number {
   if (!val || !val.trim()) return 0
-  // Remove pontos de milhar e troca vírgula por ponto
   return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0
 }
 
@@ -37,18 +37,17 @@ function parseData(val: string): string {
   return new Date().toISOString()
 }
 
-// ─── Processa CSV formato Bradesco/bancos BR (separador ;) ───────────────────
+// ─── Processa CSV formato bancos BR (separador ;) ────────────────────────────
 function processarCSV(texto: string): Array<{
   descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
 }> {
   const linhas = texto.split('\n').map(l => l.trim())
   const resultado = []
 
-  // Encontra a linha do cabeçalho (contém "Data" e "Histórico")
   let idxCabecalho = -1
   for (let i = 0; i < linhas.length; i++) {
     const l = linhas[i].toLowerCase()
-    if ((l.includes('data') && l.includes('hist')) ) {
+    if (l.includes('data') && l.includes('hist')) {
       idxCabecalho = i
       break
     }
@@ -58,11 +57,10 @@ function processarCSV(texto: string): Array<{
 
   const cabecalho = linhas[idxCabecalho].split(';').map(c => c.toLowerCase().trim().replace(/"/g, ''))
 
-  // Índices das colunas
-  const iData     = cabecalho.findIndex(c => c === 'data')
-  const iHist     = cabecalho.findIndex(c => c.includes('hist'))
-  const iCredito  = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred'))
-  const iDebito   = cabecalho.findIndex(c => c.includes('déb') || c.includes('deb'))
+  const iData    = cabecalho.findIndex(c => c === 'data')
+  const iHist    = cabecalho.findIndex(c => c.includes('hist'))
+  const iCredito = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred'))
+  const iDebito  = cabecalho.findIndex(c => c.includes('déb') || c.includes('deb'))
 
   if (iData === -1 || iHist === -1) return []
 
@@ -71,20 +69,15 @@ function processarCSV(texto: string): Array<{
     if (!linha || linha.startsWith(';') || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos') || linha.startsWith(';;Total')) continue
 
     const cols = linha.split(';').map(c => c.trim().replace(/"/g, ''))
-
     const dataVal = cols[iData] || ''
     const hist    = cols[iHist] || ''
 
-    // Ignora linhas sem data válida ou descrição
     if (!dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || !hist) continue
-
-    // Ignora linha de saldo inicial (COD. LANC. 0)
     if (hist.includes('COD. LANC')) continue
 
     const credito = iCredito !== -1 ? parseBRL(cols[iCredito]) : 0
     const debito  = iDebito  !== -1 ? parseBRL(cols[iDebito])  : 0
 
-    // Ignora linhas sem movimentação
     if (credito === 0 && debito === 0) continue
 
     const tipo  = credito > 0 ? 'credito' : 'debito'
@@ -102,8 +95,8 @@ function processarCSV(texto: string): Array<{
   return resultado
 }
 
-// ─── Processa PDF via OpenAI (texto extraído via prompt) ─────────────────────
-async function processarPDFcomOpenAI(base64: string): Promise<{
+// ─── Processa PDF: extrai texto e envia para OpenAI ──────────────────────────
+async function processarPDF(bytes: ArrayBuffer): Promise<{
   transacoes: Array<{ descricao: string; valor: number; tipo: string; categoria: string; data_hora: string }>
   banco_nome: string | null
   resumo: string
@@ -111,8 +104,16 @@ async function processarPDFcomOpenAI(base64: string): Promise<{
   const openaiKey = process.env.OPENAI_API_KEY
   if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
 
+  // Extrai texto do PDF
+  const buffer = Buffer.from(bytes)
+  const pdfData = await pdfParse(buffer)
+  const textoPDF = pdfData.text
+
+  if (!textoPDF || textoPDF.trim().length < 20)
+    throw new Error('Não foi possível extrair texto do PDF')
+
   const prompt = `Você é um extrator de dados financeiros especializado em extratos bancários brasileiros.
-Analise este extrato e extraia TODAS as transações visíveis.
+Analise o texto abaixo de um extrato bancário e extraia TODAS as transações.
 
 Retorne APENAS JSON válido, sem texto adicional, sem markdown, sem blocos de código.
 
@@ -139,7 +140,10 @@ Regras:
 - valor sempre número positivo
 - data_hora sempre ISO 8601, se sem hora use T00:00:00.000Z
 - Ignore linhas de saldo, totais e rodapés
-- Extraia TODAS as transações, sem omitir nenhuma`
+- Extraia TODAS as transações, sem omitir nenhuma
+
+TEXTO DO EXTRATO:
+${textoPDF}`
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -150,24 +154,7 @@ Regras:
     body: JSON.stringify({
       model: 'gpt-4o',
       max_tokens: 4000,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt,
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${base64}`,
-                detail: 'high',
-              },
-            },
-          ],
-        },
-      ],
+      messages: [{ role: 'user', content: prompt }],
     }),
   })
 
@@ -214,10 +201,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // ── PDF → converte para imagem base64 e envia para OpenAI ────────────────
+    // ── PDF ──────────────────────────────────────────────────────────────────
     if (nome.endsWith('.pdf')) {
-      const base64 = Buffer.from(bytes).toString('base64')
-      const { transacoes, banco_nome, resumo } = await processarPDFcomOpenAI(base64)
+      const { transacoes, banco_nome, resumo } = await processarPDF(bytes)
 
       if (!transacoes.length)
         return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF' }, { status: 400 })
