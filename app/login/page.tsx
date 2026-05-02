@@ -72,7 +72,7 @@ function LoginContent() {
       password: cadForm.senha,
       options: {
         data: { nome: cadForm.nome },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}${searchParams.get('next') || '/dashboard'}`,
       },
     })
     setLoading(false)
