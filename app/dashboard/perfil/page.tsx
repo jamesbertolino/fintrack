@@ -404,6 +404,17 @@ export default function PerfilPage() {
     }
   }
 
+  async function salvarConfiguracoes(campos: Partial<{ timezone: string; idioma: string }>) {
+    setSalvando(true); setErro(''); setSucesso('')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSalvando(false); return }
+    const { error } = await supabase.from('profiles').update(campos).eq('id', user.id)
+    setSalvando(false)
+    if (error) { setErro('Erro ao salvar: ' + error.message); return }
+    setSucesso('Configurações salvas!')
+    setTimeout(() => setSucesso(''), 3000)
+  }
+
   function alterarTema(novoTema: 'escuro' | 'claro') {
     setTema(novoTema)
     localStorage.setItem('poupaup_tema', novoTema)
@@ -630,7 +641,7 @@ export default function PerfilPage() {
                 <option value="es-ES">🇪🇸 Español</option>
               </select>
               <button
-                onClick={salvarPerfil as unknown as React.MouseEventHandler}
+                onClick={() => salvarConfiguracoes({ idioma: form.idioma })}
                 disabled={salvando}
                 style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}
               >
@@ -682,7 +693,7 @@ export default function PerfilPage() {
                 </optgroup>
               </select>
               <button
-                onClick={salvarPerfil as unknown as React.MouseEventHandler}
+                onClick={() => salvarConfiguracoes({ timezone: form.timezone })}
                 disabled={salvando}
                 style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}
               >
