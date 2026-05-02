@@ -125,6 +125,29 @@ Regras de categorização:
 - Ignore totais, saldos, cabeçalhos e rodapés
 - Extraia TODAS as transações sem omitir nenhuma`
 
+// ─── Processa CSV via OpenAI (qualquer formato) ──────────────────────────────
+async function processarCSVComIA(texto: string) {
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+
+  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: `${PROMPT_BASE}\n\nConteúdo do CSV:\n\`\`\`\n${texto.slice(0, 20000)}\n\`\`\``,
+      }],
+    }),
+  })
+  const chatData = await chatRes.json()
+  if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
+  const content = chatData.choices?.[0]?.message?.content || ''
+  return JSON.parse(content.replace(/```json|```/g, '').trim())
+}
+
 // ─── Processa PDF via OpenAI ───────────────────────────────────────────────────
 async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
@@ -211,13 +234,54 @@ export async function POST(request: NextRequest) {
     // ── CSV ──────────────────────────────────────────────────────────────────
     if (nome.endsWith('.csv')) {
       const texto = new TextDecoder('utf-8').decode(bytes)
-      const transacoes = processarCSV(texto)
-      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no CSV' }, { status: 400 })
-      const naoCat = transacoes.filter(t => t.nao_categorizado).length
+
+      // Tenta IA primeiro; fallback para parser local se sem chave ou erro
+      let parsed: ReturnType<typeof processarCSV> | null = null
+      let tipoDoc = 'extrato_bancario'
+      let bancoNomeCSV: string | null = null
+
+      if (process.env.OPENAI_API_KEY) {
+        try {
+          const iaResult = await processarCSVComIA(texto)
+          parsed = (iaResult.transacoes || []).map((t: TransacaoDetectada) => ({
+            ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
+          }))
+          tipoDoc = iaResult.tipo_documento || 'extrato_bancario'
+          bancoNomeCSV = iaResult.banco_nome || null
+        } catch (e) {
+          console.warn('[upload/csv] IA falhou, usando parser local:', e)
+        }
+      }
+
+      if (!parsed || parsed.length === 0) {
+        parsed = processarCSV(texto)
+      }
+
+      if (!parsed.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no CSV' }, { status: 400 })
+
+      const naoCat = parsed.filter(t => t.nao_categorizado).length
+
+      let banco_id: string | null = null
+      let banco_nao_encontrado = false
+      if (bancoNomeCSV) {
+        const { data: bancos } = await supabase.from('bancos').select('id, nome, nome_curto')
+        const match = bancos?.find(b =>
+          b.nome.toLowerCase().includes(bancoNomeCSV!.toLowerCase()) ||
+          b.nome_curto.toLowerCase().includes(bancoNomeCSV!.toLowerCase()) ||
+          bancoNomeCSV!.toLowerCase().includes(b.nome_curto.toLowerCase())
+        )
+        if (match) banco_id = match.id
+        else banco_nao_encontrado = true
+      }
+
       return NextResponse.json({
-        ok: true, transacoes,
-        resumo: `${transacoes.length} transações encontradas no CSV${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
-        tipo_documento: 'extrato_bancario',
+        ok: true, transacoes: parsed,
+        resumo: `${parsed.length} transações encontradas no CSV${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        tipo_documento: tipoDoc,
+        banco_nome: bancoNomeCSV,
+        banco_id,
+        banco_nao_encontrado,
+        conta_vinculada: bancoNomeCSV,
       })
     }
 
