@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const prompt = const prompt = `
+  const prompt = `
 Você é um sistema de extração de dados financeiros.
 Retorne APENAS JSON válido. Nenhum texto antes ou depois. Sem markdown. Sem blocos de código.
 
