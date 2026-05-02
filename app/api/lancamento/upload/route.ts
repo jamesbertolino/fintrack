@@ -106,7 +106,7 @@ async function processarPDF(bytes: ArrayBuffer): Promise<{
 
   // Extrai texto do PDF
   const buffer = Buffer.from(bytes)
-  const pdfData = await pdfParse(buffer)
+  const pdfData = await pdfParse.default(buffer)
   const textoPDF = pdfData.text
 
   if (!textoPDF || textoPDF.trim().length < 20)
