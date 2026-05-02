@@ -49,19 +49,21 @@ Entrada: "${mensagem}"
 Categorias: ${CATEGORIAS.join(', ')}
 
 REGRAS:
-- Encontre um valor numérico (antes ou depois do texto).
+- Encontre um valor numérico (antes ou depois do texto)
 - Aceite formatos: 50 | 50.00 | 50,00 | 1.000,50 | R$50 | 50 reais | +100 | -100
 - Se não houver valor → "reconhecido": false e "valor": null
 - Nunca invente valores
 
 PROCESSO:
-- O número = "valor" (normalize para float com 2 casas)
+- O número = "valor" (float com 2 casas)
 - O restante do texto = "descricao" (curta e limpa)
 - Classifique:
   - "credito" → entrada de dinheiro
   - "debito" → saída de dinheiro
-  - Se ambíguo → null
-- Associe a categoria mais próxima
+  - Se não souber → null
+- Categoria:
+  - Se encontrar similar → usar
+  - Se não → "diversos"
 
 SAÍDA:
 {
