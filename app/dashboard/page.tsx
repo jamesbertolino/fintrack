@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
+import MissoesWidget from '@/components/MissoesWidget'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel } from '@/lib/calcularXP'
 
@@ -421,6 +422,11 @@ useEffect(() => {
                     ))
                   )}
                 </div>
+              </div>
+
+              {/* Missões */}
+              <div style={{ marginBottom: 10 }}>
+                <MissoesWidget />
               </div>
 
               {/* Últimas transações + Metas — coluna única em mobile */}
