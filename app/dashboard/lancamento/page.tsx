@@ -100,6 +100,16 @@ export default function LancamentoPage() {
   const [contaDestino, setContaDestino] = useState('')
   const [excluindoLote, setExcluindoLote] = useState(false)
 
+  // ─── modal nova conta (inline) ───
+  const [modalNovaConta, setModalNovaConta] = useState(false)
+  const [bancosLista, setBancosLista]       = useState<Array<{ id: string; nome: string; nome_curto: string; cor: string | null; codigo: string }>>([])
+  const [buscaBancoModal, setBuscaBancoModal] = useState('')
+  const [salvandoConta, setSalvandoConta]   = useState(false)
+  const [erroNovaConta, setErroNovaConta]   = useState('')
+  const [formNovaConta, setFormNovaConta]   = useState({
+    banco_id: '', nome: '', tipo: 'corrente', numero: '', agencia: '', mostrar_saldo: true, saldo_inicial: '',
+  })
+
   // ─── modal edição ───
   const [modalAberto, setModalAberto]       = useState(false)
   const [transacaoEditando, setTransacaoEditando] = useState<Transacao | null>(null)
@@ -191,6 +201,38 @@ useEffect(() => {
 
   function valorNumerico() {
     return parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0
+  }
+
+  async function abrirModalNovaConta() {
+    if (bancosLista.length === 0) {
+      const res = await fetch('/api/bancos')
+      const d = await res.json()
+      setBancosLista(d.bancos || [])
+    }
+    setErroNovaConta('')
+    setFormNovaConta({ banco_id: '', nome: '', tipo: 'corrente', numero: '', agencia: '', mostrar_saldo: true, saldo_inicial: '' })
+    setBuscaBancoModal('')
+    setModalNovaConta(true)
+  }
+
+  async function salvarNovaConta(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formNovaConta.banco_id) { setErroNovaConta('Selecione um banco'); return }
+    if (!formNovaConta.nome.trim()) { setErroNovaConta('Nome da conta obrigatório'); return }
+    setSalvandoConta(true); setErroNovaConta('')
+    const res = await fetch('/api/contas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formNovaConta),
+    })
+    const data = await res.json()
+    setSalvandoConta(false)
+    if (!data.ok) { setErroNovaConta(data.error || 'Erro ao salvar'); return }
+    const contasRes = await fetch('/api/contas')
+    const contasDados = await contasRes.json()
+    setContas(contasDados.contas || [])
+    setContaUpload(data.conta.id)
+    setModalNovaConta(false)
   }
 
   async function salvar(e: React.FormEvent) {
@@ -534,12 +576,19 @@ useEffect(() => {
 
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Vincular à conta</label>
-                  <select value={contaUpload} onChange={e => setContaUpload(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
+                  <select
+                    value={contaUpload}
+                    onChange={e => {
+                      if (e.target.value === '__nova__') { abrirModalNovaConta() }
+                      else setContaUpload(e.target.value)
+                    }}
+                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+                  >
                     <option value="">Sem conta específica</option>
                     {contas.filter(c => !bancoDetectado || c.bancos?.id === bancoDetectado.id).map(c => (
                       <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} — {c.nome}</option>
                     ))}
+                    <option value="__nova__">＋ Cadastrar nova conta</option>
                   </select>
                 </div>
 
@@ -744,6 +793,115 @@ useEffect(() => {
         </div>
       )}
 
+      {/* ─── Modal nova conta ─── */}
+      {modalNovaConta && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}
+          onClick={e => { if (e.target === e.currentTarget) setModalNovaConta(false) }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 460, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Cadastrar nova conta</div>
+              <button onClick={() => setModalNovaConta(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 20, lineHeight: 1 }}>×</button>
+            </div>
+
+            <form onSubmit={salvarNovaConta} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Busca banco */}
+              <div>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Banco</label>
+                <input
+                  value={buscaBancoModal}
+                  onChange={e => setBuscaBancoModal(e.target.value)}
+                  placeholder="Buscar banco pelo nome ou código..."
+                  style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                  {bancosLista
+                    .filter(b =>
+                      !buscaBancoModal ||
+                      b.nome_curto.toLowerCase().includes(buscaBancoModal.toLowerCase()) ||
+                      b.codigo.includes(buscaBancoModal)
+                    )
+                    .slice(0, 20)
+                    .map(b => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setFormNovaConta(p => ({ ...p, banco_id: b.id }))}
+                        style={{
+                          padding: '8px 6px', borderRadius: 8, cursor: 'pointer', fontSize: 10, fontWeight: 500, textAlign: 'center',
+                          background: formNovaConta.banco_id === b.id ? `${b.cor || '#4ade80'}22` : 'rgba(255,255,255,.04)',
+                          border: `1px solid ${formNovaConta.banco_id === b.id ? b.cor || '#4ade80' : '#1a3a1a'}`,
+                          color: formNovaConta.banco_id === b.id ? b.cor || '#4ade80' : 'rgba(255,255,255,.6)',
+                        }}
+                      >
+                        {b.nome_curto}
+                      </button>
+                    ))
+                  }
+                </div>
+              </div>
+
+              {/* Nome */}
+              <div>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Nome da conta</label>
+                <input
+                  value={formNovaConta.nome}
+                  onChange={e => setFormNovaConta(p => ({ ...p, nome: e.target.value }))}
+                  placeholder="Ex: Conta corrente, Nubank pessoal..."
+                  required
+                  style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
+                />
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Tipo</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['corrente', 'poupança', 'crédito', 'investimento'].map(t => (
+                    <button key={t} type="button" onClick={() => setFormNovaConta(p => ({ ...p, tipo: t }))} style={{
+                      flex: 1, padding: '7px 4px', borderRadius: 8, border: `1px solid ${formNovaConta.tipo === t ? '#4ade80' : '#1a3a1a'}`,
+                      background: formNovaConta.tipo === t ? 'rgba(74,222,128,.12)' : 'transparent',
+                      color: formNovaConta.tipo === t ? '#4ade80' : 'rgba(255,255,255,.4)', fontSize: 11, cursor: 'pointer',
+                    }}>{t}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Saldo inicial */}
+              <div>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Saldo inicial (opcional)</label>
+                <input
+                  type="number"
+                  value={formNovaConta.saldo_inicial}
+                  onChange={e => setFormNovaConta(p => ({ ...p, saldo_inicial: e.target.value }))}
+                  placeholder="0,00"
+                  step="0.01"
+                  min="0"
+                  style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
+                />
+              </div>
+
+              {erroNovaConta && (
+                <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171' }}>
+                  {erroNovaConta}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => setModalNovaConta(false)}
+                  style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={salvandoConta}
+                  style={{ flex: 2, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: salvandoConta ? 'default' : 'pointer', opacity: salvandoConta ? 0.7 : 1 }}>
+                  {salvandoConta ? 'Salvando...' : 'Cadastrar conta'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ─── Modal banco não encontrado ─── */}
       {modalContaNaoEncontrada && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
@@ -758,9 +916,9 @@ useEffect(() => {
                 style={{ padding: '10px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, color: '#4ade80', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
                 Continuar sem conta específica e escolher depois
               </button>
-              <button onClick={() => { setModalContaNaoEncontrada(false); router.push('/dashboard/contas') }}
+              <button onClick={() => { setModalContaNaoEncontrada(false); abrirModalNovaConta() }}
                 style={{ padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                Ir para Contas e cadastrar ou vincular
+                Cadastrar nova conta agora
               </button>
             </div>
           </div>
