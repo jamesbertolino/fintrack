@@ -39,33 +39,61 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const prompt = `Interprete esta mensagem de controle financeiro.
-Retorne APENAS JSON válido, sem texto adicional.
+  const prompt = const prompt = `
+Você é um sistema de extração de dados financeiros.
+Retorne APENAS JSON válido. Nenhum texto antes ou depois. Sem markdown. Sem blocos de código.
 
-Mensagem: "${mensagem}"
+Mensagem do usuário: "${mensagem}"
 
 Categorias disponíveis: ${CATEGORIAS.join(', ')}
 
-Regras OBRIGATÓRIAS:
-- Se NÃO houver valor numérico explícito → reconhecido: false. NUNCA invente valores.
-- Valor deve estar explícito: "R$100", "100 reais", "100,00", "- 100", "+ 100", etc
-- receita, salário, recebimento, entrada → tipo "credito"
-- gasto, compra, pagamento, combustível, despesa → tipo "debito"
-- Exemplos:
-  "combustivel carro familia - R$100" → {descricao: "Combustível - carro família", valor: 100, tipo: "debito", categoria: "Transporte", reconhecido: true}
-  "salário + R$3000" → {descricao: "Salário", valor: 3000, tipo: "credito", categoria: "Salário", reconhecido: true}
-  "presente pai" → {reconhecido: false}
-  "mercado" → {reconhecido: false}
-- Nunca inclua texto fora do JSON
+FORMATOS DE VALOR ACEITOS:
+- Inteiro: 50 | 100
+- Decimal ponto: 50.00 | 1000.50
+- Decimal vírgula: 50,00 | 1.000,50
+- Com moeda: R$50 | R$ 50 | 50 reais | 50 conto | 50 pila
+- Com sinal: +100 | -100 | + 100 | - 100
 
-Formato:
+CLASSIFICAÇÃO DE TIPO:
+- "credito": salário, recebimento, receita, entrada, ganho, renda, freelance, dividendo, transferência recebida, depósito
+- "debito": gasto, compra, pagamento, despesa, conta, fatura, taxa, combustível, aluguel, transferência enviada, retirada
+
+REGRAS OBRIGATÓRIAS:
+1. Retorne APENAS o objeto JSON. Zero texto fora dele.
+2. Se NÃO houver valor numérico explícito → reconhecido: false, valor: null, tipo: null.
+3. NUNCA invente ou estime valores ausentes.
+4. Normalize o valor para float com duas casas decimais (ex: 50,00 → 50.00).
+5. Preencha descricao e categoria mesmo quando reconhecido: false.
+6. Se o tipo for ambíguo → reconhecido: false.
+
+EXEMPLOS:
+Entrada: "combustivel carro familia - R$100"
+Saída: {"descricao":"Combustível - carro família","valor":100.00,"tipo":"debito","categoria":"Transporte","reconhecido":true}
+
+Entrada: "salário + R$3000"
+Saída: {"descricao":"Salário","valor":3000.00,"tipo":"credito","categoria":"Salário","reconhecido":true}
+
+Entrada: "gastei 37,90 no ifood"
+Saída: {"descricao":"iFood","valor":37.90,"tipo":"debito","categoria":"Alimentação","reconhecido":true}
+
+Entrada: "recebi 200"
+Saída: {"descricao":"Recebimento","valor":200.00,"tipo":"credito","categoria":"Outros","reconhecido":true}
+
+Entrada: "presente pai"
+Saída: {"descricao":"Presente - pai","valor":null,"tipo":null,"categoria":"Presente","reconhecido":false}
+
+Entrada: "mercado"
+Saída: {"descricao":"Mercado","valor":null,"tipo":null,"categoria":"Alimentação","reconhecido":false}
+
+SCHEMA DE RESPOSTA:
 {
-  "descricao": "descrição limpa",
-  "valor": 100.00,
-  "tipo": "debito" ou "credito",
-  "categoria": "categoria válida",
-  "reconhecido": true ou false
-}`
+  "descricao": "string — descrição limpa e capitalizada",
+  "valor": "number com duas casas decimais ou null",
+  "tipo": "debito | credito | null",
+  "categoria": "uma das categorias disponíveis acima",
+  "reconhecido": "true | false"
+}
+`
 
   let parsed: { descricao: string; valor: number; tipo: string; categoria: string; reconhecido: boolean } | null = null
 
