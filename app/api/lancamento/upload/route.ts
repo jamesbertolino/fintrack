@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import * as pdfParse from 'pdf-parse'
+import pdfParse from 'pdf-parse/build/pdf-parse'
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
@@ -106,7 +106,7 @@ async function processarPDF(bytes: ArrayBuffer): Promise<{
 
   // Extrai texto do PDF
   const buffer = Buffer.from(bytes)
-  const pdfData = await pdfParse.default(buffer)
+  const pdfData = await pdfParse(buffer)
   const textoPDF = pdfData.text
 
   if (!textoPDF || textoPDF.trim().length < 20)
