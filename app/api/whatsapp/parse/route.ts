@@ -53,10 +53,13 @@ FORMATOS DE VALOR ACEITOS:
 - Decimal vírgula: 50,00 | 1.000,50
 - Com moeda: R$50 | R$ 50 | 50 reais | 50 conto | 50 pila
 - Com sinal: +100 | -100 | + 100 | - 100
+- Valor + estabelecimento: "20 mecânica" | "50 açougue" | "30 farmácia"
+- Estabelecimento + valor: "mercado 80" | "uber 15,50"
 
 CLASSIFICAÇÃO DE TIPO:
 - "credito": salário, recebimento, receita, entrada, ganho, renda, freelance, dividendo, transferência recebida, depósito
 - "debito": gasto, compra, pagamento, despesa, conta, fatura, taxa, combustível, aluguel, transferência enviada, retirada
+- Quando o contexto for um estabelecimento ou serviço sem palavra-chave de tipo → assumir "debito"
 
 REGRAS OBRIGATÓRIAS:
 1. Retorne APENAS o objeto JSON. Zero texto fora dele.
@@ -65,8 +68,21 @@ REGRAS OBRIGATÓRIAS:
 4. Normalize o valor para float com duas casas decimais (ex: 50,00 → 50.00).
 5. Preencha descricao e categoria mesmo quando reconhecido: false.
 6. Se o tipo for ambíguo → reconhecido: false.
+7. Estabelecimento ou serviço sem sinal explícito → assumir "debito".
 
 EXEMPLOS:
+Entrada: "20 mecânica"
+Saída: {"descricao":"Mecânica","valor":20.00,"tipo":"debito","categoria":"Transporte","reconhecido":true}
+
+Entrada: "50 açougue"
+Saída: {"descricao":"Açougue","valor":50.00,"tipo":"debito","categoria":"Alimentação","reconhecido":true}
+
+Entrada: "farmácia 35,90"
+Saída: {"descricao":"Farmácia","valor":35.90,"tipo":"debito","categoria":"Saúde","reconhecido":true}
+
+Entrada: "uber 12"
+Saída: {"descricao":"Uber","valor":12.00,"tipo":"debito","categoria":"Transporte","reconhecido":true}
+
 Entrada: "combustivel carro familia - R$100"
 Saída: {"descricao":"Combustível - carro família","valor":100.00,"tipo":"debito","categoria":"Transporte","reconhecido":true}
 
