@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
+
+function getServiceClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -26,6 +34,37 @@ export async function PATCH(
     .update(campos)
     .eq('id', id)
     .eq('user_id', user.id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true })
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  const { id } = await params
+
+  // Confirma que o lançamento pertence ao usuário
+  const { data: tx } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!tx) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
+
+  // Usa service role para remover FK em whatsapp_logs antes de deletar
+  const service = getServiceClient()
+  await service.from('whatsapp_logs').update({ transacao_id: null }).eq('transacao_id', id)
+
+  const { error } = await service.from('transactions').delete().eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

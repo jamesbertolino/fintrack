@@ -354,7 +354,7 @@ useEffect(() => {
 
   async function deletar(id: string) {
     setDeletando(id)
-    await supabase.from('transactions').delete().eq('id', id)
+    await fetch(`/api/lancamento/${id}`, { method: 'DELETE' })
     setDeletando(null)
     carregarHistorico()
   }
