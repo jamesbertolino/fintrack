@@ -3,61 +3,106 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
-// ─── Processa CSV ────────────────────────────────────────────────────────────
+// ─── Detecta categoria por palavra-chave ─────────────────────────────────────
+function detectarCategoria(desc: string): string {
+  const d = desc.toLowerCase()
+  if (d.includes('mercado') || d.includes('supermercado') || d.includes('ifood') || d.includes('restaurante') || d.includes('alimenta') || d.includes('padaria') || d.includes('lanchon')) return 'Alimentação'
+  if (d.includes('uber') || d.includes('99pop') || d.includes('combustiv') || d.includes('posto') || d.includes('transporte') || d.includes('ônibus') || d.includes('onibus') || d.includes('metro') || d.includes('cartao visa electron') || d.includes('passagem')) return 'Transporte'
+  if (d.includes('netflix') || d.includes('spotify') || d.includes('cinema') || d.includes('lazer') || d.includes('jogo') || d.includes('steam')) return 'Lazer'
+  if (d.includes('farmácia') || d.includes('farmacia') || d.includes('saúde') || d.includes('saude') || d.includes('médico') || d.includes('medico') || d.includes('hospital') || d.includes('drogaria') || d.includes('clinica')) return 'Saúde'
+  if (d.includes('aluguel') || d.includes('condomínio') || d.includes('condominio') || d.includes('conta de agua') || d.includes('água') || d.includes('energia') || d.includes('moradia') || d.includes('luz') || d.includes('gas')) return 'Moradia'
+  if (d.includes('escola') || d.includes('faculdade') || d.includes('curso') || d.includes('educação') || d.includes('educacao') || d.includes('universidade')) return 'Educação'
+  if (d.includes('salário') || d.includes('salario') || d.includes('folha') || d.includes('pagamento recebido')) return 'Salário'
+  if (d.includes('freelance') || d.includes('free-lance')) return 'Freelance'
+  if (d.includes('rendimento') || d.includes('investimento') || d.includes('dividendo') || d.includes('juros')) return 'Investimento'
+  return 'Outros'
+}
+
+// ─── Converte valor BR para número ───────────────────────────────────────────
+function parseBRL(val: string): number {
+  if (!val || !val.trim()) return 0
+  // Remove pontos de milhar e troca vírgula por ponto
+  return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0
+}
+
+// ─── Converte data DD/MM/YYYY para ISO ───────────────────────────────────────
+function parseData(val: string): string {
+  if (!val || !val.trim()) return new Date().toISOString()
+  const partes = val.trim().split('/')
+  if (partes.length === 3) {
+    const [dia, mes, ano] = partes
+    const d = new Date(Number(ano), Number(mes) - 1, Number(dia))
+    if (!isNaN(d.getTime())) return d.toISOString()
+  }
+  return new Date().toISOString()
+}
+
+// ─── Processa CSV formato Bradesco/bancos BR (separador ;) ───────────────────
 function processarCSV(texto: string): Array<{
   descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
 }> {
-  const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean)
-  if (linhas.length < 2) return []
-
-  const cabecalho = linhas[0].split(',').map(c => c.toLowerCase().trim().replace(/"/g, ''))
+  const linhas = texto.split('\n').map(l => l.trim())
   const resultado = []
 
-  for (let i = 1; i < linhas.length; i++) {
-    const cols = linhas[i].split(',').map(c => c.trim().replace(/"/g, ''))
-    const row: Record<string, string> = {}
-    cabecalho.forEach((h, idx) => { row[h] = cols[idx] || '' })
-
-    const descricao = row['descrição'] || row['descricao'] || row['title'] || row['memo'] || row['histórico'] || row['historico'] || ''
-    const valorStr  = row['valor'] || row['amount'] || row['quantia'] || ''
-    const dataStr   = row['data'] || row['date'] || row['data lançamento'] || row['data lancamento'] || ''
-    const tipoStr   = row['tipo'] || row['type'] || ''
-
-    if (!descricao || !valorStr) continue
-
-    const valorNum = parseFloat(valorStr.replace(/[^\d,.-]/g, '').replace(',', '.'))
-    if (isNaN(valorNum)) continue
-
-    let tipo = 'debito'
-    if (tipoStr.toLowerCase().includes('cred') || valorNum > 0) tipo = 'credito'
-    if (tipoStr.toLowerCase().includes('deb') || valorNum < 0) tipo = 'debito'
-
-    let data_hora = new Date().toISOString()
-    if (dataStr) {
-      const partes = dataStr.includes('/') ? dataStr.split('/').reverse().join('-') : dataStr
-      const d = new Date(partes)
-      if (!isNaN(d.getTime())) data_hora = d.toISOString()
+  // Encontra a linha do cabeçalho (contém "Data" e "Histórico")
+  let idxCabecalho = -1
+  for (let i = 0; i < linhas.length; i++) {
+    const l = linhas[i].toLowerCase()
+    if ((l.includes('data') && l.includes('hist')) ) {
+      idxCabecalho = i
+      break
     }
+  }
 
-    const desc = descricao.toLowerCase()
-    let categoria = 'Outros'
-    if (desc.includes('mercado') || desc.includes('supermercado') || desc.includes('ifood') || desc.includes('restaurante') || desc.includes('alimenta')) categoria = 'Alimentação'
-    else if (desc.includes('uber') || desc.includes('99') || desc.includes('combustiv') || desc.includes('transport') || desc.includes('ônibus') || desc.includes('metro')) categoria = 'Transporte'
-    else if (desc.includes('netflix') || desc.includes('spotify') || desc.includes('cinema') || desc.includes('lazer')) categoria = 'Lazer'
-    else if (desc.includes('farmácia') || desc.includes('farmacia') || desc.includes('saúde') || desc.includes('saude') || desc.includes('médico') || desc.includes('medico')) categoria = 'Saúde'
-    else if (desc.includes('aluguel') || desc.includes('condomínio') || desc.includes('condominio') || desc.includes('luz') || desc.includes('água') || desc.includes('agua') || desc.includes('moradia')) categoria = 'Moradia'
-    else if (desc.includes('escola') || desc.includes('faculdade') || desc.includes('curso') || desc.includes('educação') || desc.includes('educacao')) categoria = 'Educação'
-    else if (desc.includes('salário') || desc.includes('salario') || desc.includes('pagamento recebido')) categoria = 'Salário'
-    else if (desc.includes('freelance') || desc.includes('free-lance')) categoria = 'Freelance'
-    else if (desc.includes('investimento') || desc.includes('dividendo') || desc.includes('rendimento')) categoria = 'Investimento'
+  if (idxCabecalho === -1) return []
 
-    resultado.push({ descricao: descricao.trim(), valor: Math.abs(valorNum), tipo, categoria, data_hora })
+  const cabecalho = linhas[idxCabecalho].split(';').map(c => c.toLowerCase().trim().replace(/"/g, ''))
+
+  // Índices das colunas
+  const iData     = cabecalho.findIndex(c => c === 'data')
+  const iHist     = cabecalho.findIndex(c => c.includes('hist'))
+  const iCredito  = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred'))
+  const iDebito   = cabecalho.findIndex(c => c.includes('déb') || c.includes('deb'))
+
+  if (iData === -1 || iHist === -1) return []
+
+  for (let i = idxCabecalho + 1; i < linhas.length; i++) {
+    const linha = linhas[i]
+    if (!linha || linha.startsWith(';') || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos') || linha.startsWith(';;Total')) continue
+
+    const cols = linha.split(';').map(c => c.trim().replace(/"/g, ''))
+
+    const dataVal = cols[iData] || ''
+    const hist    = cols[iHist] || ''
+
+    // Ignora linhas sem data válida ou descrição
+    if (!dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || !hist) continue
+
+    // Ignora linha de saldo inicial (COD. LANC. 0)
+    if (hist.includes('COD. LANC')) continue
+
+    const credito = iCredito !== -1 ? parseBRL(cols[iCredito]) : 0
+    const debito  = iDebito  !== -1 ? parseBRL(cols[iDebito])  : 0
+
+    // Ignora linhas sem movimentação
+    if (credito === 0 && debito === 0) continue
+
+    const tipo  = credito > 0 ? 'credito' : 'debito'
+    const valor = credito > 0 ? credito : debito
+
+    resultado.push({
+      descricao: hist.trim(),
+      valor,
+      tipo,
+      categoria: detectarCategoria(hist),
+      data_hora: parseData(dataVal),
+    })
   }
 
   return resultado
 }
 
-// ─── Processa PDF via OpenAI ─────────────────────────────────────────────────
+// ─── Processa PDF via OpenAI (texto extraído via prompt) ─────────────────────
 async function processarPDFcomOpenAI(base64: string): Promise<{
   transacoes: Array<{ descricao: string; valor: number; tipo: string; categoria: string; data_hora: string }>
   banco_nome: string | null
@@ -66,9 +111,10 @@ async function processarPDFcomOpenAI(base64: string): Promise<{
   const openaiKey = process.env.OPENAI_API_KEY
   if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
 
-  const prompt = `Você é um extrator de dados financeiros. Analise este extrato bancário em PDF e extraia TODAS as transações.
+  const prompt = `Você é um extrator de dados financeiros especializado em extratos bancários brasileiros.
+Analise este extrato e extraia TODAS as transações visíveis.
 
-Retorne APENAS um JSON válido, sem texto adicional, sem markdown, sem blocos de código.
+Retorne APENAS JSON válido, sem texto adicional, sem markdown, sem blocos de código.
 
 Categorias disponíveis: ${CATEGORIAS.join(', ')}
 
@@ -88,13 +134,12 @@ Formato obrigatório:
 }
 
 Regras:
-- tipo "debito" para gastos/saídas/compras/pagamentos
-- tipo "credito" para receitas/entradas/depósitos/salário
-- valor sempre positivo (número)
-- data_hora sempre em formato ISO 8601
-- Se não souber a hora, use T00:00:00.000Z
-- Se não houver data, use a data atual
-- Extraia TODAS as transações visíveis, sem omitir nenhuma`
+- tipo "debito" para gastos/saídas/compras/pagamentos/débitos
+- tipo "credito" para receitas/entradas/depósitos/salário/créditos
+- valor sempre número positivo
+- data_hora sempre ISO 8601, se sem hora use T00:00:00.000Z
+- Ignore linhas de saldo, totais e rodapés
+- Extraia TODAS as transações, sem omitir nenhuma`
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -110,13 +155,16 @@ Regras:
           role: 'user',
           content: [
             {
+              type: 'text',
+              text: prompt,
+            },
+            {
               type: 'image_url',
               image_url: {
-                url: `data:application/pdf;base64,${base64}`,
+                url: `data:image/jpeg;base64,${base64}`,
                 detail: 'high',
               },
             },
-            { type: 'text', text: prompt },
           ],
         },
       ],
@@ -166,7 +214,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // ── PDF ──────────────────────────────────────────────────────────────────
+    // ── PDF → converte para imagem base64 e envia para OpenAI ────────────────
     if (nome.endsWith('.pdf')) {
       const base64 = Buffer.from(bytes).toString('base64')
       const { transacoes, banco_nome, resumo } = await processarPDFcomOpenAI(base64)
