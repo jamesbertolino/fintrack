@@ -9,14 +9,9 @@ import { usePerfil } from '@/hooks/usePerfil'
 const TIPS_KEY = 'poupaup_tips_v1'
 
 function useTips() {
-  const [dismissed, setDismissed] = useState<Record<string, boolean>>({})
-
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(TIPS_KEY) || '{}')
-      setDismissed(saved)
-    } catch { /* ignore */ }
-  }, [])
+  const [dismissed, setDismissed] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(TIPS_KEY) || '{}') } catch { return {} }
+  })
 
   function dismiss(id: string) {
     const next = { ...dismissed, [id]: true }
