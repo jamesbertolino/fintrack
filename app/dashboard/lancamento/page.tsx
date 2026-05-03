@@ -5,6 +5,64 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { usePerfil } from '@/hooks/usePerfil'
 
+// ─── Sistema de tips ──────────────────────────────────────────────────────────
+const TIPS_KEY = 'poupaup_tips_v1'
+
+function useTips() {
+  const [dismissed, setDismissed] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(TIPS_KEY) || '{}')
+      setDismissed(saved)
+    } catch { /* ignore */ }
+  }, [])
+
+  function dismiss(id: string) {
+    const next = { ...dismissed, [id]: true }
+    setDismissed(next)
+    try { localStorage.setItem(TIPS_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+  }
+
+  function isVisible(id: string) {
+    return !dismissed[id]
+  }
+
+  return { isVisible, dismiss }
+}
+
+function TipCard({ id, icon, text, tips, accent = '#4ade80' }: {
+  id: string
+  icon: string
+  text: string
+  tips: ReturnType<typeof useTips>
+  accent?: string
+}) {
+  if (!tips.isVisible(id)) return null
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 10,
+      padding: '10px 12px',
+      background: `${accent}08`,
+      border: `1px solid ${accent}22`,
+      borderLeft: `3px solid ${accent}`,
+      borderRadius: 8,
+      marginBottom: 12,
+      animation: 'tipFadeIn .3s ease',
+    }}>
+      <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.65)', lineHeight: 1.55 }}
+        dangerouslySetInnerHTML={{ __html: text }} />
+      <button
+        onClick={() => tips.dismiss(id)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 16, lineHeight: 1, flexShrink: 0, padding: '0 0 0 4px' }}
+        title="Dispensar dica"
+      >×</button>
+      <style>{`@keyframes tipFadeIn { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }`}</style>
+    </div>
+  )
+}
+
 interface Transacao {
   id: string
   descricao: string
@@ -434,6 +492,7 @@ useEffect(() => {
   }
 
   const categorias = tipo === 'debito' ? CATEGORIAS_DESPESA : CATEGORIAS_RECEITA
+  const tips = useTips()
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
@@ -481,6 +540,8 @@ useEffect(() => {
 
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Atalhos rápidos</div>
+            <TipCard id="tip-atalhos" icon="⚡" tips={tips}
+              text="Clique num atalho para preencher descrição e categoria automaticamente. Seus favoritos aparecem aqui." />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {ATALHOS.filter(a => a.tipo === tipo).map(a => (
                 <button key={a.label} onClick={() => aplicarAtalho(a)} style={{
@@ -517,6 +578,8 @@ useEffect(() => {
             {contas.length > 0 && (
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conta (opcional)</label>
+                <TipCard id="tip-conta-manual" icon="🏦" tips={tips} accent="#22d3ee"
+                  text="Vincule o lançamento a uma conta para manter os <strong>saldos sempre atualizados</strong>. Sem vínculo, a transação fica no histórico geral." />
                 <select value={contaSelecionada} onChange={e => setConta(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
                   <option value="">Sem conta específica</option>
@@ -564,37 +627,130 @@ useEffect(() => {
 
           {/* Upload */}
           <div style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
-            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>📎 Importar documento</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Extrato bancário, fatura de cartão, holerite, nota fiscal, cupom, recibo — PDF, imagem ou CSV</div>
+
+            {/* Cabeçalho da seção */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>📎 Importar extrato ou fatura</div>
+              <span style={{ fontSize: 10, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', color: '#4ade80', padding: '2px 8px', borderRadius: 10 }}>IA</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 14 }}>
+              A IA lê o documento e lança todas as transações automaticamente — sem digitar nada.
+            </div>
+
+            {/* Tip principal do upload — mostrada apenas antes do primeiro uso */}
+            <TipCard id="tip-upload-intro" icon="✨" tips={tips} accent="#a78bfa"
+              text="<strong>Dica de primeiro uso:</strong> Vá ao app do seu banco → Extrato → Baixar PDF, depois arraste o arquivo aqui. A IA detecta banco, datas, valores e categorias automaticamente." />
+
+            {/* 4 passos — só aparece quando não há transações detectadas e não está processando */}
+            {transacoesDetectadas.length === 0 && !processando && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+                {[
+                  { n: '1', label: 'Envie', desc: 'PDF, imagem ou CSV', icon: '📤' },
+                  { n: '2', label: 'IA analisa', desc: 'Detecta e categoriza', icon: '🤖' },
+                  { n: '3', label: 'Revise', desc: 'Edite ou remova', icon: '✏️' },
+                  { n: '4', label: 'Confirme', desc: 'Lança tudo de uma vez', icon: '✅' },
+                ].map((step, i) => (
+                  <div key={step.n} style={{
+                    textAlign: 'center', padding: '10px 6px',
+                    background: 'rgba(255,255,255,.02)',
+                    border: '1px solid #1a3a1a',
+                    borderRadius: 10,
+                    position: 'relative',
+                  }}>
+                    {i < 3 && (
+                      <div style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: 'rgba(255,255,255,.2)', zIndex: 1 }}>›</div>
+                    )}
+                    <div style={{ fontSize: 18, marginBottom: 4 }}>{step.icon}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', marginBottom: 2, letterSpacing: '.03em' }}>{step.label}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', lineHeight: 1.3 }}>{step.desc}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Drop zone */}
             <div
               onClick={() => inputRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
               onDragLeave={() => setDragOver(false)}
               onDrop={e => { e.preventDefault(); setDragOver(false); handleUpload(e.dataTransfer.files[0]) }}
-              style={{ border: `2px dashed ${dragOver ? '#4ade80' : '#1a3a1a'}`, borderRadius: 12, padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: dragOver ? 'rgba(74,222,128,.05)' : 'transparent', transition: 'all .2s' }}
+              style={{
+                border: `2px dashed ${dragOver ? '#4ade80' : '#1e3a1e'}`,
+                borderRadius: 14,
+                padding: dragOver ? '2rem 1.5rem' : '1.5rem',
+                textAlign: 'center',
+                cursor: 'pointer',
+                background: dragOver ? 'rgba(74,222,128,.06)' : 'rgba(255,255,255,.01)',
+                transition: 'all .2s',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
             >
-              <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>Clique ou arraste o arquivo aqui</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>PDF · JPG · PNG · WEBP · CSV — máx 15MB</div>
-              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                {['Extrato', 'Fatura', 'Holerite', 'Nota fiscal', 'Cupom', 'Recibo'].map(t => (
-                  <span key={t} style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.15)', color: 'rgba(74,222,128,.7)' }}>{t}</span>
+              {/* Glow de fundo animado quando hovering */}
+              {dragOver && (
+                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 50%, rgba(74,222,128,.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              )}
+              <div style={{ fontSize: dragOver ? 40 : 34, marginBottom: 10, transition: 'font-size .2s' }}>
+                {dragOver ? '📂' : '📄'}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: dragOver ? '#4ade80' : 'rgba(255,255,255,.6)', marginBottom: 4, transition: 'color .2s' }}>
+                {dragOver ? 'Solte para enviar' : 'Clique ou arraste o arquivo aqui'}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginBottom: 10 }}>
+                PDF · JPG · PNG · WEBP · CSV — máx 15MB
+              </div>
+              {/* Tipos de documento */}
+              <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Extrato', icon: '🏦' },
+                  { label: 'Fatura', icon: '💳' },
+                  { label: 'Holerite', icon: '📋' },
+                  { label: 'Nota fiscal', icon: '🧾' },
+                  { label: 'Cupom', icon: '🏷️' },
+                  { label: 'Recibo', icon: '📝' },
+                ].map(t => (
+                  <span key={t.label} style={{
+                    fontSize: 10, padding: '3px 9px', borderRadius: 20,
+                    background: 'rgba(255,255,255,.04)',
+                    border: '1px solid rgba(255,255,255,.08)',
+                    color: 'rgba(255,255,255,.45)',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <span style={{ fontSize: 11 }}>{t.icon}</span>{t.label}
+                  </span>
                 ))}
               </div>
               <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.csv" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { handleUpload(e.target.files[0]); e.target.value = '' } }} />
             </div>
 
+            {/* Processando */}
             {processando && (
-              <div style={{ marginTop: 12, padding: '12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, fontSize: 12, color: '#4ade80', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ animation: 'spin 1s linear infinite' }}>⏳</div>
-                Analisando documento com IA...
-                <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+              <div style={{ marginTop: 14, padding: '14px 16px', background: 'rgba(167,139,250,.06)', border: '1px solid rgba(167,139,250,.2)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(167,139,250,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }}>
+                  🤖
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#a78bfa' }}>Analisando com IA...</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Detectando banco, datas, valores e categorias</div>
+                </div>
+                <style>{`
+                  @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+                  @keyframes pulse { 0%,100% { transform: scale(1); opacity:.8 } 50% { transform: scale(1.12); opacity:1 } }
+                `}</style>
               </div>
             )}
 
             {transacoesDetectadas.length > 0 && !processando && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, color: '#4ade80' }}>✅ {resumoDetectado} — Revise antes de confirmar:</div>
+              <div style={{ marginTop: 14 }}>
+
+                {/* Banner de sucesso da detecção */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 10, marginBottom: 14 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(74,222,128,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✅</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>{resumoDetectado}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>Revise, edite categorias e confirme a conta destino antes de lançar</div>
+                  </div>
+                </div>
 
                 {/* Banco detectado + tipo de documento */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -618,6 +774,8 @@ useEffect(() => {
                 {/* Vincular conta */}
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Vincular à conta</label>
+                  <TipCard id="tip-conta-upload" icon="💡" tips={tips} accent="#fbbf24"
+                    text="Selecione a conta do extrato importado. Isso mantém o saldo da conta sempre correto. Ainda não tem? Cadastre uma clicando em <strong>＋ Cadastrar nova conta</strong> abaixo." />
                   <select
                     value={contaUpload}
                     onChange={e => {
@@ -774,6 +932,8 @@ useEffect(() => {
                 {/* ── Transações não categorizadas ─────────────────────── */}
                 {transacoesDetectadas.filter(t => t.nao_categorizado).length > 0 && (
                   <div style={{ background: 'rgba(251,191,36,.04)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
+                    <TipCard id="tip-sem-categoria" icon="🏷️" tips={tips} accent="#fbbf24"
+                      text="Clique no <strong>select de categoria</strong> ao lado de cada item ou use <strong>&quot;Lançar todos como Outros&quot;</strong> para categorizar em lote. Você pode alterar depois." />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
                         ⚠ Sem categoria ({transacoesDetectadas.filter(t => t.nao_categorizado).length})
