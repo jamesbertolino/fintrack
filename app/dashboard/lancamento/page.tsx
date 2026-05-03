@@ -141,6 +141,12 @@ export default function LancamentoPage() {
   // Controle de edição inline de categoria (índice do item em edição)
   const [editandoCategoriaIdx, setEditandoCategoriaIdx] = useState<number | null>(null)
 
+  // ─── cadastro inline de conta (no upload) ───
+  const [contaInlineAberta, setContaInlineAberta] = useState(false)
+
+  // ─── confirmação de conta destino antes de importar ───
+  const [etapaConfirmacao, setEtapaConfirmacao] = useState(false)
+
   // ─── modal conta não encontrada ───
   const [modalContaNaoEncontrada, setModalContaNaoEncontrada] = useState(false)
   const [bancoNaoEncontrado, setBancoNaoEncontrado] = useState('')
@@ -243,6 +249,7 @@ useEffect(() => {
     setContas(contasDados.contas || [])
     setContaUpload(data.conta.id)
     setModalNovaConta(false)
+    setContaInlineAberta(false)
   }
 
   async function salvar(e: React.FormEvent) {
@@ -344,6 +351,8 @@ useEffect(() => {
       setResumo('')
       setBancoDetectado(null)
       setContaUpload('')
+      setEtapaConfirmacao(false)
+      setContaInlineAberta(false)
       setSucesso(true)
       carregarHistorico()
       setTimeout(() => setSucesso(false), 3000)
@@ -611,8 +620,22 @@ useEffect(() => {
                   <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>Vincular à conta</label>
                   <select
                     value={contaUpload}
-                    onChange={e => { if (e.target.value === '__nova__') abrirModalNovaConta(); else setContaUpload(e.target.value) }}
-                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
+                    onChange={e => {
+                      if (e.target.value === '__nova__') {
+                        setContaInlineAberta(true)
+                        setContaUpload('')
+                        setEtapaConfirmacao(false)
+                        if (bancosLista.length === 0) fetch('/api/bancos').then(r => r.json()).then(d => setBancosLista(d.bancos || []))
+                        setErroNovaConta('')
+                        setFormNovaConta({ banco_id: '', nome: '', tipo: 'corrente', numero: '', agencia: '', mostrar_saldo: true, saldo_inicial: '' })
+                        setBuscaBancoModal('')
+                      } else {
+                        setContaUpload(e.target.value)
+                        setContaInlineAberta(false)
+                        setEtapaConfirmacao(false)
+                      }
+                    }}
+                    style={{ width: '100%', padding: '9px 12px', background: '#111', border: `1px solid ${contaInlineAberta ? '#4ade80' : '#1a3a1a'}`, borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}
                   >
                     <option value="">Sem conta específica</option>
                     {contas.filter(c => !bancoDetectado || c.bancos?.id === bancoDetectado.id).map(c => (
@@ -620,6 +643,94 @@ useEffect(() => {
                     ))}
                     <option value="__nova__">＋ Cadastrar nova conta</option>
                   </select>
+
+                  {/* ── Formulário inline de nova conta ── */}
+                  {contaInlineAberta && (
+                    <div style={{ marginTop: 10, background: '#0a1a0a', border: '1px solid #1a5a1a', borderRadius: 10, padding: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#4ade80' }}>Nova conta</span>
+                        <button type="button" onClick={() => setContaInlineAberta(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 16, lineHeight: 1 }}>×</button>
+                      </div>
+                      <form onSubmit={salvarNovaConta} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                        {/* Busca banco */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Banco</label>
+                          <input
+                            value={buscaBancoModal}
+                            onChange={e => setBuscaBancoModal(e.target.value)}
+                            placeholder="Buscar pelo nome ou código..."
+                            style={{ width: '100%', padding: '8px 10px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', marginBottom: 6 }}
+                          />
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5, maxHeight: 130, overflowY: 'auto' }}>
+                            {bancosLista
+                              .filter(b => !buscaBancoModal || b.nome_curto.toLowerCase().includes(buscaBancoModal.toLowerCase()) || b.codigo.includes(buscaBancoModal))
+                              .slice(0, 20)
+                              .map(b => (
+                                <button key={b.id} type="button"
+                                  onClick={() => setFormNovaConta(p => ({ ...p, banco_id: b.id }))}
+                                  style={{
+                                    padding: '6px 4px', borderRadius: 7, cursor: 'pointer', fontSize: 10, fontWeight: 500, textAlign: 'center',
+                                    background: formNovaConta.banco_id === b.id ? `${b.cor || '#4ade80'}22` : 'rgba(255,255,255,.03)',
+                                    border: `1px solid ${formNovaConta.banco_id === b.id ? b.cor || '#4ade80' : '#1a3a1a'}`,
+                                    color: formNovaConta.banco_id === b.id ? b.cor || '#4ade80' : 'rgba(255,255,255,.5)',
+                                  }}
+                                >{b.nome_curto}</button>
+                              ))}
+                          </div>
+                        </div>
+
+                        {/* Nome da conta */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Nome da conta</label>
+                          <input
+                            value={formNovaConta.nome}
+                            onChange={e => setFormNovaConta(p => ({ ...p, nome: e.target.value }))}
+                            placeholder="Ex: Nubank pessoal..."
+                            required
+                            style={{ width: '100%', padding: '8px 10px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }}
+                          />
+                        </div>
+
+                        {/* Tipo */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Tipo</label>
+                          <div style={{ display: 'flex', gap: 5 }}>
+                            {(['corrente', 'poupança', 'crédito', 'investimento'] as const).map(t => (
+                              <button key={t} type="button" onClick={() => setFormNovaConta(p => ({ ...p, tipo: t }))} style={{
+                                flex: 1, padding: '6px 3px', borderRadius: 7, border: `1px solid ${formNovaConta.tipo === t ? '#4ade80' : '#1a3a1a'}`,
+                                background: formNovaConta.tipo === t ? 'rgba(74,222,128,.12)' : 'transparent',
+                                color: formNovaConta.tipo === t ? '#4ade80' : 'rgba(255,255,255,.4)', fontSize: 10, cursor: 'pointer',
+                              }}>{t}</button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Saldo inicial */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Saldo inicial (opcional)</label>
+                          <input type="number" value={formNovaConta.saldo_inicial} onChange={e => setFormNovaConta(p => ({ ...p, saldo_inicial: e.target.value }))}
+                            placeholder="0,00" step="0.01" min="0"
+                            style={{ width: '100%', padding: '8px 10px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }} />
+                        </div>
+
+                        {erroNovaConta && (
+                          <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 7, padding: '7px 10px', fontSize: 11, color: '#f87171' }}>{erroNovaConta}</div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: 7 }}>
+                          <button type="button" onClick={() => setContaInlineAberta(false)}
+                            style={{ flex: 1, padding: '8px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                          <button type="submit" disabled={salvandoConta}
+                            style={{ flex: 2, padding: '8px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 600, cursor: salvandoConta ? 'default' : 'pointer', opacity: salvandoConta ? 0.7 : 1 }}>
+                            {salvandoConta ? 'Cadastrando...' : 'Cadastrar e vincular'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Transações categorizadas ─────────────────────────── */}
@@ -700,17 +811,60 @@ useEffect(() => {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload(''); setTipoDocumento('') }}
-                    style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
-                    Cancelar
-                  </button>
-                  <button onClick={confirmarLancamentos} disabled={confirmando || transacoesDetectadas.some(t => t.nao_categorizado)}
-                    title={transacoesDetectadas.some(t => t.nao_categorizado) ? 'Categorize todos os itens antes de confirmar' : ''}
-                    style={{ flex: 2, padding: '10px', background: transacoesDetectadas.some(t => t.nao_categorizado) ? '#374151' : '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: (confirmando || transacoesDetectadas.some(t => t.nao_categorizado)) ? 'not-allowed' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
-                    {confirmando ? 'Lançando...' : transacoesDetectadas.some(t => t.nao_categorizado) ? `Categorize os ${transacoesDetectadas.filter(t => t.nao_categorizado).length} itens pendentes` : `Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
-                  </button>
-                </div>
+                {/* ── Etapa de confirmação de conta ── */}
+                {etapaConfirmacao ? (
+                  <div style={{ marginTop: 4, background: '#0a1a0a', border: '1px solid #1a5a1a', borderRadius: 10, padding: '14px' }}>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 10 }}>Confirmar conta destino</div>
+                    {(() => {
+                      const contaSel = contas.find(c => c.id === contaUpload)
+                      return contaSel ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, marginBottom: 12 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: contaSel.bancos?.cor || '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                            {(contaSel.bancos?.nome_curto || contaSel.nome)[0]}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>{contaSel.bancos?.nome_curto || '—'} — {contaSel.nome}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>{transacoesDetectadas.length} lançamento{transacoesDetectadas.length > 1 ? 's' : ''} serão vinculados a esta conta</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, marginBottom: 12 }}>
+                          <span style={{ fontSize: 18 }}>⚠️</span>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#fbbf24' }}>Sem conta vinculada</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>Os lançamentos não serão associados a nenhuma conta</div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => setEtapaConfirmacao(false)}
+                        style={{ flex: 1, padding: '9px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer' }}>
+                        ← Alterar conta
+                      </button>
+                      <button onClick={confirmarLancamentos} disabled={confirmando}
+                        style={{ flex: 2, padding: '9px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
+                        {confirmando ? 'Lançando...' : `✓ Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button onClick={() => { setTransacoesDetectadas([]); setBancoDetectado(null); setContaUpload(''); setTipoDocumento(''); setEtapaConfirmacao(false); setContaInlineAberta(false) }}
+                      style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => { if (!transacoesDetectadas.some(t => t.nao_categorizado)) setEtapaConfirmacao(true) }}
+                      disabled={transacoesDetectadas.some(t => t.nao_categorizado)}
+                      title={transacoesDetectadas.some(t => t.nao_categorizado) ? 'Categorize todos os itens antes de confirmar' : ''}
+                      style={{ flex: 2, padding: '10px', background: transacoesDetectadas.some(t => t.nao_categorizado) ? '#374151' : '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: transacoesDetectadas.some(t => t.nao_categorizado) ? 'not-allowed' : 'pointer' }}>
+                      {transacoesDetectadas.some(t => t.nao_categorizado)
+                        ? `Categorize os ${transacoesDetectadas.filter(t => t.nao_categorizado).length} itens pendentes`
+                        : `Avançar — ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
