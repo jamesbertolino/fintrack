@@ -155,19 +155,19 @@ useEffect(() => {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
       <PoupaUpLogo mode="compact" />
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando...</div>
+      <div style={{ fontSize: 13, color: 'rgba(212,175,55,.5)', fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.1em' }}>Convocando o Reino...</div>
     </div>
   )
 
   const NAV_ITEMS = [
-    { id: 'inicio',       label: 'Início',       icon: 'M3 9l4-4 4 4 4-4' },
-    { id: 'lancamento',   label: 'Lançamento',   icon: 'M6 1v12M1 6h10',                href: '/dashboard/lancamento' },
-    { id: 'gastos',       label: 'Gastos',       icon: 'M2 4h10M2 7h7M2 10h5',         href: '/dashboard/gastos' },
-    { id: 'metas',        label: 'Metas',        icon: 'M7 1l1.5 4H13l-4 3 1.5 4L7 10l-4 2.5L4.5 8 .5 5H5z', href: '/dashboard/metas' },
-    { id: 'ia',           label: 'Assistente IA',icon: 'M2 7a5 5 0 0 1 10 0',          href: '/dashboard/ia' },
-    { id: 'notificacoes', label: 'Notificações', icon: 'M7 2a4 4 0 00-4 4v2l-1 1v1h10v-1l-1-1V6a4 4 0 00-4-4zM5.5 12a1.5 1.5 0 003 0', href: '/dashboard/notificacoes' },
-    { id: 'evolucao',     label: 'Evolução',     icon: 'M2 10l3-3 3 3 4-6',            href: '/dashboard/evolucao' },
-    { id: 'contas',       label: 'Contas',       icon: 'M2 4h10a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1zM1 7h12', href: '/dashboard/contas' },
+    { id: 'inicio',       label: 'Salão do Reino',   icon: '🏰' },
+    { id: 'lancamento',   label: 'Livro do Tesouro', icon: '📜', href: '/dashboard/lancamento' },
+    { id: 'gastos',       label: 'Batalhas',         icon: '⚔️', href: '/dashboard/gastos' },
+    { id: 'metas',        label: 'Quests',           icon: '🎯', href: '/dashboard/metas' },
+    { id: 'ia',           label: 'Oráculo',          icon: '🔮', href: '/dashboard/ia' },
+    { id: 'notificacoes', label: 'Pergaminhos',      icon: '📯', href: '/dashboard/notificacoes' },
+    { id: 'evolucao',     label: 'Jornada do Herói', icon: '⚡', href: '/dashboard/evolucao' },
+    { id: 'contas',       label: 'Cofres do Reino',  icon: '💰', href: '/dashboard/contas' },
   ]
 
   // largura do sidebar — em mobile sempre 200 quando aberto (drawer), em desktop colapsa para 56
@@ -249,9 +249,7 @@ useEffect(() => {
                 fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                <path d={item.icon} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</span>
               {!collapsed && item.label}
             </button>
           ))}
@@ -283,9 +281,7 @@ useEffect(() => {
                 fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
-                <path d={item.icon} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</span>
               {!collapsed && item.label}
             </button>
           ))}
@@ -309,7 +305,7 @@ useEffect(() => {
                 height: '100%',
                 width: `${nivel.pct}%`,
                 borderRadius: 999,
-                background: `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor}, #d4a017)`,
+                background: `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor}, #D4AF37)`,
                 backgroundSize: '200% 100%',
                 animation: 'xp-shimmer 3s linear infinite',
                 transition: 'width .8s cubic-bezier(0.34,1.56,0.64,1)',
@@ -357,8 +353,8 @@ useEffect(() => {
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
             </button>
             <div>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>
-                {{ inicio: 'Início', evolucao: 'Evolução' }[paginaAtiva] || 'PoupaUp'}
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#F5E6C8', fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.04em' }}>
+                {{ inicio: '🏰 Salão do Reino', evolucao: '⚡ Jornada do Herói' }[paginaAtiva] || 'PoupaUp'}
               </span>
               {paginaAtiva === 'inicio' && !isMobile && (
                 <span style={{ marginLeft: 8, fontSize: 10, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
@@ -393,8 +389,8 @@ useEffect(() => {
           {paginaAtiva === 'inicio' && (
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 500, color: '#fff', marginBottom: 2 }}>
-                  Olá, {profile?.nome || 'usuário'} 👋
+                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: '#F5E6C8', marginBottom: 2, fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.03em' }}>
+                  ⚔ Saudações, {profile?.nome || 'Nobre Guerreiro'}
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
                   {new Intl.DateTimeFormat(idioma, { weekday: 'long', day: 'numeric', month: 'long', timeZone: timezone }).format(new Date())}
@@ -404,17 +400,17 @@ useEffect(() => {
               {/* Cards métricas — 2 colunas em mobile, 4 em desktop */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
                 {[
-                  { label: 'Saldo',    val: formatBRL(saldo),    cor: saldo >= 0 ? '#4ade80' : '#f87171', icone: saldo >= 0 ? '💰' : '⚠️' },
-                  { label: 'Receitas', val: formatBRL(receitas), cor: '#4ade80',  icone: '📈' },
-                  { label: 'Gastos',   val: formatBRL(despesas), cor: '#f87171',  icone: '📉' },
-                  { label: 'XP total', val: `${xpTotal} XP`,    cor: '#d4a017',  icone: '⚔' },
+                  { label: 'Tesouro',  val: formatBRL(saldo),    cor: saldo >= 0 ? '#D4AF37' : '#c0392b', icone: saldo >= 0 ? '💰' : '⚠️' },
+                  { label: 'Tributos', val: formatBRL(receitas), cor: '#5A8A4A',  icone: '📈' },
+                  { label: 'Batalhas', val: formatBRL(despesas), cor: '#8B0000',  icone: '⚔️' },
+                  { label: 'Glória',   val: `${xpTotal} XP`,    cor: '#D4AF37',  icone: '👑' },
                 ].map(m => (
                   <div key={m.label} style={{
-                    background: 'linear-gradient(145deg, #0d1117, #111820)',
-                    border: '1px solid #1e2d1e',
+                    background: 'linear-gradient(145deg, #1c1409, #241808)',
+                    border: '1px solid #3d2e0a',
                     borderRadius: 10,
                     padding: '10px 12px',
-                    boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)',
+                    boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</span>
@@ -427,17 +423,17 @@ useEffect(() => {
 
               {/* Saldos por conta */}
               {contas.length > 0 && (
-                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)', marginBottom: 10 }}>
+                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)', marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldos por conta</span>
-                    <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver detalhes →</button>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>💰 Cofres do Reino</span>
+                    <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>explorar →</button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {contas.slice(0, 4).map(c => (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.bancos?.cor || '#4ade80', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nome}</span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? '#4ade80' : '#f87171', flexShrink: 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? '#D4AF37' : '#c0392b', flexShrink: 0 }}>
                           {c.mostrar_saldo ? `R$ ${c.saldo.toFixed(2).replace('.', ',')}` : '••••••'}
                         </span>
                       </div>
@@ -445,9 +441,9 @@ useEffect(() => {
                     {contas.length > 4 && (
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{contas.length - 4} contas</div>
                     )}
-                    <div style={{ borderTop: '1px solid #1a3a1a', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ borderTop: '1px solid #3d2e0a', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#D4AF37' }}>
                         R$ {contas.reduce((a, c) => a + (c.mostrar_saldo ? c.saldo : 0), 0).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
@@ -457,10 +453,10 @@ useEffect(() => {
 
               {/* Insights + Por categoria — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
-                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
+                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Insights</span>
-                    <span style={{ fontSize: 10, background: 'rgba(74,222,128,.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 4 }}>{insights.length} novos</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🔮 Profecias do Oráculo</span>
+                    <span style={{ fontSize: 10, background: 'rgba(212,175,55,.12)', color: '#D4AF37', padding: '2px 8px', borderRadius: 2 }}>{insights.length} novos</span>
                   </div>
                   {insights.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>Lance transações para ver insights personalizados</div>
@@ -478,8 +474,8 @@ useEffect(() => {
                   )}
                 </div>
 
-                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>Por categoria</div>
+                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>📊 Crônicas por Ordem</div>
                   {Object.keys(porCategoria).length === 0 ? (
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: '1rem' }}>Nenhum gasto ainda</div>
                   ) : (
@@ -504,39 +500,39 @@ useEffect(() => {
 
               {/* Últimas transações + Metas — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
+                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimas transações</span>
-                    <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>⚔️ Crônicas de Batalha</span>
+                    <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
                   </div>
                   {transacoes.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
-                      Nenhuma transação ainda.{' '}
-                      <span style={{ color: '#4ade80', cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>Lançar agora →</span>
+                      As crônicas estão vazias.{' '}
+                      <span style={{ color: '#D4AF37', cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>Registrar no Livro →</span>
                     </div>
                   ) : transacoes.slice(0, 5).map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #1a2a1a' }}>
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #3d2e0a' }}>
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#D4AF37' : '#c0392b', whiteSpace: 'nowrap', flexShrink: 0 }}>
                         {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
+                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Metas</span>
-                    <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🎯 Quests Ativas</span>
+                    <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
                   </div>
                   {metas.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
                       Nenhuma meta.{' '}
-                      <span style={{ color: '#4ade80', cursor: 'pointer' }} onClick={() => router.push('/dashboard/metas')}>Criar agora →</span>
+                      <span style={{ color: '#D4AF37', cursor: 'pointer' }} onClick={() => router.push('/dashboard/metas')}>Declarar Quest →</span>
                     </div>
                   ) : metas.map(m => {
                     const pct = Math.min(Math.round((m.valor_atual / m.valor_total) * 100), 100)
@@ -544,10 +540,10 @@ useEffect(() => {
                       <div key={m.id} style={{ marginBottom: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                           <span style={{ fontSize: 12, fontWeight: 500, color: '#fff' }}>{m.nome}</span>
-                          <span style={{ fontSize: 10, color: '#4ade80' }}>{pct}%</span>
+                          <span style={{ fontSize: 10, color: '#D4AF37' }}>{pct}%</span>
                         </div>
                         <div style={{ height: 5, background: 'rgba(255,255,255,.06)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: '#16a34a', borderRadius: 3 }} />
+                          <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #8B6914, #D4AF37)', borderRadius: 3 }} />
                         </div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3 }}>{formatBRL(m.valor_atual)} de {formatBRL(m.valor_total)}</div>
                       </div>
@@ -563,10 +559,10 @@ useEffect(() => {
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1.25rem' }}>
                 {[
-                  { label: 'Nível',    val: `Lv.${nivel.nivel}`, cor: '#4ade80' },
-                  { label: 'XP total', val: String(xpTotal),     cor: '#fbbf24' },
+                  { label: 'Título',   val: `Lv.${nivel.nivel}`, cor: '#D4AF37' },
+                  { label: 'Glória',   val: String(xpTotal),     cor: '#F0C040' },
                   { label: 'Ranking',  val: 'top 30%',           cor: '#a78bfa' },
-                  { label: nivel.nome, val: `${nivel.pct}%`,     cor: '#22d3ee' },
+                  { label: nivel.nome, val: `${nivel.pct}%`,     cor: '#5A8A4A' },
                 ].map(m => (
                   <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
@@ -574,13 +570,13 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
-              <div style={{ background: 'linear-gradient(145deg, #0d1117, #111820)', border: '1px solid #1e2d1e', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,160,23,.04)' }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 14 }}>Conquistas</div>
+              <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🏅 Brasões de Honra</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,minmax(0,1fr))', gap: 10 }}>
                   {[
-                    { nome: 'Primeira conta', desc: 'Cadastrou-se',        conquistado: true,                   cor: '#4ade80', bg: 'rgba(74,222,128,.15)' },
+                    { nome: 'Primeira conta', desc: 'Cadastrou-se',        conquistado: true,                   cor: '#D4AF37', bg: 'rgba(212,175,55,.15)' },
                     { nome: 'Primeiro gasto', desc: 'Registrou transação', conquistado: transacoes.length > 0,  cor: '#fbbf24', bg: 'rgba(251,191,36,.15)' },
-                    { nome: 'Poupador',       desc: 'Saldo positivo',      conquistado: saldo > 0,              cor: '#4ade80', bg: 'rgba(74,222,128,.15)' },
+                    { nome: 'Tesoureiro',      desc: 'Saldo positivo',      conquistado: saldo > 0,              cor: '#5A8A4A', bg: 'rgba(90,138,74,.15)' },
                     { nome: '5 transações',   desc: '5 registros',         conquistado: transacoes.length >= 5, cor: '#22d3ee', bg: 'rgba(34,211,238,.15)' },
                     { nome: 'Meta criada',    desc: 'Criou 1 meta',        conquistado: metas.length > 0,       cor: '#a78bfa', bg: 'rgba(167,139,250,.15)' },
                   ].map(c => (
@@ -615,9 +611,9 @@ function gerarInsights(transacoes: Transacao[], saldo: number) {
   const porCat   = despesas.reduce((acc, t) => { acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc }, {} as Record<string,number>)
   const topCat   = Object.entries(porCat).sort((a,b) => b[1]-a[1])[0]
 
-  if (topCat)               insights.push({ texto: `Maior categoria: <strong>${topCat[0]}</strong> com ${formatBRL(topCat[1])}.`, icon: 'M4.5 7.5l4 4', cor: '#f97316', bg: 'rgba(249,115,22,.15)' })
-  if (saldo > 0)            insights.push({ texto: `Saldo positivo de <strong>${formatBRL(saldo)}</strong>. Ótimo caminho!`, icon: 'M1 7.5l3 3 6-6', cor: '#4ade80', bg: 'rgba(74,222,128,.15)' })
-  if (despesas.length >= 3) insights.push({ texto: `<strong>${despesas.length} transações</strong> registradas este período.`, icon: 'M1 4h8M1 7h5', cor: '#22d3ee', bg: 'rgba(34,211,238,.15)' })
+  if (topCat)               insights.push({ texto: `Maior batalha: <strong>${topCat[0]}</strong> — ${formatBRL(topCat[1])} gastos.`, icon: 'M4.5 7.5l4 4', cor: '#c0392b', bg: 'rgba(139,0,0,.15)' })
+  if (saldo > 0)            insights.push({ texto: `Tesouro positivo de <strong>${formatBRL(saldo)}</strong>. O reino prospera!`, icon: 'M1 7.5l3 3 6-6', cor: '#5A8A4A', bg: 'rgba(90,138,74,.15)' })
+  if (despesas.length >= 3) insights.push({ texto: `<strong>${despesas.length} batalhas</strong> registradas nas crônicas do reino.`, icon: 'M1 4h8M1 7h5', cor: '#8B6914', bg: 'rgba(139,105,20,.15)' })
 
   return insights
 }

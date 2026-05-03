@@ -1,12 +1,18 @@
 import type { Metadata } from 'next'
-import { Geist, Cinzel } from 'next/font/google'
+import { Cinzel, Crimson_Text } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
-const geist = Geist({ subsets: ['latin'] })
 const cinzel = Cinzel({
   subsets: ['latin'],
   variable: '--font-cinzel',
   weight: ['400', '600', '700', '900'],
+})
+
+const crimsonText = Crimson_Text({
+  subsets: ['latin'],
+  variable: '--font-crimson',
+  weight: ['400', '600', '700'],
+  style: ['normal', 'italic'],
 })
 
 export const metadata: Metadata = {
@@ -35,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           } catch(e) {}
         ` }} />
       </head>
-      <body className={`${geist.className} ${cinzel.variable}`} style={{ margin: 0, padding: 0 }}>
+      <body className={`${cinzel.variable} ${crimsonText.variable}`} style={{ margin: 0, padding: 0 }}>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

@@ -40,24 +40,35 @@ export function useCores() {
   const { tema } = useContext(Ctx)
   const c = tema === 'claro'
   return {
-    pageBg:       c ? '#f5f7fa'    : '#080b0f',
-    surface:      c ? '#ffffff'    : '#0d1117',
-    surfaceAlt:   c ? '#f0f4f0'    : '#0a1205',
-    surfaceDark:  c ? '#e8f0e8'    : '#080b0f',
-    border:       c ? '#e5e7eb'    : '#1e2d1e',
-    borderMid:    c ? '#d1d5db'    : '#1a3a1a',
-    text:         c ? '#111827'    : '#ededed',
-    textMuted:    c ? 'rgba(0,0,0,0.45)'       : 'rgba(255,255,255,0.4)',
-    textFaint:    c ? 'rgba(0,0,0,0.3)'        : 'rgba(255,255,255,0.25)',
-    sidebarBg:    c ? 'linear-gradient(180deg,#e8f5e9 0%,#f0f4f0 100%)'
-                    : 'linear-gradient(180deg,#0a1205 0%,#080b0f 100%)',
-    topbarBg:     c ? 'linear-gradient(90deg,#e8f5e9,#f0f4f0)'
-                    : 'linear-gradient(90deg,#0a1205,#080b0f)',
-    inputBg:      c ? '#f0f4f0'    : '#0a1a0a',
-    inputBorder:  c ? '#d1d5db'    : '#1a3a1a',
-    cardBg:       c ? '#ffffff'    : 'linear-gradient(145deg,#0d1117,#111820)',
-    cardBorder:   c ? '#e5e7eb'    : '#1e2d1e',
-    navActive:    c ? 'rgba(22,163,74,0.12)'   : 'rgba(74,222,128,0.12)',
-    navActiveColor: c ? '#16a34a'  : 'rgba(74,222,128,1)',
+    // Fundos principais
+    pageBg:       c ? '#F5E6C8'    : '#0e0904',
+    surface:      c ? '#EDD9A3'    : '#1c1409',
+    surfaceAlt:   c ? '#E8CFA0'    : '#150f05',
+    surfaceDark:  c ? '#DFC08A'    : '#0e0904',
+    // Bordas
+    border:       c ? '#C8A96E'    : '#3d2e0a',
+    borderMid:    c ? '#B89050'    : '#4a3810',
+    // Texto
+    text:         c ? '#2C1A06'    : '#F5E6C8',
+    textMuted:    c ? 'rgba(44,26,6,0.50)'     : 'rgba(245,230,200,0.42)',
+    textFaint:    c ? 'rgba(44,26,6,0.30)'     : 'rgba(245,230,200,0.22)',
+    // Sidebar — parede de castelo
+    sidebarBg:    c ? 'linear-gradient(180deg,#E8CFA0 0%,#DFC08A 100%)'
+                    : 'linear-gradient(180deg,#160d04 0%,#0e0904 100%)',
+    // Topbar
+    topbarBg:     c ? 'linear-gradient(90deg,#E8CFA0,#DFC08A)'
+                    : 'linear-gradient(90deg,#150f05,#0e0904)',
+    // Inputs
+    inputBg:      c ? '#E8CFA0'    : '#150f05',
+    inputBorder:  c ? '#C8A96E'    : '#3d2e0a',
+    // Cards
+    cardBg:       c ? '#EDD9A3'    : 'linear-gradient(145deg,#1c1409,#241808)',
+    cardBorder:   c ? '#C8A96E'    : '#3d2e0a',
+    // Navegação ativa — dourado medieval
+    navActive:    c ? 'rgba(212,175,55,0.15)'  : 'rgba(212,175,55,0.12)',
+    navActiveColor: c ? '#8B6914'  : '#D4AF37',
+    // Cor de destaque (verde musgo → ouro para dark)
+    accent:       c ? '#4A5E3A'    : '#D4AF37',
+    accentGlow:   c ? 'rgba(74,94,58,0.2)'     : 'rgba(212,175,55,0.25)',
   }
 }

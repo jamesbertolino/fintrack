@@ -4,171 +4,243 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Tokens medievais — light (não usado na prática, app é dark-only) */
-  --rpg-bg:          #f5f0e8;
-  --rpg-surface:     #ede8dc;
-  --rpg-border:      #c8b89a;
-  --rpg-gold:        #d4a017;
-  --rpg-gold-light:  #f0c040;
-  --rpg-green:       #4ade80;
-  --rpg-crimson:     #8b1a1a;
-  --rpg-text-muted:  rgba(0,0,0,0.45);
+  /* Paleta medieval */
+  --rpg-stone:       #2C2416;
+  --rpg-leather:     #8B6914;
+  --rpg-gold:        #D4AF37;
+  --rpg-gold-light:  #F0C040;
+  --rpg-blood:       #8B0000;
+  --rpg-moss:        #4A5E3A;
+  --rpg-parchment:   #F5E6C8;
+
+  /* Tokens light */
+  --rpg-bg:          #F5E6C8;
+  --rpg-surface:     #EDD9A3;
+  --rpg-border:      #C8A96E;
+  --rpg-green:       #4A7A3A;
+  --rpg-crimson:     #8B0000;
+  --rpg-text-muted:  rgba(44,36,22,0.55);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-crimson);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-cinzel);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #080b0f;
-    --foreground: #ededed;
+    --background: #0e0904;
+    --foreground: #F5E6C8;
 
-    /* Tokens medievais — dark (tema principal) */
-    --rpg-bg:          #080b0f;
-    --rpg-surface:     #0d1117;
-    --rpg-surface-alt: #0a1205;
-    --rpg-border:      #1e2d1e;
-    --rpg-border-gold: #3d2e00;
-    --rpg-gold:        #d4a017;
-    --rpg-gold-light:  #f0c040;
-    --rpg-green:       #4ade80;
-    --rpg-crimson:     #8b1a1a;
-    --rpg-text-muted:  rgba(255,255,255,0.4);
-    --rpg-glow-green:  0 0 12px rgba(74,222,128,0.25);
-    --rpg-glow-gold:   0 0 12px rgba(212,160,23,0.3);
+    /* Tokens medievais dark — pedra e couro */
+    --rpg-bg:          #0e0904;
+    --rpg-surface:     #1c1409;
+    --rpg-surface-alt: #150f05;
+    --rpg-border:      #3d2e0a;
+    --rpg-border-gold: #5a4010;
+    --rpg-gold:        #D4AF37;
+    --rpg-gold-light:  #F0C040;
+    --rpg-green:       #5A8A4A;
+    --rpg-crimson:     #8B0000;
+    --rpg-text-muted:  rgba(245,230,200,0.4);
+    --rpg-glow-green:  0 0 12px rgba(90,138,74,0.25);
+    --rpg-glow-gold:   0 0 16px rgba(212,175,55,0.35);
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-crimson, 'Georgia', serif);
+  font-size: 16px;
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* ─── Tema claro via data-tema ───────────────────────────────────────────────── */
+/* Textura de pedra no tema escuro */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0e0904;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.18) 31px, rgba(0,0,0,0.18) 32px),
+      repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(0,0,0,0.1) 47px, rgba(0,0,0,0.1) 48px);
+  }
+}
+
+/* ─── Tema claro — pergaminho ────────────────────────────────────────────────── */
 [data-tema="claro"] {
-  --background: #f5f7fa;
-  --foreground: #111827;
-  --rpg-bg:          #f5f7fa;
-  --rpg-surface:     #ffffff;
-  --rpg-surface-alt: #f0f4f0;
-  --rpg-border:      #d1d5db;
-  --rpg-border-gold: #d4a017;
-  --rpg-text-muted:  rgba(0,0,0,0.45);
-  --rpg-glow-green:  0 0 12px rgba(22,163,74,0.15);
-  --rpg-glow-gold:   0 0 12px rgba(212,160,23,0.2);
+  --background: #F5E6C8;
+  --foreground: #2C1A06;
+  --rpg-bg:          #F5E6C8;
+  --rpg-surface:     #EDD9A3;
+  --rpg-surface-alt: #E8D08A;
+  --rpg-border:      #C8A96E;
+  --rpg-border-gold: #D4AF37;
+  --rpg-text-muted:  rgba(44,26,6,0.50);
+  --rpg-glow-green:  0 0 12px rgba(74,90,58,0.2);
+  --rpg-glow-gold:   0 0 12px rgba(212,175,55,0.25);
 }
 
 [data-tema="claro"] body {
-  background: #f5f7fa !important;
-  color: #111827 !important;
+  background: #F5E6C8 !important;
+  color: #2C1A06 !important;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(180,140,80,0.12) 31px, rgba(180,140,80,0.12) 32px),
+    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(180,140,80,0.07) 47px, rgba(180,140,80,0.07) 48px) !important;
 }
 
 /* Superfícies principais */
 [data-tema="claro"] aside {
-  background: linear-gradient(180deg, #e8f5e9 0%, #f0f4f0 100%) !important;
-  border-right-color: #c8e6c9 !important;
+  background: linear-gradient(180deg, #E8CFA0 0%, #DFC08A 100%) !important;
+  border-right-color: #C8A96E !important;
 }
 
 [data-tema="claro"] nav button {
-  color: rgba(0,0,0,0.55) !important;
-}
-
-[data-tema="claro"] nav button[style*="rgba(74,222,128"] {
-  background: rgba(22,163,74,0.1) !important;
-  color: #16a34a !important;
+  color: rgba(44,26,6,0.55) !important;
 }
 
 [data-tema="claro"] main {
-  background: #f5f7fa !important;
+  background: #F5E6C8 !important;
 }
 
 /* Fundos escuros de página */
+[data-tema="claro"] [style*="background: #0e0904"],
 [data-tema="claro"] [style*="background: #080b0f"],
 [data-tema="claro"] [style*="background: #0a0a0a"] {
-  background: #f5f7fa !important;
-  color: #111827 !important;
+  background: #F5E6C8 !important;
+  color: #2C1A06 !important;
 }
 
 /* Superfícies de cards e painéis */
 [data-tema="claro"] [style*="background: #111"],
+[data-tema="claro"] [style*="background: #1c1409"],
 [data-tema="claro"] [style*="background: #0d1117"],
-[data-tema="claro"] [style*="background: linear-gradient(145deg, #0d1117"] {
-  background: #ffffff !important;
-  border-color: #e5e7eb !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
-  color: #111827 !important;
+[data-tema="claro"] [style*="background: linear-gradient(145deg, #0d1117"],
+[data-tema="claro"] [style*="background: linear-gradient(145deg, #1c1409"] {
+  background: #EDD9A3 !important;
+  border-color: #C8A96E !important;
+  box-shadow: 0 2px 8px rgba(100,70,20,0.15) !important;
+  color: #2C1A06 !important;
 }
 
 /* Inputs e superfícies secundárias */
 [data-tema="claro"] [style*="background: #0a1a0a"],
+[data-tema="claro"] [style*="background: #150f05"],
 [data-tema="claro"] [style*="background: #0a1205"],
 [data-tema="claro"] [style*="background: #0a0f0a"] {
-  background: #f0f4f0 !important;
-  border-color: #d1d5db !important;
-  color: #111827 !important;
+  background: #E8CFA0 !important;
+  border-color: #C8A96E !important;
+  color: #2C1A06 !important;
 }
 
 /* Topbar */
-[data-tema="claro"] [style*="background: linear-gradient(90deg, #0a1205"] {
-  background: linear-gradient(90deg, #e8f5e9, #f0f4f0) !important;
-  border-bottom-color: #c8e6c9 !important;
+[data-tema="claro"] [style*="background: linear-gradient(90deg, #0a1205"],
+[data-tema="claro"] [style*="background: linear-gradient(90deg, #150f05"] {
+  background: linear-gradient(90deg, #E8CFA0, #DFC08A) !important;
+  border-bottom-color: #C8A96E !important;
 }
 
-/* Texto branco → escuro */
+/* Texto branco → pergaminho escuro */
 [data-tema="claro"] [style*="color: #fff"],
 [data-tema="claro"] [style*="color: rgb(255, 255, 255)"],
-[data-tema="claro"] [style*="color: white"] {
-  color: #111827 !important;
+[data-tema="claro"] [style*="color: white"],
+[data-tema="claro"] [style*="color: #F5E6C8"] {
+  color: #2C1A06 !important;
 }
 
 [data-tema="claro"] [style*="color: rgba(255,255,255,"] {
-  color: rgba(0,0,0,0.55) !important;
+  color: rgba(44,26,6,0.55) !important;
 }
 
-/* Bordas escuras → claras */
+/* Bordas escuras → couro claro */
 [data-tema="claro"] [style*="border: 1px solid #1a3a1a"],
+[data-tema="claro"] [style*="border: 1px solid #3d2e0a"],
 [data-tema="claro"] [style*="border-color: #1a3a1a"],
 [data-tema="claro"] [style*="borderColor: #1a3a1a"] {
-  border-color: #d1d5db !important;
+  border-color: #C8A96E !important;
 }
 
-/* ─── Fonte de display medieval ─────────────────────────────────────────────── */
+/* ─── Fontes medievais ───────────────────────────────────────────────────────── */
 .font-display {
-  font-family: var(--font-cinzel), 'Georgia', serif;
+  font-family: var(--font-cinzel), 'Palatino Linotype', 'Book Antiqua', serif;
   letter-spacing: 0.04em;
 }
 
-/* ─── Card pedra lavrada ─────────────────────────────────────────────────────── */
-.card-stone {
-  background: linear-gradient(145deg, var(--rpg-surface), #111820);
-  border: 1px solid var(--rpg-border);
-  box-shadow:
-    inset 0 1px 0 rgba(212,160,23,0.08),
-    0 4px 24px rgba(0,0,0,0.5);
+.font-body {
+  font-family: var(--font-crimson), 'Georgia', serif;
 }
 
-/* ─── Barra de XP ────────────────────────────────────────────────────────────── */
-.xp-bar-track {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid var(--rpg-border);
-  border-radius: 999px;
-  overflow: hidden;
+/* ─── Card pedra lavrada (dark) ──────────────────────────────────────────────── */
+.card-stone {
+  background: linear-gradient(145deg, #1c1409, #241808);
+  border: 1px solid #3d2e0a;
+  box-shadow:
+    inset 0 1px 0 rgba(212,175,55,0.10),
+    inset 0 -1px 0 rgba(0,0,0,0.4),
+    0 4px 24px rgba(0,0,0,0.6);
 }
+
+/* ─── Card pergaminho ────────────────────────────────────────────────────────── */
+.card-parchment {
+  background: linear-gradient(145deg, #EDD9A3, #E0C880);
+  border: 2px solid #C8A96E;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,220,0.5),
+    0 4px 16px rgba(100,70,20,0.2);
+  color: #2C1A06;
+}
+
+/* ─── Botão metal forjado ─────────────────────────────────────────────────────── */
+.btn-forged {
+  background: linear-gradient(180deg, #3a2808 0%, #1c1409 50%, #2a1e08 100%);
+  border: 1px solid #6a4e1a;
+  color: #D4AF37;
+  font-family: var(--font-cinzel), serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 0 rgba(212,175,55,0.15), 0 2px 8px rgba(0,0,0,0.4);
+}
+.btn-forged:hover {
+  background: linear-gradient(180deg, #4a3410 0%, #2a1e08 50%, #3a2808 100%);
+  border-color: #D4AF37;
+  box-shadow: inset 0 1px 0 rgba(212,175,55,0.25), 0 0 12px rgba(212,175,55,0.3), 0 2px 8px rgba(0,0,0,0.4);
+  color: #F0C040;
+}
+
+/* ─── Barra de XP medieval ───────────────────────────────────────────────────── */
+.xp-bar-track {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid #4a3a10;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.xp-bar-track::before,
+.xp-bar-track::after {
+  content: '◆';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #D4AF37;
+  font-size: 8px;
+  line-height: 1;
+}
+.xp-bar-track::before { left: -10px; }
+.xp-bar-track::after  { right: -10px; }
 
 .xp-bar-fill {
   height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #d4a017, #f0c040, #4ade80);
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8B6914, #D4AF37, #F0C040, #D4AF37);
   background-size: 200% 100%;
   animation: xp-shimmer 3s linear infinite;
   transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 8px rgba(212,175,55,0.5);
 }
 
 @keyframes xp-shimmer {
@@ -176,19 +248,43 @@ body {
   100% { background-position: 200% 50%; }
 }
 
+/* ─── Animação level-up ──────────────────────────────────────────────────────── */
+@keyframes level-up-burst {
+  0%   { transform: scale(0.5); opacity: 0; }
+  50%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes gold-particle {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0); opacity: 0; }
+}
+
+.level-up-toast {
+  animation: level-up-burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  background: linear-gradient(135deg, #1c1409, #2a1e08);
+  border: 2px solid #D4AF37;
+  box-shadow: 0 0 30px rgba(212,175,55,0.5), inset 0 1px 0 rgba(240,192,64,0.2);
+  color: #F0C040;
+  font-family: var(--font-cinzel), serif;
+  letter-spacing: 0.08em;
+}
+
 /* ─── Badge de nível ─────────────────────────────────────────────────────────── */
 .level-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 2px 10px;
+  border-radius: 2px;
   border: 1px solid currentColor;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  font-family: var(--font-cinzel), serif;
   opacity: 0.9;
+  box-shadow: 0 0 6px currentColor;
 }
 
 /* ─── Divisor ornamental ──────────────────────────────────────────────────────── */
@@ -197,8 +293,8 @@ body {
   align-items: center;
   gap: 8px;
   color: var(--rpg-gold);
-  opacity: 0.4;
-  font-size: 10px;
+  opacity: 0.5;
+  font-size: 11px;
   letter-spacing: 0.15em;
 }
 .divider-ornament::before,
@@ -210,4 +306,44 @@ body {
 }
 .divider-ornament::after {
   background: linear-gradient(90deg, var(--rpg-gold), transparent);
+}
+
+/* ─── Borda ornamental de card ───────────────────────────────────────────────── */
+.card-ornament {
+  position: relative;
+}
+.card-ornament::before {
+  content: '◆';
+  position: absolute;
+  top: -6px; left: 10px;
+  font-size: 10px;
+  color: #D4AF37;
+  background: inherit;
+  padding: 0 4px;
+}
+.card-ornament::after {
+  content: '◆';
+  position: absolute;
+  top: -6px; right: 10px;
+  font-size: 10px;
+  color: #D4AF37;
+  background: inherit;
+  padding: 0 4px;
+}
+
+/* ─── Scrollbar medieval ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0e0904;
+  border-left: 1px solid #3d2e0a;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8B6914, #4a3810);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #D4AF37, #8B6914);
 }
