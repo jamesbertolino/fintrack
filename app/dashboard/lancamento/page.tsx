@@ -371,7 +371,7 @@ useEffect(() => {
   async function excluirSelecionados() {
     if (!selecionados.length) return
     setExcluindoLote(true)
-    await Promise.all(selecionados.map(id => supabase.from('transactions').delete().eq('id', id)))
+    await Promise.all(selecionados.map(id => fetch(`/api/lancamento/${id}`, { method: 'DELETE' })))
     setSelecionados([])
     setExcluindoLote(false)
     carregarHistorico()
