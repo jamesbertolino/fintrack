@@ -549,7 +549,8 @@ export default function PerfilPage() {
             <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Tema</div>
               <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 16 }}>Escolha a aparência do aplicativo</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+
                 {/* Tema Escuro */}
                 <button
                   onClick={() => alterarTemaCtx('escuro')}
@@ -560,7 +561,6 @@ export default function PerfilPage() {
                     transition: 'all .15s',
                   }}
                 >
-                  {/* Preview escuro */}
                   <div style={{ background: '#0a0a0a', borderRadius: 6, padding: '8px', marginBottom: 10, border: '1px solid #222' }}>
                     <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
                       <div style={{ height: 4, width: '60%', background: '#1a3a1a', borderRadius: 2 }} />
@@ -571,12 +571,12 @@ export default function PerfilPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 1 }}>🌙 Escuro</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Padrão do PoupaUp</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 1 }}>🌙 Escuro</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Padrão</div>
                     </div>
                     {tema === 'escuro' && (
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
                   </div>
@@ -592,7 +592,6 @@ export default function PerfilPage() {
                     transition: 'all .15s',
                   }}
                 >
-                  {/* Preview claro */}
                   <div style={{ background: '#f5f5f5', borderRadius: 6, padding: '8px', marginBottom: 10, border: '1px solid #e0e0e0' }}>
                     <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
                       <div style={{ height: 4, width: '60%', background: '#d0d0d0', borderRadius: 2 }} />
@@ -603,17 +602,55 @@ export default function PerfilPage() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 1 }}>☀️ Claro</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Fundo branco</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', marginBottom: 1 }}>☀️ Claro</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Pergaminho</div>
                     </div>
                     {tema === 'claro' && (
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       </div>
                     )}
                   </div>
                 </button>
+
+                {/* Tema Medieval */}
+                <button
+                  onClick={() => alterarTemaCtx('medieval')}
+                  style={{
+                    padding: '14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                    background: tema === 'medieval' ? 'rgba(212,175,55,.10)' : 'rgba(255,255,255,.03)',
+                    border: `2px solid ${tema === 'medieval' ? '#D4AF37' : '#1a3a1a'}`,
+                    transition: 'all .15s',
+                  }}
+                >
+                  {/* Preview medieval — pedra e ouro */}
+                  <div style={{ background: '#0e0904', borderRadius: 6, padding: '8px', marginBottom: 10, border: '1px solid #3d2e0a', backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 7px,rgba(0,0,0,.2) 7px,rgba(0,0,0,.2) 8px),repeating-linear-gradient(90deg,transparent,transparent 11px,rgba(0,0,0,.1) 11px,rgba(0,0,0,.1) 12px)' }}>
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+                      <div style={{ height: 4, width: '60%', background: '#1c1409', borderRadius: 2, border: '1px solid #3d2e0a' }} />
+                      <div style={{ height: 4, width: '30%', background: '#D4AF3744', borderRadius: 2 }} />
+                    </div>
+                    <div style={{ height: 3, width: '80%', background: '#3d2e0a', borderRadius: 2, marginBottom: 3 }} />
+                    <div style={{ height: 3, width: '50%', background: '#3d2e0a', borderRadius: 2 }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#D4AF37', marginBottom: 1, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>⚔ Medieval</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>Pedra & Ouro</div>
+                    </div>
+                    {tema === 'medieval' && (
+                      <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#D4AF37', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5 3.8,7.5 8.5,2" stroke="#0e0904" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </div>
+                    )}
+                  </div>
+                </button>
+
               </div>
+              {tema === 'medieval' && (
+                <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(212,175,55,.08)', border: '1px solid rgba(212,175,55,.25)', borderRadius: 8, fontSize: 11, color: '#D4AF37', fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.04em' }}>
+                  ⚔ O Reino dos Guerreiros está ativo. Que sua jornada seja épica!
+                </div>
+              )}
               {tema === 'claro' && (
                 <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, fontSize: 11, color: '#fbbf24' }}>
                   ⚠️ Tema claro disponível — algumas telas ainda estão sendo adaptadas.

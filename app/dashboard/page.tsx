@@ -406,11 +406,11 @@ useEffect(() => {
                   { label: 'Glória',   val: `${xpTotal} XP`,    cor: '#D4AF37',  icone: '👑' },
                 ].map(m => (
                   <div key={m.label} style={{
-                    background: 'linear-gradient(145deg, #1c1409, #241808)',
-                    border: '1px solid #3d2e0a',
+                    background: cores.cardBg,
+                    border: `1px solid ${cores.cardBorder}`,
                     borderRadius: 10,
                     padding: '10px 12px',
-                    boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)',
+                    boxShadow: cores.cardShadow,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</span>
@@ -423,7 +423,7 @@ useEffect(() => {
 
               {/* Saldos por conta */}
               {contas.length > 0 && (
-                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)', marginBottom: 10 }}>
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>💰 Cofres do Reino</span>
                     <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>explorar →</button>
@@ -441,7 +441,7 @@ useEffect(() => {
                     {contas.length > 4 && (
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{contas.length - 4} contas</div>
                     )}
-                    <div style={{ borderTop: '1px solid #3d2e0a', paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ borderTop: `1px solid ${cores.divider}`, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#D4AF37' }}>
                         R$ {contas.reduce((a, c) => a + (c.mostrar_saldo ? c.saldo : 0), 0).toFixed(2).replace('.', ',')}
@@ -453,7 +453,7 @@ useEffect(() => {
 
               {/* Insights + Por categoria — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
-                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🔮 Profecias do Oráculo</span>
                     <span style={{ fontSize: 10, background: 'rgba(212,175,55,.12)', color: '#D4AF37', padding: '2px 8px', borderRadius: 2 }}>{insights.length} novos</span>
@@ -474,7 +474,7 @@ useEffect(() => {
                   )}
                 </div>
 
-                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>📊 Crônicas por Ordem</div>
                   {Object.keys(porCategoria).length === 0 ? (
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: '1rem' }}>Nenhum gasto ainda</div>
@@ -500,7 +500,7 @@ useEffect(() => {
 
               {/* Últimas transações + Metas — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>⚔️ Crônicas de Batalha</span>
                     <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
@@ -511,7 +511,7 @@ useEffect(() => {
                       <span style={{ color: '#D4AF37', cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>Registrar no Livro →</span>
                     </div>
                   ) : transacoes.slice(0, 5).map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #3d2e0a' }}>
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${cores.divider}` }}>
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
@@ -524,7 +524,7 @@ useEffect(() => {
                   ))}
                 </div>
 
-                <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🎯 Quests Ativas</span>
                     <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
@@ -570,7 +570,7 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
-              <div style={{ background: 'linear-gradient(145deg, #1c1409, #241808)', border: '1px solid #3d2e0a', borderRadius: 12, padding: '1rem', boxShadow: 'inset 0 1px 0 rgba(212,175,55,.08)' }}>
+              <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                 <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🏅 Brasões de Honra</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,minmax(0,1fr))', gap: 10 }}>
                   {[

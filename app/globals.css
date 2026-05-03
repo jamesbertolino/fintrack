@@ -32,23 +32,124 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0e0904;
-    --foreground: #F5E6C8;
+    --background: #080b0f;
+    --foreground: #ededed;
 
-    /* Tokens medievais dark — pedra e couro */
-    --rpg-bg:          #0e0904;
-    --rpg-surface:     #1c1409;
-    --rpg-surface-alt: #150f05;
-    --rpg-border:      #3d2e0a;
-    --rpg-border-gold: #5a4010;
-    --rpg-gold:        #D4AF37;
-    --rpg-gold-light:  #F0C040;
-    --rpg-green:       #5A8A4A;
-    --rpg-crimson:     #8B0000;
-    --rpg-text-muted:  rgba(245,230,200,0.4);
-    --rpg-glow-green:  0 0 12px rgba(90,138,74,0.25);
-    --rpg-glow-gold:   0 0 16px rgba(212,175,55,0.35);
+    /* Tokens dark padrão — verde escuro */
+    --rpg-bg:          #080b0f;
+    --rpg-surface:     #0d1117;
+    --rpg-surface-alt: #0a1205;
+    --rpg-border:      #1e2d1e;
+    --rpg-border-gold: #3d2e00;
+    --rpg-gold:        #d4a017;
+    --rpg-gold-light:  #f0c040;
+    --rpg-green:       #4ade80;
+    --rpg-crimson:     #8b1a1a;
+    --rpg-text-muted:  rgba(255,255,255,0.4);
+    --rpg-glow-green:  0 0 12px rgba(74,222,128,0.25);
+    --rpg-glow-gold:   0 0 12px rgba(212,160,23,0.3);
   }
+}
+
+/* ─── Tema escuro explícito ──────────────────────────────────────────────────── */
+[data-tema="escuro"] {
+  --background: #080b0f;
+  --foreground: #ededed;
+  --rpg-bg:          #080b0f;
+  --rpg-surface:     #0d1117;
+  --rpg-surface-alt: #0a1205;
+  --rpg-border:      #1e2d1e;
+  --rpg-border-gold: #3d2e00;
+  --rpg-gold:        #d4a017;
+  --rpg-gold-light:  #f0c040;
+  --rpg-green:       #4ade80;
+  --rpg-crimson:     #8b1a1a;
+  --rpg-text-muted:  rgba(255,255,255,0.4);
+  --rpg-glow-green:  0 0 12px rgba(74,222,128,0.25);
+  --rpg-glow-gold:   0 0 12px rgba(212,160,23,0.3);
+}
+
+[data-tema="escuro"] body {
+  background: #080b0f !important;
+  color: #ededed !important;
+  background-image: none !important;
+}
+
+/* ─── Tema medieval — pedra e ouro ───────────────────────────────────────────── */
+[data-tema="medieval"] {
+  --background: #0e0904;
+  --foreground: #F5E6C8;
+  --rpg-bg:          #0e0904;
+  --rpg-surface:     #1c1409;
+  --rpg-surface-alt: #150f05;
+  --rpg-border:      #3d2e0a;
+  --rpg-border-gold: #5a4010;
+  --rpg-gold:        #D4AF37;
+  --rpg-gold-light:  #F0C040;
+  --rpg-green:       #5A8A4A;
+  --rpg-crimson:     #8B0000;
+  --rpg-text-muted:  rgba(245,230,200,0.4);
+  --rpg-glow-green:  0 0 12px rgba(90,138,74,0.25);
+  --rpg-glow-gold:   0 0 16px rgba(212,175,55,0.35);
+}
+
+[data-tema="medieval"] body {
+  background-color: #0e0904 !important;
+  color: #F5E6C8 !important;
+  font-family: var(--font-crimson, 'Georgia', serif) !important;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.18) 31px, rgba(0,0,0,0.18) 32px),
+    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(0,0,0,0.1) 47px, rgba(0,0,0,0.1) 48px) !important;
+}
+
+/* Superfícies medievais */
+[data-tema="medieval"] aside {
+  background: linear-gradient(180deg, #160d04 0%, #0e0904 100%) !important;
+  border-right-color: #3d2e0a !important;
+}
+
+[data-tema="medieval"] main {
+  background: #0e0904 !important;
+}
+
+/* Fundos escuros medievais */
+[data-tema="medieval"] [style*="background: #080b0f"],
+[data-tema="medieval"] [style*="background: #0a0a0a"],
+[data-tema="medieval"] [style*="background: #0d1117"] {
+  background: #0e0904 !important;
+  color: #F5E6C8 !important;
+}
+
+/* Cards medievais */
+[data-tema="medieval"] [style*="background: linear-gradient(145deg, #0d1117"],
+[data-tema="medieval"] [style*="background: #111"] {
+  background: linear-gradient(145deg, #1c1409, #241808) !important;
+  border-color: #3d2e0a !important;
+  color: #F5E6C8 !important;
+}
+
+/* Superfícies secundárias */
+[data-tema="medieval"] [style*="background: #0a1a0a"],
+[data-tema="medieval"] [style*="background: #0a1205"],
+[data-tema="medieval"] [style*="background: #0a0f0a"] {
+  background: #150f05 !important;
+  border-color: #3d2e0a !important;
+  color: #F5E6C8 !important;
+}
+
+/* Topbar medieval */
+[data-tema="medieval"] [style*="background: linear-gradient(90deg, #0a1205"],
+[data-tema="medieval"] [style*="background: linear-gradient(90deg, #0a0a0a"] {
+  background: linear-gradient(90deg, #150f05, #0e0904) !important;
+  border-bottom-color: #3d2e0a !important;
+}
+
+/* Bordas medievais */
+[data-tema="medieval"] [style*="border: 1px solid #1a3a1a"],
+[data-tema="medieval"] [style*="border: 1px solid #1e2d1e"],
+[data-tema="medieval"] [style*="border-color: #1a3a1a"],
+[data-tema="medieval"] [style*="borderColor: #1a3a1a"] {
+  border-color: #3d2e0a !important;
 }
 
 body {
@@ -59,15 +160,7 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Textura de pedra no tema escuro */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #0e0904;
-    background-image:
-      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(0,0,0,0.18) 31px, rgba(0,0,0,0.18) 32px),
-      repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(0,0,0,0.1) 47px, rgba(0,0,0,0.1) 48px);
-  }
-}
+/* Textura de pedra apenas no tema medieval (via data-tema) */
 
 /* ─── Tema claro — pergaminho ────────────────────────────────────────────────── */
 [data-tema="claro"] {
