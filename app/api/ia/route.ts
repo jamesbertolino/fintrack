@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id).order('data_hora', { ascending: false }).limit(50),
     supabase.from('goals').select('nome,valor_total,valor_atual,contribuicao_mensal,prazo')
       .eq('user_id', user.id).eq('ativo', true),
-    supabase.from('profiles').select('nome,plano').eq('id', user.id).single(),
+    supabase.from('profiles').select('nome,plano,data_nascimento,genero,prioridades').eq('id', user.id).single(),
   ])
 
   const receitas = transacoes?.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0) ?? 0
@@ -26,10 +26,20 @@ export async function POST(request: NextRequest) {
   })
   const topCat = Object.entries(porCategoria).sort((a, b) => b[1] - a[1])
 
+  const hoje = new Date()
+  const idade = profile?.data_nascimento
+    ? hoje.getFullYear() - new Date(profile.data_nascimento).getFullYear() - (
+        hoje < new Date(hoje.getFullYear(), new Date(profile.data_nascimento).getMonth(), new Date(profile.data_nascimento).getDate()) ? 1 : 0
+      )
+    : null
+  const prioridades: Array<{ titulo: string; ordem: number }> = Array.isArray(profile?.prioridades) ? profile.prioridades : []
+
   const contexto = `
 Você é o PoupaBot, assistente financeiro pessoal do PoupaUp.
 Usuário: ${profile?.nome || 'usuário'}
 Plano: ${profile?.plano || 'free'}
+${idade ? `Idade: ${idade} anos` : ''}
+${profile?.genero ? `Gênero: ${profile.genero}` : ''}
 
 === DADOS FINANCEIROS REAIS ===
 Total de transações: ${transacoes?.length || 0}
@@ -44,6 +54,9 @@ ${topCat.map(([cat, val]) => `- ${cat}: R$ ${val.toFixed(2)} (${despesas > 0 ? M
 Metas ativas:
 ${metas?.map(m => `- ${m.nome}: R$ ${m.valor_atual} de R$ ${m.valor_total} (${Math.round((m.valor_atual / m.valor_total) * 100)}%)`).join('\n') || 'Nenhuma meta cadastrada'}
 
+Prioridades financeiras do usuário (em ordem de importância):
+${prioridades.length > 0 ? prioridades.map(p => `${p.ordem}. ${p.titulo}`).join('\n') : 'Não definidas ainda'}
+
 Últimas transações:
 ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? '+' : '-'}R$ ${Math.abs(t.valor).toFixed(2)} (${t.categoria})`).join('\n') || 'Nenhuma transação'}
 
@@ -54,6 +67,8 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
 - Máximo 3-4 parágrafos por resposta
 - Use emojis com moderação
 - Encoraje hábitos financeiros saudáveis
+- Sempre que relevante, relacione os conselhos com as prioridades financeiras do usuário
+- Sugira adaptações concretas nos gastos para aproximar o usuário dos seus objetivos mais rápido
 `
 
   const messages = [

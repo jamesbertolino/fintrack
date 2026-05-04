@@ -59,7 +59,10 @@ export default function PerfilPage() {
   const [salvando, setSalvando]     = useState(false)
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
-  const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca'>('perfil')
+  const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades'>('perfil')
+  const [prioridades, setPrioridades] = useState<Array<{ tipo: string; titulo: string; icon: string; ordem: number }>>([])
+  const [editandoPrioridades, setEditandoPrioridades] = useState(false)
+  const [prioridadesSelecionadas, setPrioridadesSelecionadas] = useState<string[]>([])
   const [grupo, setGrupo]           = useState<Grupo | null>(null)
   const [membros, setMembros]       = useState<GrupoMembro[]>([])
   const [novoNumero, setNovoNum]    = useState('')
@@ -90,6 +93,9 @@ export default function PerfilPage() {
       setProfile(prof)
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
       setContaPadrao(prof.conta_padrao_id || '')
+      const prios: Array<{ tipo: string; titulo: string; icon: string; ordem: number }> = Array.isArray(prof.prioridades) ? prof.prioridades : []
+      setPrioridades(prios)
+      setPrioridadesSelecionadas(prios.map((p: { tipo: string }) => p.tipo))
     }
     if (wh) setWebhook(wh)
 
@@ -481,6 +487,7 @@ export default function PerfilPage() {
         <div style={{ display: 'flex', gap: 4, background: cores.surfaceAlt, border: `1px solid ${cores.borderMid}`, borderRadius: 8, padding: 3, marginBottom: '1.25rem' }}>
           {([
             { id: 'perfil',        label: 'Dados pessoais' },
+            { id: 'prioridades',   label: '🎯 Prioridades' },
             { id: 'configuracoes', label: 'Configurações' },
             { id: 'webhook',       label: 'Webhook' },
             { id: 'grupo',         label: 'Grupo' },
@@ -1007,6 +1014,136 @@ export default function PerfilPage() {
             </div>
           </div>
         )}
+
+        {/* ── PRIORIDADES ── */}
+        {abaSel === 'prioridades' && (() => {
+          const CATALOGO_PRIO = [
+            { tipo: 'emergencia',    titulo: 'Reserva de emergência', icon: '🛡️', desc: 'Fundo de segurança para 6 meses de despesas' },
+            { tipo: 'dividas',       titulo: 'Sair das dívidas',      icon: '💳', desc: 'Quitar cartão, empréstimos e financiamentos' },
+            { tipo: 'viagem',        titulo: 'Realizar uma viagem',   icon: '✈️', desc: 'Conhecer novos destinos' },
+            { tipo: 'casa',          titulo: 'Casa própria',          icon: '🏠', desc: 'Dar entrada ou financiar meu imóvel' },
+            { tipo: 'veiculo',       titulo: 'Carro ou moto',         icon: '🚗', desc: 'Adquirir ou trocar meu veículo' },
+            { tipo: 'aposentadoria', titulo: 'Aposentadoria',         icon: '🌅', desc: 'Garantir renda para parar de trabalhar com conforto' },
+            { tipo: 'investimento',  titulo: 'Investir mais',         icon: '📈', desc: 'Fazer meu dinheiro crescer' },
+            { tipo: 'educacao',      titulo: 'Educação',              icon: '🎓', desc: 'Curso, faculdade, MBA, especialização' },
+            { tipo: 'negocio',       titulo: 'Abrir um negócio',      icon: '🚀', desc: 'Empreender e ter minha própria empresa' },
+            { tipo: 'casamento',     titulo: 'Casamento',             icon: '💍', desc: 'Realizar a cerimônia dos sonhos' },
+            { tipo: 'filho',         titulo: 'Filhos e família',      icon: '👶', desc: 'Planejar filhos, creche, escola e faculdade' },
+            { tipo: 'saude',         titulo: 'Saúde e bem-estar',     icon: '❤️', desc: 'Plano de saúde, academia, qualidade de vida' },
+          ]
+
+          function toggleP(tipo: string) {
+            setPrioridadesSelecionadas(prev =>
+              prev.includes(tipo)
+                ? prev.filter(t => t !== tipo)
+                : prev.length < 5 ? [...prev, tipo] : prev
+            )
+          }
+
+          async function salvarPrioridades() {
+            setSalvando(true)
+            const novas = prioridadesSelecionadas.map((tipo, i) => {
+              const cat = CATALOGO_PRIO.find(c => c.tipo === tipo)!
+              return { tipo, titulo: cat.titulo, icon: cat.icon, ordem: i + 1 }
+            })
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            await supabase.from('profiles').update({ prioridades: novas }).eq('id', user.id)
+            setPrioridades(novas)
+            setEditandoPrioridades(false)
+            setSalvando(false)
+            setSucesso('Prioridades atualizadas!')
+            setTimeout(() => setSucesso(''), 2500)
+          }
+
+          return (
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: cores.text }}>Prioridades financeiras</div>
+                  <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 2 }}>A IA usa esses objetivos para personalizar conselhos e análises</div>
+                </div>
+                {!editandoPrioridades && (
+                  <button onClick={() => setEditandoPrioridades(true)}
+                    style={{ fontSize: 11, padding: '5px 12px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.25)', borderRadius: 6, color: '#4ade80', cursor: 'pointer' }}>
+                    Editar
+                  </button>
+                )}
+              </div>
+
+              {!editandoPrioridades ? (
+                prioridades.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: cores.textMuted, fontSize: 13 }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>🎯</div>
+                    <div>Nenhuma prioridade definida ainda.</div>
+                    <button onClick={() => setEditandoPrioridades(true)}
+                      style={{ marginTop: 12, fontSize: 12, padding: '7px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer' }}>
+                      Definir agora
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {prioridades.map((p, i) => (
+                      <div key={p.tipo} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: cores.surfaceAlt, border: `1px solid ${cores.border}`, borderRadius: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: cores.accent, width: 18, textAlign: 'center' }}>#{i + 1}</span>
+                        <span style={{ fontSize: 18 }}>{p.icon}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{p.titulo}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                <>
+                  <div style={{ fontSize: 11, color: cores.textMuted, marginBottom: 12 }}>
+                    Escolha até <strong style={{ color: cores.accent }}>5 prioridades</strong> em ordem de importância ({prioridadesSelecionadas.length}/5)
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 360, overflowY: 'auto', marginBottom: 16 }}>
+                    {CATALOGO_PRIO.map(cat => {
+                      const sel = prioridadesSelecionadas.includes(cat.tipo)
+                      const bloq = !sel && prioridadesSelecionadas.length >= 5
+                      return (
+                        <button key={cat.tipo} onClick={() => !bloq && toggleP(cat.tipo)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '9px 12px', borderRadius: 8, textAlign: 'left',
+                            border: `1px solid ${sel ? cores.accent : cores.border}`,
+                            background: sel ? `${cores.accent}10` : cores.surfaceAlt,
+                            cursor: bloq ? 'not-allowed' : 'pointer',
+                            opacity: bloq ? 0.45 : 1, transition: 'all .15s',
+                          }}>
+                          <span style={{ fontSize: 18, flexShrink: 0 }}>{cat.icon}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: sel ? cores.accent : cores.text }}>{cat.titulo}</div>
+                            <div style={{ fontSize: 10, color: cores.textMuted }}>{cat.desc}</div>
+                          </div>
+                          <div style={{
+                            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                            border: `1.5px solid ${sel ? cores.accent : cores.border}`,
+                            background: sel ? cores.accent : 'transparent',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 10, color: '#fff', fontWeight: 700,
+                          }}>
+                            {sel ? prioridadesSelecionadas.indexOf(cat.tipo) + 1 : ''}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => { setEditandoPrioridades(false); setPrioridadesSelecionadas(prioridades.map(p => p.tipo)) }}
+                      style={{ flex: 1, padding: '9px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 8, color: cores.textMuted, fontSize: 12, cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                    <button onClick={salvarPrioridades} disabled={salvando || prioridadesSelecionadas.length === 0}
+                      style={{ flex: 2, padding: '9px', background: prioridadesSelecionadas.length > 0 ? '#16a34a' : '#1a2e1a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: prioridadesSelecionadas.length > 0 ? 'pointer' : 'default', opacity: salvando ? 0.7 : 1 }}>
+                      {salvando ? 'Salvando...' : 'Salvar prioridades'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })()}
 
         {/* ── SEGURANÇA ── */}
         {abaSel === 'seguranca' && (

@@ -116,12 +116,15 @@ useEffect(() => {
     if (!user) { router.push('/login'); return }
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
-      supabase.from('profiles').select('nome, plano, avatar_url').eq('id', user.id).single(),
+      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo').eq('id', user.id).single(),
       supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
 
-    if (prof) setProfile(prof)
+    if (prof) {
+      if (prof.setup_completo === false) { router.push('/onboarding'); return }
+      setProfile(prof)
+    }
     if (tx)   setTransacoes(tx)
     if (mt)   setMetas(mt)
 
