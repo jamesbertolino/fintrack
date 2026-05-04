@@ -30,15 +30,19 @@ export function calcularXP(dados: DadosXP) {
 export const XP_POR_NIVEL = 1000
 
 export const NIVEIS = [
-  { nivel: 1, nome: 'Camponês',    titulo: 'O início da jornada',         cor: '#6b7280', min: 0     },
-  { nivel: 2, nome: 'Escudeiro',   titulo: 'Guardando os primeiros ouros', cor: '#4ade80', min: 500   },
-  { nivel: 3, nome: 'Cavaleiro',   titulo: 'Mestre de sua própria bolsa',  cor: '#22d3ee', min: 1500  },
-  { nivel: 4, nome: 'Barão',       titulo: 'Senhor de suas finanças',      cor: '#60a5fa', min: 3500  },
-  { nivel: 5, nome: 'Nobre',       titulo: 'A corte reconhece seu valor',  cor: '#a78bfa', min: 7000  },
-  { nivel: 6, nome: 'Conde',       titulo: 'Domínio sobre o tesouro',      cor: '#f97316', min: 13000 },
-  { nivel: 7, nome: 'Duque',       titulo: 'Um império financeiro cresce', cor: '#d4a017', min: 22000 },
-  { nivel: 8, nome: 'Rei',         titulo: 'O reino é seu — e próspero',   cor: '#f43f5e', min: 35000 },
+  { nivel: 1, nome: 'Camponês',          nomeConservador: 'Novato',                titulo: 'O início da jornada',              tituloConservador: 'Primeiros passos nas finanças',        cor: '#6b7280', min: 0     },
+  { nivel: 2, nome: 'Escudeiro',         nomeConservador: 'Poupador',              titulo: 'Guardando os primeiros ouros',     tituloConservador: 'Formando o hábito de guardar',         cor: '#4ade80', min: 500   },
+  { nivel: 3, nome: 'Cavaleiro',         nomeConservador: 'Planejador',            titulo: 'Mestre de sua própria bolsa',      tituloConservador: 'Orçamento sob controle',               cor: '#22d3ee', min: 1500  },
+  { nivel: 4, nome: 'Barão',             nomeConservador: 'Investidor',            titulo: 'Senhor de suas finanças',          tituloConservador: 'Fazendo o dinheiro trabalhar',         cor: '#60a5fa', min: 3500  },
+  { nivel: 5, nome: 'Nobre',             nomeConservador: 'Estrategista',          titulo: 'A corte reconhece seu valor',      tituloConservador: 'Visão financeira de longo prazo',      cor: '#a78bfa', min: 7000  },
+  { nivel: 6, nome: 'Conde',             nomeConservador: 'Gestor Financeiro',     titulo: 'Domínio sobre o tesouro',          tituloConservador: 'Patrimônio em crescimento constante',  cor: '#f97316', min: 13000 },
+  { nivel: 7, nome: 'Duque',             nomeConservador: 'Mestre das Finanças',   titulo: 'Um império financeiro cresce',     tituloConservador: 'Domínio total do orçamento pessoal',   cor: '#d4a017', min: 22000 },
+  { nivel: 8, nome: 'Rei',               nomeConservador: 'Elite Financeira',      titulo: 'O reino é seu — e próspero',       tituloConservador: 'Referência em gestão financeira',      cor: '#f43f5e', min: 35000 },
 ]
+
+export function getNomeNivel(nivel: typeof NIVEIS[0], medieval: boolean) {
+  return medieval ? nivel.nome : nivel.nomeConservador
+}
 
 export function calcularNivel(xp: number) {
   const nivelAtual    = [...NIVEIS].reverse().find(n => xp >= n.min) || NIVEIS[0]

@@ -9,8 +9,8 @@ import Avatar from '@/components/Avatar'
 import MissoesWidget from '@/components/MissoesWidget'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
-import { calcularXP, calcularNivel } from '@/lib/calcularXP'
-import { useCores } from '@/components/ThemeProvider'
+import { calcularXP, calcularNivel, getNomeNivel } from '@/lib/calcularXP'
+import { useCores, useTema } from '@/components/ThemeProvider'
 
 interface Transacao {
   id: string
@@ -88,6 +88,8 @@ export default function Dashboard() {
   const { fmtData, timezone, idioma } = usePerfil()
   const isMobile = useIsMobile()
   const cores = useCores()
+  const { tema } = useTema()
+  const m = tema === 'medieval'
 
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
@@ -107,6 +109,38 @@ useEffect(() => {
   const { receitas, despesas, saldo } = xp
   const xpTotal      = xp.xpTotal
   const nivel        = calcularNivel(xpTotal)
+  const nomeNivel    = getNomeNivel(nivel, m)
+  const proxNomeNivel = nivel.proximoNivel ? getNomeNivel(nivel.proximoNivel, m) : null
+
+  const nome = profile?.nome || (m ? 'Nobre Guerreiro' : 'usuário')
+  const tx = {
+    navSep1:      m ? 'Câmara Real'            : 'Menu',
+    navSep2:      m ? 'Salão do Herói'         : 'Ferramentas',
+    tituloInicio: m ? '🏰 Salão do Reino'      : '🏠 Início',
+    tituloEvol:   m ? '⚡ Jornada do Herói'    : '📈 Evolução',
+    saudacao:     m ? `⚔ Saudações, ${nome}`   : `Olá, ${nome} 👋`,
+    xpIcone:      m ? '⚔'                      : '★',
+    metLabels:    m ? ['Tesouro','Tributos','Batalhas','Glória']   as const : ['Saldo','Receitas','Gastos','Score']   as const,
+    metIcones:    m ? ['💰','📈','⚔️','👑']    as const           : ['💰','📈','💸','⭐']   as const,
+    secContas:    m ? '💰 Cofres do Reino'      : '🏦 Contas',
+    btnContas:    m ? 'explorar →'              : 'ver contas',
+    secInsights:  m ? '🔮 Profecias do Oráculo' : '💡 Análise Financeira',
+    secCats:      m ? '📊 Crônicas por Ordem'   : '📊 Por Categoria',
+    secTx:        m ? '⚔️ Crônicas de Batalha'  : '📋 Últimas Transações',
+    btnTx:        m ? 'ver crônicas'             : 'ver todas',
+    emptyTx:      m ? 'As crônicas estão vazias.' : 'Nenhuma transação ainda.',
+    emptyTxCta:   m ? 'Registrar no Livro →'    : 'Adicionar transação →',
+    secMetas:     m ? '🎯 Quests Ativas'         : '🎯 Metas Ativas',
+    btnMetas:     m ? 'ver quests'               : 'ver todas',
+    emptyMeta:    m ? 'Nenhuma meta.'            : 'Nenhuma meta cadastrada.',
+    emptyMetaCta: m ? 'Declarar Quest →'         : 'Nova meta →',
+    secConq:      m ? '🏅 Brasões de Honra'      : '🏅 Conquistas',
+    evolTitulo:   m ? 'Título'                   : 'Nível',
+    evolXP:       m ? 'Glória'                   : 'Score',
+    accentColor:  m ? '#D4AF37'                  : cores.accent,
+    accentMuted:  m ? 'rgba(212,175,55,.6)'      : `${cores.accent}99`,
+    fontDisplay:  m ? 'var(--font-cinzel, Georgia, serif)' : 'inherit',
+  }
 
   const porCategoria = transacoes.filter(t => t.tipo === 'debito').reduce((acc, t) => {
     acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc
@@ -223,16 +257,15 @@ useEffect(() => {
             <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
-              <div style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.07em' }}>⚔ {nivel.nome}</div>
+              <div style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.07em' }}>{tx.xpIcone} {nomeNivel}</div>
             </div>
           </div>
         )}
 
         <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
-          {/* Separador "Câmara Real" */}
           {!collapsed && (
-            <div style={{ padding: '6px 1rem 4px', fontSize: 9, color: 'rgba(212,160,23,.4)', textTransform: 'uppercase', letterSpacing: '.15em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
-              Câmara Real
+            <div style={{ padding: '6px 1rem 4px', fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
+              {tx.navSep1}
             </div>
           )}
 
@@ -260,10 +293,9 @@ useEffect(() => {
             </button>
           ))}
 
-          {/* Separador "Salão do Herói" */}
           {!collapsed && (
-            <div style={{ padding: '10px 1rem 4px', fontSize: 9, color: 'rgba(212,160,23,.4)', textTransform: 'uppercase', letterSpacing: '.15em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
-              Salão do Herói
+            <div style={{ padding: '10px 1rem 4px', fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
+              {tx.navSep2}
             </div>
           )}
           {collapsed && <div style={{ height: 1, background: '#1e2d1e', margin: '6px 10px' }} />}
@@ -298,31 +330,24 @@ useEffect(() => {
             onClick={() => router.push('/dashboard/evolucao')}
             style={{ margin: '0 .75rem 1rem', background: 'rgba(0,0,0,.3)', border: `1px solid ${nivel.cor}33`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', transition: 'border-color .2s' }}
           >
-            {/* Título do nível */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em' }}>⚔ {nivel.nome}</span>
-              </div>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>Lv.{nivel.nivel}</span>
+              <span style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.1em', fontFamily: tx.fontDisplay }}>{tx.xpIcone} {nomeNivel}</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>Nv.{nivel.nivel}</span>
             </div>
-            {/* Barra shimmer */}
             <div style={{ height: 6, background: 'rgba(255,255,255,.06)', borderRadius: 999, overflow: 'hidden', border: `1px solid ${nivel.cor}22` }}>
               <div style={{
-                height: '100%',
-                width: `${nivel.pct}%`,
-                borderRadius: 999,
-                background: `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor}, #D4AF37)`,
+                height: '100%', width: `${nivel.pct}%`, borderRadius: 999,
+                background: m ? `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor}, #D4AF37)` : `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor})`,
                 backgroundSize: '200% 100%',
                 animation: 'xp-shimmer 3s linear infinite',
                 transition: 'width .8s cubic-bezier(0.34,1.56,0.64,1)',
               }} />
             </div>
-            {/* XP */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>{nivel.xpNoNivel.toLocaleString()} XP</span>
-              {nivel.proximoNivel
-                ? <span style={{ fontSize: 9, color: 'rgba(255,255,255,.2)' }}>falta {(nivel.xpParaProximo - nivel.xpNoNivel).toLocaleString()} p/ {nivel.proximoNivel.nome}</span>
-                : <span style={{ fontSize: 9, color: '#d4a017' }}>👑 Rei</span>
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>{nivel.xpNoNivel.toLocaleString()} pts</span>
+              {proxNomeNivel
+                ? <span style={{ fontSize: 9, color: 'rgba(255,255,255,.2)' }}>falta {(nivel.xpParaProximo - nivel.xpNoNivel).toLocaleString()} p/ {proxNomeNivel}</span>
+                : <span style={{ fontSize: 9, color: nivel.cor }}>{tx.xpIcone} {nomeNivel}</span>
               }
             </div>
           </div>
@@ -359,14 +384,9 @@ useEffect(() => {
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
             </button>
             <div>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#F5E6C8', fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.04em' }}>
-                {{ inicio: '🏰 Salão do Reino', evolucao: '⚡ Jornada do Herói' }[paginaAtiva] || 'PoupaUp'}
+              <span style={{ fontSize: 15, fontWeight: 600, color: m ? '#F5E6C8' : cores.text, fontFamily: tx.fontDisplay, letterSpacing: m ? '0.04em' : 0 }}>
+                {{ inicio: tx.tituloInicio, evolucao: tx.tituloEvol }[paginaAtiva] || 'PoupaUp'}
               </span>
-              {paginaAtiva === 'inicio' && !isMobile && (
-                <span style={{ marginLeft: 8, fontSize: 10, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>
-                  ⚔ {nivel.nome}
-                </span>
-              )}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -395,8 +415,8 @@ useEffect(() => {
           {paginaAtiva === 'inicio' && (
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: '#F5E6C8', marginBottom: 2, fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.03em' }}>
-                  ⚔ Saudações, {profile?.nome || 'Nobre Guerreiro'}
+                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: m ? '#F5E6C8' : cores.text, marginBottom: 2, fontFamily: tx.fontDisplay, letterSpacing: m ? '0.03em' : 0 }}>
+                  {tx.saudacao}
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
                   {new Intl.DateTimeFormat(idioma, { weekday: 'long', day: 'numeric', month: 'long', timeZone: timezone }).format(new Date())}
@@ -405,13 +425,13 @@ useEffect(() => {
 
               {/* Cards métricas — 2 colunas em mobile, 4 em desktop */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
-                {[
-                  { label: 'Tesouro',  val: formatBRL(saldo),    cor: saldo >= 0 ? '#D4AF37' : '#c0392b', icone: saldo >= 0 ? '💰' : '⚠️' },
-                  { label: 'Tributos', val: formatBRL(receitas), cor: '#5A8A4A',  icone: '📈' },
-                  { label: 'Batalhas', val: formatBRL(despesas), cor: '#8B0000',  icone: '⚔️' },
-                  { label: 'Glória',   val: `${xpTotal} XP`,    cor: '#D4AF37',  icone: '👑' },
-                ].map(m => (
-                  <div key={m.label} style={{
+                {([
+                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0] },
+                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1] },
+                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2] },
+                  { label: tx.metLabels[3], val: `${nomeNivel}`,      cor: tx.accentColor,                          icone: tx.metIcones[3] },
+                ] as const).map(card => (
+                  <div key={card.label} style={{
                     background: cores.cardBg,
                     border: `1px solid ${cores.cardBorder}`,
                     borderRadius: 10,
@@ -419,10 +439,13 @@ useEffect(() => {
                     boxShadow: cores.cardShadow,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</span>
-                      <span style={{ fontSize: 12 }}>{m.icone}</span>
+                      <span style={{ fontSize: 9, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
+                      <span style={{ fontSize: 12 }}>{card.icone}</span>
                     </div>
-                    <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600, color: m.cor, wordBreak: 'break-all', fontVariantNumeric: 'tabular-nums' }}>{m.val}</div>
+                    <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums' }}>{card.val}</div>
+                    {card.label === tx.metLabels[3] && (
+                      <div style={{ fontSize: 9, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}%</div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -431,15 +454,15 @@ useEffect(() => {
               {contas.length > 0 && (
                 <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>💰 Cofres do Reino</span>
-                    <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>explorar →</button>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secContas}</span>
+                    <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>{tx.btnContas}</button>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {contas.slice(0, 4).map(c => (
                       <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.bancos?.cor || '#4ade80', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nome}</span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? '#D4AF37' : '#c0392b', flexShrink: 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? tx.accentColor : '#c0392b', flexShrink: 0 }}>
                           {c.mostrar_saldo ? `R$ ${c.saldo.toFixed(2).replace('.', ',')}` : '••••••'}
                         </span>
                       </div>
@@ -449,7 +472,7 @@ useEffect(() => {
                     )}
                     <div style={{ borderTop: `1px solid ${cores.divider}`, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#D4AF37' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: tx.accentColor }}>
                         R$ {contas.reduce((a, c) => a + (c.mostrar_saldo ? c.saldo : 0), 0).toFixed(2).replace('.', ',')}
                       </span>
                     </div>
@@ -461,8 +484,8 @@ useEffect(() => {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
                 <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🔮 Profecias do Oráculo</span>
-                    <span style={{ fontSize: 10, background: 'rgba(212,175,55,.12)', color: '#D4AF37', padding: '2px 8px', borderRadius: 2 }}>{insights.length} novos</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secInsights}</span>
+                    <span style={{ fontSize: 10, background: `${tx.accentColor}1a`, color: tx.accentColor, padding: '2px 8px', borderRadius: 2 }}>{insights.length} novos</span>
                   </div>
                   {insights.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>Lance transações para ver insights personalizados</div>
@@ -481,7 +504,7 @@ useEffect(() => {
                 </div>
 
                 <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>📊 Crônicas por Ordem</div>
+                  <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 12, fontFamily: tx.fontDisplay }}>{tx.secCats}</div>
                   {Object.keys(porCategoria).length === 0 ? (
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: '1rem' }}>Nenhum gasto ainda</div>
                   ) : (
@@ -508,13 +531,13 @@ useEffect(() => {
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
                 <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>⚔️ Crônicas de Batalha</span>
-                    <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secTx}</span>
+                    <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>{tx.btnTx}</button>
                   </div>
                   {transacoes.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
-                      As crônicas estão vazias.{' '}
-                      <span style={{ color: '#D4AF37', cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>Registrar no Livro →</span>
+                      {tx.emptyTx}{' '}
+                      <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>{tx.emptyTxCta}</span>
                     </div>
                   ) : transacoes.slice(0, 5).map(t => (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${cores.divider}` }}>
@@ -523,7 +546,7 @@ useEffect(() => {
                         <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#D4AF37' : '#c0392b', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? tx.accentColor : (m ? '#c0392b' : '#f87171'), whiteSpace: 'nowrap', flexShrink: 0 }}>
                         {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
                       </div>
                     </div>
@@ -532,13 +555,13 @@ useEffect(() => {
 
                 <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🎯 Quests Ativas</span>
-                    <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: '#D4AF37', background: 'none', border: 'none', cursor: 'pointer' }}>ver todas</button>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secMetas}</span>
+                    <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>{tx.btnMetas}</button>
                   </div>
                   {metas.length === 0 ? (
                     <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
-                      Nenhuma meta.{' '}
-                      <span style={{ color: '#D4AF37', cursor: 'pointer' }} onClick={() => router.push('/dashboard/metas')}>Declarar Quest →</span>
+                      {tx.emptyMeta}{' '}
+                      <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/metas')}>{tx.emptyMetaCta}</span>
                     </div>
                   ) : metas.map(m => {
                     const pct = Math.min(Math.round((m.valor_atual / m.valor_total) * 100), 100)
@@ -549,7 +572,7 @@ useEffect(() => {
                           <span style={{ fontSize: 10, color: '#D4AF37' }}>{pct}%</span>
                         </div>
                         <div style={{ height: 5, background: 'rgba(255,255,255,.06)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, #8B6914, #D4AF37)', borderRadius: 3 }} />
+                          <div style={{ height: '100%', width: `${pct}%`, background: m ? 'linear-gradient(90deg, #8B6914, #D4AF37)' : `linear-gradient(90deg, ${cores.accent}88, ${cores.accent})`, borderRadius: 3 }} />
                         </div>
                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3 }}>{formatBRL(m.valor_atual)} de {formatBRL(m.valor_total)}</div>
                       </div>
@@ -565,19 +588,19 @@ useEffect(() => {
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1.25rem' }}>
                 {[
-                  { label: 'Título',   val: `Lv.${nivel.nivel}`, cor: '#D4AF37' },
-                  { label: 'Glória',   val: String(xpTotal),     cor: '#F0C040' },
-                  { label: 'Ranking',  val: 'top 30%',           cor: '#a78bfa' },
-                  { label: nivel.nome, val: `${nivel.pct}%`,     cor: '#5A8A4A' },
-                ].map(m => (
-                  <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
-                    <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 500, color: m.cor }}>{m.val}</div>
+                  { label: tx.evolTitulo, val: `Nv.${nivel.nivel}`,      cor: tx.accentColor },
+                  { label: tx.evolXP,     val: String(xpTotal) + ' pts', cor: m ? '#F0C040' : cores.accent },
+                  { label: 'Ranking',     val: 'top 30%',                cor: '#a78bfa' },
+                  { label: nomeNivel,     val: `${nivel.pct}%`,          cor: nivel.cor },
+                ].map(card => (
+                  <div key={card.label} style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 10, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 10, color: cores.textMuted, marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</div>
+                    <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 500, color: card.cor }}>{card.val}</div>
                   </div>
                 ))}
               </div>
               <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(212,175,55,.6)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14, fontFamily: 'var(--font-cinzel, Georgia, serif)' }}>🏅 Brasões de Honra</div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 14, fontFamily: tx.fontDisplay }}>{tx.secConq}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,minmax(0,1fr))', gap: 10 }}>
                   {[
                     { nome: 'Primeira conta', desc: 'Cadastrou-se',        conquistado: true,                   cor: '#D4AF37', bg: 'rgba(212,175,55,.15)' },
