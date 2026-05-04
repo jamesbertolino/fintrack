@@ -200,14 +200,14 @@ useEffect(() => {
   )
 
   const NAV_ITEMS = [
-    { id: 'inicio',       label: 'Salão do Reino',   icon: '🏰' },
-    { id: 'lancamento',   label: 'Livro do Tesouro', icon: '📜', href: '/dashboard/lancamento' },
-    { id: 'gastos',       label: 'Batalhas',         icon: '⚔️', href: '/dashboard/gastos' },
-    { id: 'metas',        label: 'Quests',           icon: '🎯', href: '/dashboard/metas' },
-    { id: 'ia',           label: 'Oráculo',          icon: '🔮', href: '/dashboard/ia' },
-    { id: 'notificacoes', label: 'Pergaminhos',      icon: '📯', href: '/dashboard/notificacoes' },
-    { id: 'evolucao',     label: 'Jornada do Herói', icon: '⚡', href: '/dashboard/evolucao' },
-    { id: 'contas',       label: 'Cofres do Reino',  icon: '💰', href: '/dashboard/contas' },
+    { id: 'inicio',       label: m ? 'Salão do Reino'   : 'Início',          icon: m ? '🏰' : '🏠' },
+    { id: 'lancamento',   label: m ? 'Livro do Tesouro' : 'Lançamentos',     icon: m ? '📜' : '📝', href: '/dashboard/lancamento' },
+    { id: 'gastos',       label: m ? 'Batalhas'         : 'Gastos',          icon: m ? '⚔️' : '💸', href: '/dashboard/gastos' },
+    { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas' },
+    { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia' },
+    { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes' },
+    { id: 'evolucao',     label: m ? 'Jornada do Herói' : 'Evolução',        icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },
+    { id: 'contas',       label: m ? 'Cofres do Reino'  : 'Contas',          icon: m ? '💰' : '🏦', href: '/dashboard/contas' },
   ]
 
   // largura do sidebar — em mobile sempre 200 quando aberto (drawer), em desktop colapsa para 56
