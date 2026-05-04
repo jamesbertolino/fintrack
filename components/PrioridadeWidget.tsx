@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useCores } from './ThemeProvider'
 
 export interface PrioridadeComMetrica {
@@ -39,9 +39,8 @@ export default function PrioridadeWidget({ prioridades, mediaMensalPoupada }: Pr
   const [aberto, setAberto] = useState(false)
   const [indiceSel, setIndiceSel] = useState(0)
 
-  // Filtra só prioridades com pelo menos valor_alvo definido
-  const comMeta = prioridades.filter(p => p.valor_alvo && p.valor_alvo > 0)
-  const todas = prioridades  // mostra todas, mas sem barra se sem meta
+  const hoje = useMemo(() => new Date(), [])
+  const todas = prioridades
 
   useEffect(() => {
     if (prioridades.length === 0) return
@@ -66,7 +65,7 @@ export default function PrioridadeWidget({ prioridades, mediaMensalPoupada }: Pr
   const status = statusLabel(mesesNecessarios, prio.prazo_meses)
 
   const dataEstimada = mesesNecessarios !== null
-    ? new Date(Date.now() + mesesNecessarios * 30 * 24 * 60 * 60 * 1000)
+    ? new Date(hoje.getTime() + mesesNecessarios * 30 * 24 * 60 * 60 * 1000)
         .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
     : null
 

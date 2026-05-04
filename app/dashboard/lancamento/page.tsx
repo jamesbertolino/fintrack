@@ -404,7 +404,7 @@ useEffect(() => {
           e.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim()
       })
       // Checa duplicata dentro do próprio lote
-      const duplicataLote = detectadas.some((other, _) =>
+      const duplicataLote = detectadas.some((other) =>
         other !== t &&
         Math.abs(other.valor) === valorAbs &&
         other.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim() &&
