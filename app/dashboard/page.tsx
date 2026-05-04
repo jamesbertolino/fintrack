@@ -7,6 +7,7 @@ import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import MissoesWidget from '@/components/MissoesWidget'
+import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel } from '@/lib/calcularXP'
 import { useCores } from '@/components/ThemeProvider'
@@ -32,6 +33,8 @@ interface Profile {
   nome: string
   plano: string
   avatar_url?: string | null
+  setup_completo?: boolean
+  prioridades?: PrioridadeComMetrica[]
 }
 
 interface Conta {
@@ -598,6 +601,14 @@ useEffect(() => {
 
         </div>
       </main>
+
+      {/* Widget de prioridades — flutua sobre tudo */}
+      {profile?.prioridades && profile.prioridades.length > 0 && (() => {
+        const mediaMensal = receitas > 0
+          ? Math.max(0, (receitas - despesas) / Math.max(1, new Set(transacoes.map(t => t.data_hora.slice(0, 7))).size))
+          : 0
+        return <PrioridadeWidget prioridades={profile.prioridades!} mediaMensalPoupada={mediaMensal} />
+      })()}
     </div>
   )
 }

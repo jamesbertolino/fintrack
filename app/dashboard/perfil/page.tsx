@@ -63,6 +63,8 @@ export default function PerfilPage() {
   const [prioridades, setPrioridades] = useState<Array<{ tipo: string; titulo: string; icon: string; ordem: number }>>([])
   const [editandoPrioridades, setEditandoPrioridades] = useState(false)
   const [prioridadesSelecionadas, setPrioridadesSelecionadas] = useState<string[]>([])
+  const [metricsExpandidoIdx, setMetricsExpandidoIdx] = useState<number | null>(null)
+  const [metricasEdit, setMetricasEdit] = useState<Record<number, { valor_alvo: string; valor_atual: string; contribuicao_mensal: string; prazo_meses: string }>>({})
   const [grupo, setGrupo]           = useState<Grupo | null>(null)
   const [membros, setMembros]       = useState<GrupoMembro[]>([])
   const [novoNumero, setNovoNum]    = useState('')
@@ -1083,13 +1085,89 @@ export default function PerfilPage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {prioridades.map((p, i) => (
-                      <div key={p.tipo} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: cores.surfaceAlt, border: `1px solid ${cores.border}`, borderRadius: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: cores.accent, width: 18, textAlign: 'center' }}>#{i + 1}</span>
-                        <span style={{ fontSize: 18 }}>{p.icon}</span>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{p.titulo}</span>
-                      </div>
-                    ))}
+                    {prioridades.map((p, i) => {
+                      const pm = p as typeof p & { valor_alvo?: number; valor_atual?: number; contribuicao_mensal?: number; prazo_meses?: number }
+                      const pct = pm.valor_alvo ? Math.min(100, Math.round(((pm.valor_atual ?? 0) / pm.valor_alvo) * 100)) : null
+                      const aberto = metricsExpandidoIdx === i
+                      const ed = metricasEdit[i]
+
+                      function abrirMetricas() {
+                        setMetricasEdit(prev => ({
+                          ...prev,
+                          [i]: {
+                            valor_alvo: pm.valor_alvo?.toString() ?? '',
+                            valor_atual: pm.valor_atual?.toString() ?? '',
+                            contribuicao_mensal: pm.contribuicao_mensal?.toString() ?? '',
+                            prazo_meses: pm.prazo_meses?.toString() ?? '',
+                          }
+                        }))
+                        setMetricsExpandidoIdx(aberto ? null : i)
+                      }
+
+                      async function salvarMetricas() {
+                        const m = metricasEdit[i]; if (!m) return
+                        const novas = prioridades.map((px, idx) => idx === i ? {
+                          ...px,
+                          valor_alvo: parseFloat(m.valor_alvo) || undefined,
+                          valor_atual: parseFloat(m.valor_atual) || undefined,
+                          contribuicao_mensal: parseFloat(m.contribuicao_mensal) || undefined,
+                          prazo_meses: parseInt(m.prazo_meses) || undefined,
+                        } : px)
+                        const { data: { user } } = await supabase.auth.getUser()
+                        if (!user) return
+                        await supabase.from('profiles').update({ prioridades: novas }).eq('id', user.id)
+                        setPrioridades(novas as typeof prioridades)
+                        setMetricsExpandidoIdx(null)
+                        setSucesso('Métricas salvas!'); setTimeout(() => setSucesso(''), 2000)
+                      }
+
+                      return (
+                        <div key={p.tipo} style={{ background: cores.surfaceAlt, border: `1px solid ${aberto ? cores.accent : cores.border}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color .2s' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', cursor: 'pointer' }} onClick={abrirMetricas}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: cores.accent, width: 18, textAlign: 'center', flexShrink: 0 }}>#{i + 1}</span>
+                            <span style={{ fontSize: 18, flexShrink: 0 }}>{p.icon}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{p.titulo}</div>
+                              {pct !== null ? (
+                                <div style={{ marginTop: 4 }}>
+                                  <div style={{ height: 4, background: cores.border, borderRadius: 2, overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: pct >= 100 ? '#4ade80' : pct >= 60 ? '#fbbf24' : cores.accent, transition: 'width .5s' }} />
+                                  </div>
+                                  <div style={{ fontSize: 10, color: cores.textMuted, marginTop: 2 }}>{pct}% — {(pm.valor_atual ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de {pm.valor_alvo!.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 10, color: cores.textFaint, marginTop: 2 }}>Clique para definir meta e acompanhar progresso</div>
+                              )}
+                            </div>
+                            <span style={{ fontSize: 11, color: cores.textMuted, flexShrink: 0 }}>{aberto ? '▲' : '▼'}</span>
+                          </div>
+                          {aberto && ed && (
+                            <div style={{ padding: '0 12px 12px', borderTop: `1px solid ${cores.border}` }}>
+                              <div style={{ paddingTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                                {([
+                                  { k: 'valor_alvo',          label: 'Meta total (R$)',       ph: 'Ex: 5000' },
+                                  { k: 'valor_atual',         label: 'Já guardei (R$)',        ph: 'Ex: 1200' },
+                                  { k: 'contribuicao_mensal', label: 'Poupo por mês (R$)',     ph: 'Ex: 300' },
+                                  { k: 'prazo_meses',         label: 'Prazo (meses)',          ph: 'Ex: 18' },
+                                ] as const).map(f => (
+                                  <div key={f.k}>
+                                    <div style={{ fontSize: 9, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em', marginBottom: 3 }}>{f.label}</div>
+                                    <input type="number" min="0" placeholder={f.ph} value={ed[f.k]}
+                                      onChange={e => setMetricasEdit(prev => ({ ...prev, [i]: { ...prev[i], [f.k]: e.target.value } }))}
+                                      style={{ width: '100%', padding: '6px 8px', background: cores.inputBg, border: `1px solid ${cores.inputBorder}`, borderRadius: 6, color: cores.text, fontSize: 12, outline: 'none', boxSizing: 'border-box' as const }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <button onClick={salvarMetricas}
+                                style={{ width: '100%', padding: '7px', background: '#16a34a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                Salvar métricas
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )
               ) : (
