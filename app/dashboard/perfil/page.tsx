@@ -76,6 +76,8 @@ export default function PerfilPage() {
   const [contaPadrao, setContaPadrao]   = useState('')
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
+  const [notificacoesCelular, setNotificacoesCelular] = useState(true)
+  const [salvandoNotif, setSalvandoNotif] = useState(false)
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
   const { tema, alterarTema: alterarTemaCtx } = useTema()
   const cores = useCores()
@@ -95,6 +97,7 @@ export default function PerfilPage() {
       setProfile(prof)
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
       setContaPadrao(prof.conta_padrao_id || '')
+      setNotificacoesCelular(prof.notificacoes_celular !== false)
       const prios: Array<{ tipo: string; titulo: string; icon: string; ordem: number }> = Array.isArray(prof.prioridades) ? prof.prioridades : []
       setPrioridades(prios)
       setPrioridadesSelecionadas(prios.map((p: { tipo: string }) => p.tipo))
@@ -423,6 +426,14 @@ export default function PerfilPage() {
     setTimeout(() => setSucesso(''), 3000)
   }
 
+  async function salvarNotificacoesCelular(valor: boolean) {
+    setSalvandoNotif(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) await supabase.from('profiles').update({ notificacoes_celular: valor }).eq('id', user.id)
+    setNotificacoesCelular(valor)
+    setSalvandoNotif(false)
+  }
+
   function copiarUrlWebhook() {
     const url = `${window.location.origin}/api/webhook/${profile?.id}`
     navigator.clipboard.writeText(url)
@@ -687,6 +698,48 @@ export default function PerfilPage() {
               >
                 {salvando ? 'Salvando...' : 'Salvar idioma'}
               </button>
+            </div>
+
+            {/* Notificações WhatsApp */}
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    📱 Notificações no WhatsApp
+                  </div>
+                  <div style={{ fontSize: 12, color: cores.textMuted, lineHeight: 1.6 }}>
+                    Receba alertas financeiros personalizados no seu WhatsApp (máx. 2 por dia). Inclui dicas da IA, avisos de orçamento e atualizações de metas.
+                  </div>
+                  {!form.whatsapp && (
+                    <div style={{ marginTop: 8, fontSize: 11, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      ⚠️ Cadastre seu número na aba <strong>Perfil</strong> para ativar.
+                    </div>
+                  )}
+                </div>
+                {/* Toggle */}
+                <button
+                  onClick={() => !salvandoNotif && form.whatsapp && salvarNotificacoesCelular(!notificacoesCelular)}
+                  disabled={salvandoNotif || !form.whatsapp}
+                  title={!form.whatsapp ? 'Cadastre seu WhatsApp primeiro' : ''}
+                  style={{
+                    width: 48, height: 26, borderRadius: 13, border: 'none', cursor: form.whatsapp ? 'pointer' : 'not-allowed',
+                    background: notificacoesCelular && form.whatsapp ? cores.accent : 'rgba(255,255,255,.12)',
+                    position: 'relative', transition: 'background .2s', flexShrink: 0, opacity: salvandoNotif ? 0.6 : 1,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 3,
+                    left: notificacoesCelular && form.whatsapp ? 25 : 3,
+                    width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                    transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.3)',
+                  }} />
+                </button>
+              </div>
+              {notificacoesCelular && form.whatsapp && (
+                <div style={{ marginTop: 10, padding: '8px 12px', background: `${cores.accent}0d`, border: `1px solid ${cores.accent}25`, borderRadius: 8, fontSize: 11, color: cores.accent }}>
+                  ✅ Ativo — você receberá até 2 notificações por dia no {form.whatsapp}
+                </div>
+              )}
             </div>
 
             {/* Fuso horário */}
