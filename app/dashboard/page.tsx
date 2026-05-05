@@ -258,7 +258,7 @@ useEffect(() => {
             <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
-              <div style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.07em' }}>{tx.xpIcone} {nomeNivel}</div>
+              <div style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.07em' }}>{tx.xpIcone} {xpTotal.toLocaleString()} XP</div>
             </div>
           </div>
         )}
@@ -430,7 +430,7 @@ useEffect(() => {
                   { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0] },
                   { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1] },
                   { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2] },
-                  { label: tx.metLabels[3], val: `${nomeNivel}`,      cor: tx.accentColor,                          icone: tx.metIcones[3] },
+                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,           icone: tx.metIcones[3] },
                 ] as const).map(card => (
                   <div key={card.label} style={{
                     background: cores.cardBg,
