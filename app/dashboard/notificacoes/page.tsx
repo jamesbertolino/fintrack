@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase-browser'
+import { useCores, useTema } from '@/components/ThemeProvider'
 import { usePerfil } from '@/hooks/usePerfil'
 
 interface Notificacao {
@@ -11,18 +11,29 @@ interface Notificacao {
   titulo: string
   mensagem: string
   lida: boolean
+  xp_recompensa: number
   created_at: string
 }
 
-const ICONES: Record<string, { emoji: string; cor: string; bg: string }> = {
-  sugestao_meta:    { emoji: '💰', cor: '#4ade80', bg: 'rgba(74,222,128,.1)' },
-  limite_categoria: { emoji: '⚠️', cor: '#f97316', bg: 'rgba(249,115,22,.1)' },
-  marco_meta:       { emoji: '🎯', cor: '#a78bfa', bg: 'rgba(167,139,250,.1)' },
-  fim_mes:          { emoji: '📅', cor: '#fbbf24', bg: 'rgba(251,191,36,.1)' },
-  default:          { emoji: '🔔', cor: '#4ade80', bg: 'rgba(74,222,128,.1)' },
+const ICONE_TIPO: Record<string, { emoji: string; cor: string }> = {
+  ia_diaria:        { emoji: '🤖', cor: '#a78bfa' },
+  alerta_gasto:     { emoji: '⚠️', cor: '#f97316' },
+  dica_economia:    { emoji: '💡', cor: '#22d3ee' },
+  progresso_meta:   { emoji: '🎯', cor: '#4ade80' },
+  motivacao:        { emoji: '⚡', cor: '#fbbf24' },
+  planejamento:     { emoji: '📋', cor: '#60a5fa' },
+  sugestao_meta:    { emoji: '💰', cor: '#4ade80' },
+  limite_categoria: { emoji: '⚠️', cor: '#f97316' },
+  marco_meta:       { emoji: '🏆', cor: '#a78bfa' },
+  fim_mes:          { emoji: '📅', cor: '#fbbf24' },
+  default:          { emoji: '🔔', cor: '#4ade80' },
 }
 
-function fmtTempo(iso: string, fmtData: (iso: string) => string) {
+function iconeFor(tipo: string) {
+  return ICONE_TIPO[tipo] || ICONE_TIPO.default
+}
+
+function fmtTempo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
   const min  = Math.floor(diff / 60000)
   const h    = Math.floor(diff / 3600000)
@@ -30,129 +41,154 @@ function fmtTempo(iso: string, fmtData: (iso: string) => string) {
   if (min < 1)  return 'agora'
   if (min < 60) return `há ${min}min`
   if (h < 24)   return `há ${h}h`
-  if (d < 7)    return `há ${d}d`
-  return fmtData(iso)
+  if (d === 1)  return 'ontem'
+  if (d < 7)    return `há ${d} dias`
+  return new Date(iso).toLocaleDateString('pt-BR')
 }
 
 export default function NotificacoesPage() {
-  const router = useRouter()
-  const supabase = createClient()
-  const { fmtData } = usePerfil()
+  const router       = useRouter()
+  const cores        = useCores()
+  const { tema }     = useTema()
+  const { fmtData }  = usePerfil()
+  const m            = tema === 'medieval'
 
-  const [notifs, setNotifs]     = useState<Notificacao[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [filtro, setFiltro]     = useState<'todas' | 'nao_lidas'>('todas')
+  const accentColor  = m ? '#D4AF37' : cores.accent
+  const fontDisplay  = m ? 'var(--font-cinzel, Georgia, serif)' : 'inherit'
+
+  const [notifs, setNotifs]           = useState<Notificacao[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [filtro, setFiltro]           = useState<'todas' | 'nao_lidas'>('todas')
+  const [iaAnalisando, setIaAnalisando] = useState(false)
+  const [xpFlash, setXpFlash]         = useState<number | null>(null)
 
   const carregar = useCallback(async () => {
-    const res = await fetch('/api/notificacoes')
+    const res  = await fetch('/api/notificacoes')
     const data = await res.json()
     setNotifs(data.notificacoes || [])
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    carregar()
-
-    // Realtime — novas notificações chegam ao vivo
-    const channel = supabase
-      .channel('notificacoes-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
-        carregar()
-      })
-      .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
-  }, [carregar, supabase])
+  useEffect(() => { carregar() }, [carregar]) // eslint-disable-line react-hooks/set-state-in-effect
 
   async function marcarLida(id: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n))
-    await fetch('/api/notificacoes', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
+    const res  = await fetch('/api/notificacoes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    const data = await res.json()
+    if (data.xpGanho > 0) mostrarXpFlash(data.xpGanho)
   }
 
   async function marcarTodasLidas() {
     setNotifs(prev => prev.map(n => ({ ...n, lida: true })))
-    await fetch('/api/notificacoes', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ todas: true }),
-    })
+    const res  = await fetch('/api/notificacoes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ todas: true }) })
+    const data = await res.json()
+    if (data.xpGanho > 0) mostrarXpFlash(data.xpGanho)
   }
 
   async function apagar(id: string) {
     setNotifs(prev => prev.filter(n => n.id !== id))
-    await fetch('/api/notificacoes', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
+    await fetch('/api/notificacoes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
   }
 
-  async function simularNotificacao() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('notifications').insert({
-      user_id: user.id,
-      tipo: 'sugestao_meta',
-      titulo: 'Receita detectada!',
-      mensagem: 'Uma nova receita foi registrada. Deseja alocar parte para suas metas?',
-      lida: false,
-    })
-    carregar()
+  function mostrarXpFlash(xp: number) {
+    setXpFlash(xp)
+    setTimeout(() => setXpFlash(null), 2500)
+  }
+
+  async function gerarComIA() {
+    setIaAnalisando(true)
+    const res  = await fetch('/api/notificacoes/ia', { method: 'POST' })
+    const data = await res.json()
+    setIaAnalisando(false)
+    if (data.ok) {
+      await carregar()
+    } else if (data.limite) {
+      alert('Limite de 2 análises diárias atingido. Volte amanhã!')
+    } else {
+      alert(data.error || 'Erro ao gerar notificações.')
+    }
   }
 
   const filtradas = filtro === 'nao_lidas' ? notifs.filter(n => !n.lida) : notifs
   const naoLidas  = notifs.filter(n => !n.lida).length
-
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando notificações...</div>
-    </div>
-  )
+  void fmtData // usado por fmtTempo indiretamente
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: cores.text }}>
 
-      {/* Topbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+      {/* Overlay IA */}
+      {iaAnalisando && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backdropFilter: 'blur(6px) brightness(0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+          <div style={{ position: 'relative', width: 64, height: 64 }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${accentColor}33` }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid transparent`, borderTopColor: accentColor, animation: 'ia-spin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>{m ? '🔮' : '🤖'}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: fontDisplay, marginBottom: 6 }}>
+              {m ? 'O Oráculo consulta os astros…' : 'IA analisando sua situação…'}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.45)' }}>
+              {m ? 'Aguarde as profecias do reino' : 'Criando notificações personalizadas'}
+            </div>
+          </div>
+          <style>{`@keyframes ia-spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
+
+      {/* Flash de XP ganho */}
+      {xpFlash !== null && (
+        <div style={{ position: 'fixed', top: 24, right: 24, zIndex: 9998, background: `${accentColor}18`, border: `1px solid ${accentColor}55`, borderRadius: 12, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 8, boxShadow: `0 4px 20px ${accentColor}33`, animation: 'xp-in .3s ease' }}>
+          <span style={{ fontSize: 20 }}>⭐</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: accentColor }}>+{xpFlash} XP</div>
+            <div style={{ fontSize: 10, color: cores.textMuted }}>Notificação lida</div>
+          </div>
+          <style>{`@keyframes xp-in { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:none } }`}</style>
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Dashboard
+            {m ? 'Reino' : 'Início'}
           </button>
-          <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Notificações</span>
+          <span style={{ color: cores.textFaint }}>/</span>
+          <span style={{ fontSize: 15, fontWeight: 600, fontFamily: fontDisplay, color: m ? '#F5E6C8' : cores.text }}>
+            {m ? '📯 Pergaminhos do Reino' : '🔔 Notificações'}
+          </span>
           {naoLidas > 0 && (
-            <span style={{ background: '#16a34a', color: '#fff', fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10 }}>
-              {naoLidas} nova{naoLidas > 1 ? 's' : ''}
+            <span style={{ background: accentColor, color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10 }}>
+              {naoLidas}
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {naoLidas > 0 && (
-            <button onClick={marcarTodasLidas} style={{ fontSize: 11, padding: '6px 12px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.5)', cursor: 'pointer' }}>
-              Marcar todas como lidas
+            <button onClick={marcarTodasLidas} style={{ fontSize: 11, padding: '7px 12px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 8, color: cores.textMuted, cursor: 'pointer' }}>
+              ✓ Marcar todas como lidas
             </button>
           )}
-          <button onClick={simularNotificacao} style={{ fontSize: 11, padding: '6px 12px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, color: '#4ade80', cursor: 'pointer' }}>
-            + Simular alerta
+          <button onClick={gerarComIA} disabled={iaAnalisando}
+            style={{ fontSize: 11, padding: '7px 14px', background: `${accentColor}18`, border: `1px solid ${accentColor}44`, borderRadius: 8, color: accentColor, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            {m ? '🔮' : '🤖'} {m ? 'Consultar Oráculo' : 'Analisar com IA'}
           </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '1.5rem' }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '1.25rem 1.5rem' }}>
 
         {/* Filtros */}
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, marginBottom: '1.25rem', width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 4, background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 8, padding: 3, marginBottom: '1.25rem', width: 'fit-content' }}>
           {(['todas', 'nao_lidas'] as const).map(f => (
             <button key={f} onClick={() => setFiltro(f)} style={{
               padding: '5px 14px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-              background: filtro === f ? '#16a34a' : 'transparent',
-              color: filtro === f ? '#fff' : 'rgba(255,255,255,.4)',
+              background: filtro === f ? accentColor : 'transparent',
+              color: filtro === f ? (m ? '#000' : '#fff') : cores.textMuted,
+              transition: 'all .15s',
             }}>
               {f === 'todas' ? `Todas (${notifs.length})` : `Não lidas (${naoLidas})`}
             </button>
@@ -160,70 +196,75 @@ export default function NotificacoesPage() {
         </div>
 
         {/* Lista */}
-        {filtradas.length === 0 ? (
-          <div style={{ background: '#111', border: '1px dashed #1a3a1a', borderRadius: 12, padding: '4rem', textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>
-              {filtro === 'nao_lidas' ? 'Nenhuma notificação não lida' : 'Nenhuma notificação ainda'}
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: cores.textMuted }}>Carregando...</div>
+        ) : filtradas.length === 0 ? (
+          <div style={{ background: cores.cardBg, border: `1px dashed ${cores.cardBorder}`, borderRadius: 12, padding: '3.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>{m ? '📯' : '🔔'}</div>
+            <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6, color: cores.text }}>
+              {filtro === 'nao_lidas' ? 'Nenhuma notificação não lida' : (m ? 'Nenhum pergaminho ainda' : 'Nenhuma notificação ainda')}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 20 }}>
-              As notificações aparecem quando metas avançam, categorias estouram ou receitas chegam.
+            <div style={{ fontSize: 12, color: cores.textFaint, marginBottom: 20 }}>
+              {m ? 'Consulte o Oráculo para receber profecias sobre sua jornada.' : 'Use a IA para gerar análises da sua situação financeira.'}
             </div>
-            <button onClick={simularNotificacao} style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
-              Simular primeira notificação
+            <button onClick={gerarComIA} style={{ padding: '9px 18px', background: `${accentColor}18`, border: `1px solid ${accentColor}44`, borderRadius: 8, color: accentColor, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              {m ? '🔮 Consultar Oráculo' : '🤖 Analisar com IA'}
             </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filtradas.map(n => {
-              const icone = ICONES[n.tipo] || ICONES.default
+              const ic = iconeFor(n.tipo)
               return (
-                <div key={n.id} onClick={() => !n.lida && marcarLida(n.id)} style={{
-                  background: n.lida ? '#111' : '#0f1f0f',
-                  border: `1px solid ${n.lida ? '#1a3a1a' : 'rgba(74,222,128,.2)'}`,
-                  borderLeft: `3px solid ${n.lida ? '#1a3a1a' : icone.cor}`,
-                  borderRadius: 12, padding: '12px 14px',
-                  display: 'flex', alignItems: 'flex-start', gap: 12,
-                  cursor: n.lida ? 'default' : 'pointer',
-                  transition: 'all .15s', opacity: n.lida ? 0.7 : 1,
-                }}>
-                  {/* Ícone */}
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                    background: icone.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                <div key={n.id}
+                  onClick={() => !n.lida && marcarLida(n.id)}
+                  style={{
+                    background: n.lida ? cores.cardBg : `${ic.cor}08`,
+                    border: `1px solid ${n.lida ? cores.cardBorder : `${ic.cor}30`}`,
+                    borderLeft: `3px solid ${n.lida ? cores.border : ic.cor}`,
+                    borderRadius: 12, padding: '12px 14px',
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    cursor: n.lida ? 'default' : 'pointer',
+                    transition: 'all .15s', opacity: n.lida ? 0.65 : 1,
                   }}>
-                    {icone.emoji}
+
+                  {/* Ícone */}
+                  <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: `${ic.cor}15`, border: `1px solid ${ic.cor}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                    {ic.emoji}
                   </div>
 
                   {/* Conteúdo */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontSize: 13, fontWeight: n.lida ? 400 : 600, color: n.lida ? 'rgba(255,255,255,.7)' : '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: n.lida ? 400 : 600, color: n.lida ? cores.textMuted : cores.text }}>
                         {n.titulo}
                       </span>
-                      {!n.lida && (
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+                      {!n.lida && <div style={{ width: 7, height: 7, borderRadius: '50%', background: ic.cor, flexShrink: 0 }} />}
+                      {n.xp_recompensa > 0 && !n.lida && (
+                        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, fontWeight: 700, background: `${accentColor}18`, color: accentColor, border: `1px solid ${accentColor}33` }}>
+                          +{n.xp_recompensa} XP
+                        </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.5, marginBottom: 5 }}>
+                    <div style={{ fontSize: 12, color: cores.textMuted, lineHeight: 1.55, marginBottom: 5 }}>
                       {n.mensagem}
                     </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{fmtTempo(n.created_at, fmtData)}</div>
+                    <div style={{ fontSize: 10, color: cores.textFaint }}>{fmtTempo(n.created_at)}</div>
                   </div>
 
                   {/* Ações */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
                     {!n.lida && (
                       <button onClick={e => { e.stopPropagation(); marcarLida(n.id) }} style={{
-                        fontSize: 10, padding: '3px 8px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)',
-                        borderRadius: 5, color: '#4ade80', cursor: 'pointer',
+                        fontSize: 10, padding: '4px 9px', background: `${accentColor}15`, border: `1px solid ${accentColor}33`,
+                        borderRadius: 5, color: accentColor, cursor: 'pointer', fontWeight: 600,
                       }}>
                         ✓ lida
                       </button>
                     )}
                     <button onClick={e => { e.stopPropagation(); apagar(n.id) }} style={{
-                      fontSize: 10, padding: '3px 8px', background: 'transparent', border: '1px solid #1a3a1a',
-                      borderRadius: 5, color: 'rgba(255,255,255,.3)', cursor: 'pointer',
+                      fontSize: 10, padding: '4px 9px', background: 'transparent', border: `1px solid ${cores.border}`,
+                      borderRadius: 5, color: cores.textFaint, cursor: 'pointer',
                     }}>
                       apagar
                     </button>

@@ -2,6 +2,7 @@ export interface DadosXP {
   transacoes: { valor: number; tipo: string }[]
   metas: { valor_total: number; valor_atual: number; ativo?: boolean }[]
   conquistas?: number
+  xpBonus?: number
 }
 
 export function calcularXP(dados: DadosXP) {
@@ -22,7 +23,7 @@ export function calcularXP(dados: DadosXP) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const xpConquistas = (dados.conquistas || 0) * 0 // já contado separado
 
-  const xpTotal = xpTransacoes + xpSaldo + xpMetas + xpMetasConcl
+  const xpTotal = xpTransacoes + xpSaldo + xpMetas + xpMetasConcl + (dados.xpBonus || 0)
 
   return { xpTotal, xpTransacoes, xpSaldo, xpMetas: xpMetas + xpMetasConcl, saldo, receitas, despesas }
 }

@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [contas, setContas]         = useState<Conta[]>([])
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
+  const [iaAnalisando, setIaAnalisando] = useState(false)
 
   // Em mobile sidebar começa fechada, em desktop aberta
   const [sidebarAberta, setSidebar] = useState(true)
@@ -169,6 +170,24 @@ useEffect(() => {
     const contasDados = await contasRes.json()
     setContas(contasDados.contas || [])
     setLoading(false)
+
+    // Auto-trigger IA notification (máx 2x/dia, aleatório)
+    const hoje = new Date().toISOString().slice(0, 10)
+    const key  = `poupaup_ia_notif_${hoje}`
+    const count = parseInt(localStorage.getItem(key) || '0', 10)
+    if (count < 2 && Math.random() < 0.4) {
+      const delay = 8000 + Math.random() * 12000 // 8-20s após carregar
+      setTimeout(async () => {
+        setIaAnalisando(true)
+        try {
+          const r = await fetch('/api/notificacoes/ia', { method: 'POST' })
+          const d = await r.json()
+          if (d.ok) localStorage.setItem(key, String(count + 1))
+        } finally {
+          setIaAnalisando(false)
+        }
+      }, delay)
+    }
   }, [supabase, router])
 
   useEffect(() => {
@@ -218,6 +237,26 @@ useEffect(() => {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative', color: cores.text }}>
 
+      {/* Overlay IA analisando */}
+      {iaAnalisando && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, backdropFilter: 'blur(6px) brightness(0.45)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+          <div style={{ position: 'relative', width: 64, height: 64 }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${m ? '#D4AF37' : cores.accent}33` }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid transparent`, borderTopColor: m ? '#D4AF37' : cores.accent, animation: 'ia-spin 0.9s linear infinite' }} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>{m ? '🔮' : '🤖'}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', fontFamily: m ? 'var(--font-cinzel, Georgia, serif)' : 'inherit', marginBottom: 6 }}>
+              {m ? 'O Oráculo consulta os astros…' : 'IA analisando seus dados…'}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.45)' }}>
+              {m ? 'Aguarde as profecias do reino' : 'Criando notificações personalizadas para você'}
+            </div>
+          </div>
+          <style>{`@keyframes ia-spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
+
       {/* Overlay escuro em mobile quando sidebar aberta */}
       {isMobile && sidebarAberta && (
         <div
@@ -258,7 +297,6 @@ useEffect(() => {
             <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
-              <div style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.07em' }}>{tx.xpIcone} {xpTotal.toLocaleString()} XP</div>
             </div>
           </div>
         )}

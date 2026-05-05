@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-// GET — buscar notificações do usuário
 export async function GET() {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -17,24 +16,54 @@ export async function GET() {
   return NextResponse.json({ notificacoes: data || [] })
 }
 
-// PATCH — marcar como lida
 export async function PATCH(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id, todas } = await request.json()
+  let xpGanho = 0
 
   if (todas) {
+    // Soma XP de todas não lidas antes de marcar
+    const { data: naoLidas } = await supabase
+      .from('notifications')
+      .select('xp_recompensa')
+      .eq('user_id', user.id)
+      .eq('lida', false)
+
+    xpGanho = (naoLidas || []).reduce((a, n) => a + (n.xp_recompensa || 0), 0)
     await supabase.from('notifications').update({ lida: true }).eq('user_id', user.id).eq('lida', false)
   } else if (id) {
-    await supabase.from('notifications').update({ lida: true }).eq('id', id).eq('user_id', user.id)
+    const { data: notif } = await supabase
+      .from('notifications')
+      .select('xp_recompensa, lida')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (notif && !notif.lida) {
+      xpGanho = notif.xp_recompensa || 0
+      await supabase.from('notifications').update({ lida: true }).eq('id', id).eq('user_id', user.id)
+    }
   }
 
-  return NextResponse.json({ ok: true })
+  // Credita XP bonus no perfil
+  if (xpGanho > 0) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('xp_bonus')
+      .eq('id', user.id)
+      .single()
+
+    await supabase.from('profiles')
+      .update({ xp_bonus: (profile?.xp_bonus || 0) + xpGanho })
+      .eq('id', user.id)
+  }
+
+  return NextResponse.json({ ok: true, xpGanho })
 }
 
-// DELETE — apagar notificação
 export async function DELETE(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
