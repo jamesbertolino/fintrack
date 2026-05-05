@@ -203,6 +203,7 @@ useEffect(() => {
     { id: 'inicio',       label: m ? 'Salão do Reino'   : 'Início',          icon: m ? '🏰' : '🏠' },
     { id: 'lancamento',   label: m ? 'Livro do Tesouro' : 'Lançamentos',     icon: m ? '📜' : '📝', href: '/dashboard/lancamento' },
     { id: 'gastos',       label: m ? 'Batalhas'         : 'Gastos',          icon: m ? '⚔️' : '💸', href: '/dashboard/gastos' },
+    { id: 'orcamento',    label: m ? 'Edito do Reino'   : 'Orçamento',       icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento' },
     { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas' },
     { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia' },
     { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes' },
