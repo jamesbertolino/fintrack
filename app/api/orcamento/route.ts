@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   if (existing?.id) {
     const { data, error } = await supabase
       .from('orcamentos')
-      .update({ valor_planejado })
+      .update({ valor_planejado, limite: valor_planejado })
       .eq('id', existing.id)
       .eq('user_id', user.id)
       .select()
@@ -65,9 +65,10 @@ export async function POST(request: NextRequest) {
     saveError = error
     saved = data
   } else {
+    const [ano, mm] = mes.split('-').map(Number)
     const { data, error } = await supabase
       .from('orcamentos')
-      .insert({ user_id: user.id, categoria, valor_planejado, mes })
+      .insert({ user_id: user.id, categoria, valor_planejado, limite: valor_planejado, mes, mes_num: mm, ano })
       .select()
       .single()
     saveError = error
