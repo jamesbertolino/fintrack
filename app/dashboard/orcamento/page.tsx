@@ -80,6 +80,7 @@ export default function OrcamentoPage() {
   // IA
   const [analiseIA, setAnaliseIA]     = useState('')
   const [sugestoesIA, setSugestoesIA] = useState<SugestaoIA[]>([])
+  const [iaErro, setIaErro]           = useState(false)
   const [carregandoIA, setCarregandoIA] = useState(false)
   const [iaAberto, setIaAberto]       = useState(false)
 
@@ -101,10 +102,12 @@ export default function OrcamentoPage() {
   async function analisarIA() {
     setCarregandoIA(true)
     setIaAberto(true)
+    setIaErro(false)
     const res = await fetch(`/api/orcamento/ia?mes=${mes}`)
     const data = await res.json()
     setAnaliseIA(data.analise || '')
     setSugestoesIA(data.sugestoes || [])
+    setIaErro(data.ok === false)
     setCarregandoIA(false)
   }
 
@@ -218,7 +221,16 @@ export default function OrcamentoPage() {
             </div>
 
             {carregandoIA ? (
-              <div style={{ color: cores.textMuted, fontSize: 12 }}>Analisando seus gastos e prioridades...</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: cores.textMuted, fontSize: 12 }}>
+                <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⏳</span>
+                Analisando seus gastos e prioridades…
+                <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+              </div>
+            ) : iaErro ? (
+              <div style={{ display: 'flex', gap: 8, background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171' }}>
+                <span>⚠️</span>
+                <span>{analiseIA || 'Ocorreu um erro ao contactar a IA.'}</span>
+              </div>
             ) : (
               <>
                 {analiseIA && (

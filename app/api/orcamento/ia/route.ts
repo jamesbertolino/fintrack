@@ -1,11 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
+function extrairJSON(text: string): { analise: string; sugestoes: unknown[] } | null {
+  // Tenta extrair JSON de dentro de blocos de código ou texto puro
+  const candidatos = [
+    // Bloco ```json ... ```
+    text.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1],
+    // Objeto JSON direto
+    text.match(/(\{[\s\S]*\})/)?.[1],
+    // O texto inteiro
+    text.trim(),
+  ]
+  for (const raw of candidatos) {
+    if (!raw) continue
+    try {
+      const parsed = JSON.parse(raw.trim())
+      if (typeof parsed.analise === 'string') return parsed
+    } catch { /* continua */ }
+  }
+  return null
+}
+
 // GET /api/orcamento/ia?mes=YYYY-MM
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (!anthropicKey) {
+    return NextResponse.json({
+      ok: false,
+      analise: 'ANTHROPIC_API_KEY não configurada nas variáveis de ambiente.',
+      sugestoes: [],
+    })
+  }
 
   const mes = request.nextUrl.searchParams.get('mes') || new Date().toISOString().slice(0, 7)
   const [ano, mm] = mes.split('-').map(Number)
@@ -28,21 +57,20 @@ export async function GET(request: NextRequest) {
   // Média mensal por categoria nos últimos 3 meses
   const porMes: Record<string, Record<string, number>> = {}
   for (const t of transacoes || []) {
-    const m = t.data_hora.slice(0, 7)
-    if (!porMes[m]) porMes[m] = {}
-    porMes[m][t.categoria] = (porMes[m][t.categoria] || 0) + Math.abs(t.valor)
+    const mesKey = t.data_hora.slice(0, 7)
+    if (!porMes[mesKey]) porMes[mesKey] = {}
+    porMes[mesKey][t.categoria] = (porMes[mesKey][t.categoria] || 0) + Math.abs(t.valor)
   }
-  const meses = Object.keys(porMes)
+  const mesesComDados = Object.keys(porMes)
   const mediaCategoria: Record<string, number> = {}
   for (const cat of new Set((transacoes || []).map(t => t.categoria))) {
-    const total = meses.reduce((a, m) => a + (porMes[m][cat] || 0), 0)
-    mediaCategoria[cat] = total / Math.max(meses.length, 1)
+    const total = mesesComDados.reduce((a, mk) => a + (porMes[mk][cat] || 0), 0)
+    mediaCategoria[cat] = total / Math.max(mesesComDados.length, 1)
   }
 
   const prioridades = Array.isArray(profile?.prioridades) ? profile.prioridades : []
 
-  const prompt = `
-Você é um consultor financeiro pessoal analisando o orçamento de ${profile?.nome || 'um usuário'}.
+  const prompt = `Você é um consultor financeiro pessoal analisando o orçamento de ${profile?.nome || 'um usuário'}.
 
 === HISTÓRICO (média mensal últimos 3 meses) ===
 ${Object.entries(mediaCategoria).map(([cat, val]) => `- ${cat}: R$ ${val.toFixed(2)}`).join('\n') || 'Sem histórico ainda'}
@@ -54,36 +82,46 @@ ${(orcamentos || []).map(o => `- ${o.categoria}: R$ ${o.valor_planejado}`).join(
 ${prioridades.map((p: { ordem: number; titulo: string }) => `${p.ordem}. ${p.titulo}`).join('\n') || 'Não definidas'}
 
 Analise os gastos e sugira ajustes de orçamento para ajudar o usuário a atingir suas prioridades mais rápido.
-Responda SOMENTE com JSON no formato:
-{
-  "analise": "Análise concisa em 2-3 linhas sobre o padrão de gastos",
-  "sugestoes": [
-    { "categoria": "Nome", "valor_sugerido": 0, "motivo": "Motivo curto" }
-  ]
-}
-Inclua apenas categorias que precisam de ajuste. Máximo 5 sugestões.`
+Responda SOMENTE com JSON válido no formato abaixo, sem texto adicional:
+{"analise":"Análise concisa em 2-3 linhas","sugestoes":[{"categoria":"Nome","valor_sugerido":0,"motivo":"Motivo curto"}]}`
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
-  if (anthropicKey) {
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 800, messages: [{ role: 'user', content: prompt }] }),
-      })
-      const data = await res.json()
-      if (res.ok && data.content?.[0]?.text) {
-        try {
-          const json = JSON.parse(data.content[0].text.replace(/```json\n?|\n?```/g, '').trim())
-          return NextResponse.json({ ok: true, ...json })
-        } catch { /* parse error, fall through */ }
-      }
-    } catch { /* network error, fall through */ }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    })
+
+    const apiData = await res.json()
+
+    if (!res.ok) {
+      const msg = apiData?.error?.message || `Erro HTTP ${res.status}`
+      return NextResponse.json({ ok: false, analise: `Erro da API: ${msg}`, sugestoes: [] })
+    }
+
+    const text: string = apiData.content?.[0]?.text || ''
+    if (!text) {
+      return NextResponse.json({ ok: false, analise: 'Resposta vazia da IA.', sugestoes: [] })
+    }
+
+    const parsed = extrairJSON(text)
+    if (!parsed) {
+      // Retorna o texto bruto como análise se não conseguiu parsear
+      return NextResponse.json({ ok: true, analise: text.slice(0, 500), sugestoes: [] })
+    }
+
+    return NextResponse.json({ ok: true, ...parsed })
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erro de conexão'
+    return NextResponse.json({ ok: false, analise: `Erro ao contactar IA: ${msg}`, sugestoes: [] })
   }
-
-  return NextResponse.json({
-    ok: true,
-    analise: 'Configure ANTHROPIC_API_KEY para ativar análises automáticas.',
-    sugestoes: [],
-  })
 }
