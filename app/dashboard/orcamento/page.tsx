@@ -159,11 +159,16 @@ export default function OrcamentoPage() {
   }
 
   async function aplicarSugestao(s: SugestaoIA) {
-    await fetch('/api/orcamento', {
+    const res = await fetch('/api/orcamento', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ categoria: s.categoria, valor_planejado: s.valor_sugerido, mes }),
     })
+    const data = await res.json()
+    if (!res.ok || data.error) {
+      alert(`Erro ao aplicar sugestão: ${data.error || res.statusText}`)
+      return
+    }
     carregar()
   }
 
