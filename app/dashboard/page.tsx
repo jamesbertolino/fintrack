@@ -8,6 +8,7 @@ import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import MissoesWidget from '@/components/MissoesWidget'
 import TourGuiado from '@/components/TourGuiado'
+import ExtratoXP from '@/components/ExtratoXP'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel, getNomeNivel } from '@/lib/calcularXP'
@@ -36,6 +37,7 @@ interface Profile {
   avatar_url?: string | null
   setup_completo?: boolean
   prioridades?: PrioridadeComMetrica[]
+  xp_bonus?: number
 }
 
 interface Conta {
@@ -98,7 +100,8 @@ export default function Dashboard() {
   const [contas, setContas]         = useState<Conta[]>([])
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
-  const [iaAnalisando, setIaAnalisando] = useState(false)
+  const [iaAnalisando, setIaAnalisando]   = useState(false)
+  const [extratoXPAberto, setExtratoXP]   = useState(false)
 
   // Em mobile sidebar começa fechada, em desktop aberta
   const [sidebarAberta, setSidebar] = useState(true)
@@ -107,7 +110,7 @@ useEffect(() => {
   setSidebar(!isMobile) // eslint-disable-line react-hooks/set-state-in-effect
 }, [isMobile])
 
-  const xp           = calcularXP({ transacoes, metas })
+  const xp           = calcularXP({ transacoes, metas, xpBonus: profile?.xp_bonus || 0 })
   const { receitas, despesas, saldo } = xp
   const xpTotal      = xp.xpTotal
   const nivel        = calcularNivel(xpTotal)
@@ -155,7 +158,7 @@ useEffect(() => {
     if (!user) { router.push('/login'); return }
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
-      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo').eq('id', user.id).single(),
+      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus').eq('id', user.id).single(),
       supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
@@ -268,6 +271,21 @@ useEffect(() => {
 
       {/* ── Tour guiado (primeira vez) ── */}
       <TourGuiado />
+
+      {/* ── Extrato de XP ── */}
+      {extratoXPAberto && (
+        <ExtratoXP
+          xpTotal={xpTotal}
+          xpTransacoes={xp.xpTransacoes}
+          xpSaldo={xp.xpSaldo}
+          xpBonus={profile?.xp_bonus || 0}
+          saldo={saldo}
+          transacoesCount={transacoes.length}
+          metasAtivas={metas.filter(m2 => m2.ativo === true && m2.valor_atual < m2.valor_total).length}
+          metasConcluidas={metas.filter(m2 => m2.valor_atual >= m2.valor_total).length}
+          onFechar={() => setExtratoXP(false)}
+        />
+      )}
 
       {/* ── Sidebar ── */}
       <aside data-tour="tour-sidebar" style={{
@@ -476,20 +494,24 @@ useEffect(() => {
                   { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2] },
                   { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,           icone: tx.metIcones[3] },
                 ] as const).map(card => (
-                  <div key={card.label} style={{
-                    background: cores.cardBg,
-                    border: `1px solid ${cores.cardBorder}`,
-                    borderRadius: 10,
-                    padding: '10px 12px',
-                    boxShadow: cores.cardShadow,
-                  }}>
+                  <div key={card.label}
+                    onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : undefined}
+                    style={{
+                      background: cores.cardBg,
+                      border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : cores.cardBorder}`,
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      boxShadow: cores.cardShadow,
+                      cursor: card.label === tx.metLabels[3] ? 'pointer' : 'default',
+                      transition: 'border-color .2s',
+                    }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 9, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
                       <span style={{ fontSize: 12 }}>{card.icone}</span>
                     </div>
                     <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums' }}>{card.val}</div>
                     {card.label === tx.metLabels[3] && (
-                      <div style={{ fontSize: 9, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}%</div>
+                      <div style={{ fontSize: 9, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
                   </div>
                 ))}
