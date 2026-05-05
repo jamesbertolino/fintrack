@@ -96,7 +96,7 @@ export default function OrcamentoPage() {
     setLoading(false)
   }, [mes])
 
-  useEffect(() => { carregar() }, [carregar])
+  useEffect(() => { carregar() }, [carregar]) // eslint-disable-line react-hooks/set-state-in-effect
 
   async function analisarIA() {
     setCarregandoIA(true)
