@@ -146,7 +146,7 @@ export default function TourGuiado({ onConcluido }: Props) {
 
   useEffect(() => {
     if (!ativo) return
-    atualizarSpotlight()
+    atualizarSpotlight() // eslint-disable-line react-hooks/set-state-in-effect
     // Re-calcula no resize
     window.addEventListener('resize', atualizarSpotlight)
     return () => window.removeEventListener('resize', atualizarSpotlight)
