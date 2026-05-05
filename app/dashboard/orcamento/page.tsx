@@ -251,22 +251,69 @@ export default function OrcamentoPage() {
         )}
 
         {/* ── Cards de sumário ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
-          {[
-            { label: m ? 'Tesouro Planejado' : 'Total Planejado', val: fmtBRL(totalPlanejado), sub: `${orcamentos.length} categorias`, cor: accentColor, icone: m ? '📜' : '📋' },
-            { label: m ? 'Gastos Realizados' : 'Total Realizado', val: fmtBRL(totalRealizado), sub: totalPlanejado > 0 ? `${Math.round((totalRealizado / totalPlanejado) * 100)}% do planejado` : '—', cor: totalRealizado > totalPlanejado ? '#f87171' : cores.accent, icone: m ? '⚔️' : '💸' },
-            { label: m ? 'Saldo do Tesouro'  : 'Economia',        val: fmtBRL(Math.abs(economia)), sub: economia >= 0 ? 'dentro do orçamento' : 'acima do orçamento', cor: economia >= 0 ? '#4ade80' : '#f87171', icone: economia >= 0 ? '✅' : '⚠️' },
-            { label: m ? 'Frentes de Batalha' : 'Acima do Limite', val: String(categoriasAcima), sub: `categoria${categoriasAcima !== 1 ? 's' : ''} excedida${categoriasAcima !== 1 ? 's' : ''}`, cor: categoriasAcima > 0 ? '#f87171' : '#4ade80', icone: categoriasAcima > 0 ? '🔴' : '🟢' },
-          ].map(card => (
-            <div key={card.label} style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 10, padding: '12px 14px', boxShadow: cores.cardShadow }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <span style={{ fontSize: 9, color: cores.textMuted, textTransform: 'uppercase', letterSpacing: '.05em', lineHeight: 1.4 }}>{card.label}</span>
-                <span style={{ fontSize: 14 }}>{card.icone}</span>
-              </div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: card.cor, fontVariantNumeric: 'tabular-nums' }}>{card.val}</div>
-              <div style={{ fontSize: 10, color: cores.textFaint, marginTop: 3 }}>{card.sub}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+
+          {/* Card 1 — Total Planejado */}
+          <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 10, padding: '14px 16px', boxShadow: cores.cardShadow }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>{m ? 'Tesouro Planejado' : 'Total Planejado'}</span>
+              <span style={{ fontSize: 16 }}>{m ? '📜' : '📋'}</span>
             </div>
-          ))}
+            <div style={{ fontSize: 22, fontWeight: 700, color: accentColor, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>{fmtBRL(totalPlanejado)}</div>
+            <div style={{ fontSize: 10, color: cores.textFaint }}>{orcamentos.length} categoria{orcamentos.length !== 1 ? 's' : ''} configurada{orcamentos.length !== 1 ? 's' : ''}</div>
+          </div>
+
+          {/* Card 2 — Total Realizado */}
+          <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 10, padding: '14px 16px', boxShadow: cores.cardShadow }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>{m ? 'Gastos Realizados' : 'Total Realizado'}</span>
+              <span style={{ fontSize: 16 }}>{m ? '⚔️' : '💸'}</span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: totalRealizado > totalPlanejado ? '#f87171' : cores.text, fontVariantNumeric: 'tabular-nums', marginBottom: 4 }}>
+              {fmtBRL(totalRealizado)}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 10, color: cores.textFaint }}>
+                {totalPlanejado > 0 ? `${Math.round((totalRealizado / totalPlanejado) * 100)}% do planejado` : '—'}
+              </div>
+              {totalPlanejado > 0 && (
+                <div style={{ marginTop: 6, height: 3, background: cores.border, borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, Math.round((totalRealizado / totalPlanejado) * 100))}%`, background: totalRealizado > totalPlanejado ? '#f87171' : '#4ade80', borderRadius: 2 }} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Card 3 — Economia (saldo líquido + categorias excedidas) */}
+          <div style={{
+            background: cores.cardBg,
+            border: `1px solid ${economia >= 0 ? '#4ade8033' : '#f8717133'}`,
+            borderRadius: 10, padding: '14px 16px', boxShadow: cores.cardShadow,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <span style={{ fontSize: 9, fontWeight: 600, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>{m ? 'Saldo do Tesouro' : 'Economia'}</span>
+              <span style={{ fontSize: 16 }}>{economia >= 0 ? '✅' : '⚠️'}</span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: economia >= 0 ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums', marginBottom: 6 }}>
+              {economia >= 0 ? '+' : '-'}{fmtBRL(Math.abs(economia))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 10, color: cores.textFaint }}>
+                {economia >= 0 ? (m ? 'Tesouro protegido' : 'Dentro do orçamento') : (m ? 'Tesouro comprometido' : 'Acima do orçamento')}
+              </span>
+              {categoriasAcima > 0 && (
+                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, fontWeight: 600, background: 'rgba(248,113,113,.12)', color: '#f87171' }}>
+                  {categoriasAcima} excedida{categoriasAcima !== 1 ? 's' : ''}
+                </span>
+              )}
+              {categoriasAcima === 0 && orcamentos.length > 0 && (
+                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, fontWeight: 600, background: 'rgba(74,222,128,.1)', color: '#4ade80' }}>
+                  todas OK
+                </span>
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* ── Tabela de orçamento ── */}
