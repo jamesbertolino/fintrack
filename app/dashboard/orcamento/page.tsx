@@ -84,6 +84,9 @@ export default function OrcamentoPage() {
   const [carregandoIA, setCarregandoIA] = useState(false)
   const [iaAberto, setIaAberto]       = useState(false)
 
+  // Confirmação de sugestão sem orçamento definido
+  const [confirmSugestao, setConfirmSugestao] = useState<SugestaoIA | null>(null)
+
   const accentColor = m ? '#D4AF37' : cores.accent
   const accentMuted = m ? 'rgba(212,175,55,.6)' : `${cores.accent}99`
   const fontDisplay = m ? 'var(--font-cinzel, Georgia, serif)' : 'inherit'
@@ -159,6 +162,15 @@ export default function OrcamentoPage() {
   }
 
   async function aplicarSugestao(s: SugestaoIA) {
+    const jaExiste = orcamentos.find(o => o.categoria === s.categoria)
+    if (!jaExiste) {
+      setConfirmSugestao(s)
+      return
+    }
+    await _salvarSugestao(s)
+  }
+
+  async function _salvarSugestao(s: SugestaoIA) {
     const res = await fetch('/api/orcamento', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -493,6 +505,73 @@ export default function OrcamentoPage() {
         </div>
 
       </div>
+
+      {/* ── Modal: sugestão sem orçamento definido ── */}
+      {confirmSugestao && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => setConfirmSugestao(null)}>
+          <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, padding: '28px 28px 24px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* Ícone + título */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <span style={{ fontSize: 26 }}>{m ? '⚠️' : '💡'}</span>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: cores.text, fontFamily: fontDisplay }}>
+                  {m ? 'Entrada sem registro no Livro' : 'Sem orçamento definido'}
+                </div>
+                <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 2 }}>
+                  Categoria: <strong>{confirmSugestao.categoria}</strong>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: cores.textMuted, lineHeight: 1.65, marginBottom: 18 }}>
+              Não há nenhum valor planejado para <strong style={{ color: cores.text }}>{confirmSugestao.categoria}</strong> neste mês.
+              {' '}A IA sugere <strong style={{ color: accentColor }}>{fmtBRL(confirmSugestao.valor_sugerido)}</strong> como orçamento.
+            </p>
+            <p style={{ fontSize: 12, color: cores.textFaint, lineHeight: 1.6, marginBottom: 22, padding: '10px 12px', background: `${accentColor}0d`, border: `1px solid ${accentColor}22`, borderRadius: 8 }}>
+              💬 {confirmSugestao.motivo}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Opção 1: usar a sugestão */}
+              <button
+                onClick={async () => { setConfirmSugestao(null); await _salvarSugestao(confirmSugestao) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: `${accentColor}18`, border: `1px solid ${accentColor}55`, borderRadius: 10, color: accentColor, fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ fontSize: 18 }}>✅</span>
+                <div>
+                  <div>Usar {fmtBRL(confirmSugestao.valor_sugerido)} como valor inicial</div>
+                  <div style={{ fontSize: 11, fontWeight: 400, opacity: .8, marginTop: 1 }}>Aplica a sugestão da IA direto no orçamento</div>
+                </div>
+              </button>
+
+              {/* Opção 2: definir manualmente */}
+              <button
+                onClick={() => {
+                  setConfirmSugestao(null)
+                  setNovaCategoria(confirmSugestao.categoria)
+                  setNovoValor(String(confirmSugestao.valor_sugerido))
+                  setFormAberto(true)
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 10, color: cores.text, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ fontSize: 18 }}>✏️</span>
+                <div>
+                  <div>Definir valor manualmente</div>
+                  <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 1 }}>Abre o formulário com a categoria pré-selecionada</div>
+                </div>
+              </button>
+
+              {/* Cancelar */}
+              <button
+                onClick={() => setConfirmSugestao(null)}
+                style={{ padding: '9px', background: 'transparent', border: 'none', color: cores.textFaint, fontSize: 12, cursor: 'pointer', borderRadius: 8 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
