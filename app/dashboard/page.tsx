@@ -276,13 +276,11 @@ useEffect(() => {
       {extratoXPAberto && (
         <ExtratoXP
           xpTotal={xpTotal}
-          xpTransacoes={xp.xpTransacoes}
           xpSaldo={xp.xpSaldo}
           xpBonus={profile?.xp_bonus || 0}
           saldo={saldo}
-          transacoesCount={transacoes.length}
-          metasAtivas={metas.filter(m2 => m2.ativo === true && m2.valor_atual < m2.valor_total).length}
-          metasConcluidas={metas.filter(m2 => m2.valor_atual >= m2.valor_total).length}
+          transacoes={transacoes}
+          metas={metas}
           onFechar={() => setExtratoXP(false)}
         />
       )}
