@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
+function sanitizarJSON(raw: string): string {
+  // Remove prefixos monetários dentro de valores JSON: "valor": R$ 123.45 → "valor": 123.45
+  return raw
+    .replace(/:\s*R\$\s*([\d.,]+)/g, (_, n) => ': ' + parseFloat(n.replace(',', '.').replace(/\.(?=\d{3})/g, '')))
+    // Remove texto após o fechamento do objeto principal
+    .replace(/\}\s*[^}]*$/, '}')
+}
+
 function extrairJSON(text: string): { analise: string; sugestoes: unknown[] } | null {
   const candidatos = [
     text.match(/```(?:json)?\s*([\s\S]*?)```/)?.[1],
@@ -9,10 +17,23 @@ function extrairJSON(text: string): { analise: string; sugestoes: unknown[] } | 
   ]
   for (const raw of candidatos) {
     if (!raw) continue
-    try {
-      const parsed = JSON.parse(raw.trim())
-      if (typeof parsed.analise === 'string') return parsed
-    } catch { /* continua */ }
+    for (const tentativa of [raw.trim(), sanitizarJSON(raw.trim())]) {
+      try {
+        const parsed = JSON.parse(tentativa)
+        if (typeof parsed.analise === 'string') {
+          // Garante que valor_sugerido é sempre número
+          if (Array.isArray(parsed.sugestoes)) {
+            parsed.sugestoes = parsed.sugestoes.map((s: Record<string, unknown>) => ({
+              ...s,
+              valor_sugerido: typeof s.valor_sugerido === 'string'
+                ? parseFloat(String(s.valor_sugerido).replace(/[^0-9.,]/g, '').replace(',', '.'))
+                : Number(s.valor_sugerido) || 0,
+            }))
+          }
+          return parsed
+        }
+      } catch { /* continua */ }
+    }
   }
   return null
 }
@@ -133,8 +154,9 @@ INSTRUÇÕES:
 - Indique quais categorias reduzir e por quanto, justificando com base nas prioridades
 - Não sugira cortes irreais (máximo 40% de redução por categoria)
 - Se não houver prioridades definidas, sugira um orçamento equilibrado baseado no histórico
-- Responda APENAS com JSON válido no formato:
-{"analise":"2-3 frases sobre o padrão de gastos e quanto precisa economizar para as prioridades","sugestoes":[{"categoria":"Nome","valor_sugerido":0,"motivo":"Como este ajuste ajuda a prioridade X"}]}`
+- Responda APENAS com JSON válido, sem texto antes ou depois
+- valor_sugerido deve ser SEMPRE um número puro, NUNCA use "R$" ou vírgulas — ex: 1500.00
+{"analise":"2-3 frases sobre o padrão de gastos e quanto precisa economizar para as prioridades","sugestoes":[{"categoria":"Nome","valor_sugerido":1500.00,"motivo":"Como este ajuste ajuda a prioridade X"}]}`
 
   let texto: string | undefined
   let erroMsg = ''
