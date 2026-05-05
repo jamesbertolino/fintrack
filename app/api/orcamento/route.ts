@@ -42,11 +42,41 @@ export async function POST(request: NextRequest) {
   if (!categoria || valor_planejado == null || !mes)
     return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 })
 
-  const { data, error } = await supabase.from('orcamentos').upsert(
-    { user_id: user.id, categoria, valor_planejado, mes },
-    { onConflict: 'user_id,categoria,mes' }
-  ).select().single()
+  // Tenta atualizar primeiro; se não existir, insere
+  const { data: existing } = await supabase
+    .from('orcamentos')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('categoria', categoria)
+    .eq('mes', mes)
+    .maybeSingle()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true, orcamento: data })
+  let saveError
+  let saved
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from('orcamentos')
+      .update({ valor_planejado })
+      .eq('id', existing.id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+    saveError = error
+    saved = data
+  } else {
+    const { data, error } = await supabase
+      .from('orcamentos')
+      .insert({ user_id: user.id, categoria, valor_planejado, mes })
+      .select()
+      .single()
+    saveError = error
+    saved = data
+  }
+
+  if (saveError) {
+    console.error('[orcamento POST]', saveError)
+    return NextResponse.json({ error: saveError.message, details: saveError.details, hint: saveError.hint }, { status: 500 })
+  }
+  return NextResponse.json({ ok: true, orcamento: saved })
 }
