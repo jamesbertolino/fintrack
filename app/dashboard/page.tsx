@@ -7,6 +7,7 @@ import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import MissoesWidget from '@/components/MissoesWidget'
+import TourGuiado from '@/components/TourGuiado'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel, getNomeNivel } from '@/lib/calcularXP'
@@ -220,12 +221,12 @@ useEffect(() => {
 
   const NAV_ITEMS = [
     { id: 'inicio',       label: m ? 'Salão do Reino'   : 'Início',          icon: m ? '🏰' : '🏠' },
-    { id: 'lancamento',   label: m ? 'Livro do Tesouro' : 'Lançamentos',     icon: m ? '📜' : '📝', href: '/dashboard/lancamento' },
-    { id: 'gastos',       label: m ? 'Batalhas'         : 'Gastos',          icon: m ? '⚔️' : '💸', href: '/dashboard/gastos' },
-    { id: 'orcamento',    label: m ? 'Edito do Reino'   : 'Orçamento',       icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento' },
-    { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas' },
-    { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia' },
-    { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes' },
+    { id: 'lancamento',   label: m ? 'Livro do Tesouro' : 'Lançamentos',     icon: m ? '📜' : '📝', href: '/dashboard/lancamento',    tour: 'tour-nav-lancamento' },
+    { id: 'gastos',       label: m ? 'Batalhas'         : 'Gastos',          icon: m ? '⚔️' : '💸', href: '/dashboard/gastos',         tour: 'tour-nav-gastos' },
+    { id: 'orcamento',    label: m ? 'Edito do Reino'   : 'Orçamento',       icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento',      tour: 'tour-nav-orcamento' },
+    { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas',          tour: 'tour-nav-metas' },
+    { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia',             tour: 'tour-nav-ia' },
+    { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes',   tour: 'tour-nav-notificacoes' },
     { id: 'evolucao',     label: m ? 'Jornada do Herói' : 'Evolução',        icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },
     { id: 'contas',       label: m ? 'Cofres do Reino'  : 'Contas',          icon: m ? '💰' : '🏦', href: '/dashboard/contas' },
   ]
@@ -265,8 +266,11 @@ useEffect(() => {
         />
       )}
 
+      {/* ── Tour guiado (primeira vez) ── */}
+      <TourGuiado />
+
       {/* ── Sidebar ── */}
-      <aside style={{
+      <aside data-tour="tour-sidebar" style={{
         width: sidebarWidth,
         background: cores.sidebarBg,
         borderRight: `1px solid ${cores.border}`,
@@ -310,6 +314,7 @@ useEffect(() => {
 
           {NAV_ITEMS.slice(0, 4).map(item => (
             <button key={item.id}
+              {...('tour' in item && item.tour ? { 'data-tour': item.tour } : {})}
               onClick={() => {
                 if ('href' in item && item.href) router.push(item.href)
                 else setPagina(item.id)
@@ -341,6 +346,7 @@ useEffect(() => {
 
           {NAV_ITEMS.slice(4).map(item => (
             <button key={item.id}
+              {...('tour' in item && item.tour ? { 'data-tour': item.tour } : {})}
               onClick={() => {
                 if ('href' in item && item.href) router.push(item.href)
                 else setPagina(item.id)
@@ -463,7 +469,7 @@ useEffect(() => {
               </div>
 
               {/* Cards métricas — 2 colunas em mobile, 4 em desktop */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
+              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
                 {([
                   { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0] },
                   { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1] },
