@@ -28,7 +28,18 @@ export async function GET(request: NextRequest) {
     realizado[t.categoria] = (realizado[t.categoria] || 0) + Math.abs(t.valor)
   }
 
-  return NextResponse.json({ orcamentos: orcamentos || [], realizado })
+  // Categorias com histórico de gastos (para sugerir no formulário)
+  const { data: historicoRaw } = await supabase
+    .from('transactions')
+    .select('categoria')
+    .eq('user_id', user.id)
+    .eq('tipo', 'debito')
+    .gte('data_hora', new Date(ano, mm - 4, 1).toISOString()) // últimos 3 meses
+    .lt('data_hora', new Date(ano, mm, 1).toISOString())
+
+  const categoriasHistorico = [...new Set((historicoRaw || []).map(t => t.categoria))].sort()
+
+  return NextResponse.json({ orcamentos: orcamentos || [], realizado, categoriasHistorico })
 }
 
 // POST /api/orcamento — upsert

@@ -17,14 +17,13 @@ interface SugestaoIA {
   motivo: string
 }
 
-const CATEGORIAS_DESPESA = [
-  'Alimentação', 'Transporte', 'Lazer', 'Saúde',
-  'Moradia', 'Educação', 'Outros',
-]
-
 const CORES_CAT: Record<string, string> = {
   'Alimentação': '#4ade80', 'Transporte': '#22d3ee', 'Lazer': '#f97316',
   'Saúde': '#a78bfa', 'Moradia': '#fbbf24', 'Educação': '#60a5fa', 'Outros': '#6b7280',
+}
+
+function corCategoria(cat: string): string {
+  return CORES_CAT[cat] || '#8b5cf6'
 }
 
 function mesLabel(mes: string) {
@@ -56,8 +55,9 @@ export default function OrcamentoPage() {
 
   const mesAtual = new Date().toISOString().slice(0, 7)
   const [mes, setMes]                 = useState(mesAtual)
-  const [orcamentos, setOrcamentos]   = useState<Orcamento[]>([])
-  const [realizado, setRealizado]     = useState<Record<string, number>>({})
+  const [orcamentos, setOrcamentos]         = useState<Orcamento[]>([])
+  const [realizado, setRealizado]           = useState<Record<string, number>>({})
+  const [categoriasHistorico, setCategoriasHistorico] = useState<string[]>([])
   const [loading, setLoading]         = useState(true)
   const [salvando, setSalvando]       = useState<string | null>(null)
   const [deletando, setDeletando]     = useState<string | null>(null)
@@ -89,6 +89,7 @@ export default function OrcamentoPage() {
     const data = await res.json()
     setOrcamentos(data.orcamentos || [])
     setRealizado(data.realizado || {})
+    setCategoriasHistorico(data.categoriasHistorico || [])
     setLoading(false)
   }, [mes])
 
@@ -177,7 +178,9 @@ export default function OrcamentoPage() {
   const totalRealizado  = orcamentos.reduce((a, o) => a + (realizado[o.categoria] || 0), 0)
   const economia        = totalPlanejado - totalRealizado
   const categoriasAcima = orcamentos.filter(o => (realizado[o.categoria] || 0) > o.valor_planejado).length
-  const categoriasDisponiveis = CATEGORIAS_DESPESA.filter(c => !orcamentos.find(o => o.categoria === c))
+  // Categorias disponíveis = do histórico + não cadastradas ainda neste mês
+  const todasCategorias = [...new Set([...categoriasHistorico])]
+  const categoriasDisponiveis = todasCategorias.filter(c => !orcamentos.find(o => o.categoria === c))
 
   const inp: React.CSSProperties = {
     padding: '7px 10px', background: cores.inputBg, border: `1px solid ${cores.inputBorder}`,
@@ -268,7 +271,7 @@ export default function OrcamentoPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {sugestoesIA.map((s, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 8 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES_CAT[s.categoria] || '#6b7280', flexShrink: 0, marginTop: 3 }} />
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: corCategoria(s.categoria), flexShrink: 0, marginTop: 3 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <span style={{ fontWeight: 600, color: cores.text }}>{s.categoria}</span>
                             <span style={{ color: cores.textMuted }}> → {fmtBRL(s.valor_sugerido)}</span>
@@ -376,7 +379,7 @@ export default function OrcamentoPage() {
 
                   {/* Categoria + status (mobile: topo) */}
                   <div className="orc-row-top" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES_CAT[o.categoria] || '#6b7280', flexShrink: 0 }} />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: corCategoria(o.categoria), flexShrink: 0 }} />
                     <span style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{o.categoria}</span>
                     {/* Status badge — visível só no mobile dentro deste div */}
                     <span className="orc-status-mobile" style={{ display: 'none', fontSize: 10, padding: '2px 7px', borderRadius: 20, fontWeight: 600, background: st.bg, color: st.cor, marginLeft: 'auto' }}>{st.label}</span>

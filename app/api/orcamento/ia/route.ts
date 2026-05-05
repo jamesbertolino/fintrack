@@ -21,7 +21,7 @@ async function chamarAnthropic(prompt: string, key: string) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`)
@@ -32,7 +32,7 @@ async function chamarOpenAI(prompt: string, key: string) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-    body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`)
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
   const mes = request.nextUrl.searchParams.get('mes') || new Date().toISOString().slice(0, 7)
   const [ano, mm] = mes.split('-').map(Number)
 
+  // Últimos 3 meses para calcular média
   const tresAtras = mm <= 3
     ? `${ano - 1}-${String(mm + 9).padStart(2, '0')}`
     : `${ano}-${String(mm - 3).padStart(2, '0')}`
@@ -67,6 +68,7 @@ export async function GET(request: NextRequest) {
     supabase.from('orcamentos').select('categoria, valor_planejado').eq('user_id', user.id).eq('mes', mes),
   ])
 
+  // Médias mensais por categoria
   const porMes: Record<string, Record<string, number>> = {}
   for (const t of transacoes || []) {
     const mk = t.data_hora.slice(0, 7)
@@ -80,21 +82,59 @@ export async function GET(request: NextRequest) {
     mediaCategoria[cat] = total / Math.max(mesesComDados.length, 1)
   }
 
-  const prioridades = Array.isArray(profile?.prioridades) ? profile.prioridades : []
+  const totalMedioMensal = Object.values(mediaCategoria).reduce((a, v) => a + v, 0)
 
-  const prompt = `Você é um consultor financeiro pessoal analisando o orçamento de ${profile?.nome || 'um usuário'}.
+  // Prioridades ordenadas do perfil
+  interface Prioridade {
+    ordem: number
+    titulo: string
+    valor_alvo?: number
+    valor_atual?: number
+    contribuicao_mensal?: number
+    prazo_meses?: number
+  }
+  const prioridades: Prioridade[] = Array.isArray(profile?.prioridades)
+    ? [...profile.prioridades].sort((a, b) => a.ordem - b.ordem)
+    : []
 
-HISTÓRICO (média mensal últimos 3 meses):
-${Object.entries(mediaCategoria).map(([c, v]) => `- ${c}: R$ ${v.toFixed(2)}`).join('\n') || 'Sem histórico'}
+  // Calcula quanto seria necessário poupar mensalmente para cada prioridade
+  const metasMensais = prioridades.map(p => {
+    const falta = (p.valor_alvo || 0) - (p.valor_atual || 0)
+    const prazo = p.prazo_meses || 12
+    const necessario = falta > 0 ? Math.ceil(falta / prazo) : 0
+    return { titulo: p.titulo, ordem: p.ordem, necessario, contribuicao_mensal: p.contribuicao_mensal || 0 }
+  }).filter(p => p.necessario > 0 || p.contribuicao_mensal > 0)
 
-ORÇAMENTO ATUAL (${mes}):
-${(orcamentos || []).map(o => `- ${o.categoria}: R$ ${o.valor_planejado}`).join('\n') || 'Nenhum definido'}
+  const totalNecessario = metasMensais.reduce((a, p) => a + Math.max(p.necessario, p.contribuicao_mensal), 0)
 
-PRIORIDADES DO USUÁRIO:
-${prioridades.map((p: { ordem: number; titulo: string }) => `${p.ordem}. ${p.titulo}`).join('\n') || 'Não definidas'}
+  const prompt = `Você é um consultor financeiro pessoal. Analise os gastos de ${profile?.nome || 'este usuário'} e sugira um orçamento otimizado para ${mes} que respeite as prioridades do usuário.
 
-Sugira ajustes de orçamento para atingir as prioridades mais rápido. Responda APENAS com JSON válido:
-{"analise":"2-3 linhas sobre o padrão de gastos","sugestoes":[{"categoria":"Nome","valor_sugerido":0,"motivo":"Motivo curto"}]}`
+GASTO MÉDIO MENSAL POR CATEGORIA (últimos 3 meses):
+${Object.entries(mediaCategoria).map(([c, v]) => `- ${c}: R$ ${v.toFixed(2)}`).join('\n') || '- Sem histórico suficiente'}
+
+TOTAL MÉDIO MENSAL DE GASTOS: R$ ${totalMedioMensal.toFixed(2)}
+
+ORÇAMENTO ATUAL DEFINIDO PARA ${mes}:
+${(orcamentos || []).map(o => `- ${o.categoria}: R$ ${o.valor_planejado}`).join('\n') || '- Nenhum definido'}
+
+PRIORIDADES DO USUÁRIO (em ordem de importância):
+${prioridades.length > 0
+  ? prioridades.map(p => {
+      const falta = (p.valor_alvo || 0) - (p.valor_atual || 0)
+      return `${p.ordem}. ${p.titulo}${p.valor_alvo ? ` — meta: R$ ${p.valor_alvo}, falta: R$ ${falta.toFixed(2)}, prazo: ${p.prazo_meses || 12} meses` : ''}`
+    }).join('\n')
+  : '- Não definidas'}
+
+${metasMensais.length > 0 ? `ECONOMIA MENSAL NECESSÁRIA PARA ATINGIR AS METAS: R$ ${totalNecessario.toFixed(2)}` : ''}
+
+INSTRUÇÕES:
+- Sugira ajustes nas categorias de gasto para liberar economia suficiente para as prioridades acima
+- Prioridade 1 é a mais importante: garanta que a economia necessária para ela seja preservada primeiro
+- Indique quais categorias reduzir e por quanto, justificando com base nas prioridades
+- Não sugira cortes irreais (máximo 40% de redução por categoria)
+- Se não houver prioridades definidas, sugira um orçamento equilibrado baseado no histórico
+- Responda APENAS com JSON válido no formato:
+{"analise":"2-3 frases sobre o padrão de gastos e quanto precisa economizar para as prioridades","sugestoes":[{"categoria":"Nome","valor_sugerido":0,"motivo":"Como este ajuste ajuda a prioridade X"}]}`
 
   let texto: string | undefined
   let erroMsg = ''
