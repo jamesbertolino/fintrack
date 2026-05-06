@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { calcularXP, calcularNivel, NIVEIS } from '@/lib/calcularXP'
 import { CONQUISTAS } from '@/lib/conquistas'
+import ExtratoXP from '@/components/ExtratoXP'
 
 interface Transacao {
   id: string
+  descricao: string
   valor: number
   tipo: 'debito' | 'credito'
   categoria: string
@@ -55,6 +57,7 @@ export default function EvolucaoPage() {
   const [abaSel, setAbaSel]         = useState<'visao' | 'conquistas' | 'ranking'>('visao')
   const [ranking, setRanking]       = useState<MembroRanking[]>([])
   const [rankingLoading, setRankingLoading] = useState(false)
+  const [extratoAberto, setExtrato] = useState(false)
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -146,6 +149,18 @@ export default function EvolucaoPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#080b0f', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
 
+      {extratoAberto && (
+        <ExtratoXP
+          xpTotal={xpTotal}
+          xpSaldo={xp.xpSaldo}
+          xpBonus={0}
+          saldo={saldo}
+          transacoes={transacoes}
+          metas={metas}
+          onFechar={() => setExtrato(false)}
+        />
+      )}
+
       {/* Topbar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: '1px solid #1e2d1e', background: '#0a1205' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -156,11 +171,16 @@ export default function EvolucaoPage() {
           <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
           <span style={{ fontSize: 15, fontWeight: 600, fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '.03em' }}>Evolução</span>
         </div>
-        {/* Total XP badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(212,160,23,.1)', border: '1px solid rgba(212,160,23,.25)', borderRadius: 20, padding: '4px 12px' }}>
+        {/* Total XP badge — clicável para abrir extrato */}
+        <button
+          onClick={() => setExtrato(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(212,160,23,.1)', border: '1px solid rgba(212,160,23,.25)', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', transition: 'all .15s' }}
+          title="Ver extrato de XP"
+        >
           <span style={{ fontSize: 12 }}>⚔</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#d4a017' }}>{xpTotal.toLocaleString()} XP</span>
-        </div>
+          <span style={{ fontSize: 10, color: 'rgba(212,160,23,.6)' }}>↗</span>
+        </button>
       </div>
 
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '1.5rem' }}>
@@ -196,10 +216,14 @@ export default function EvolucaoPage() {
                 Olá, <strong style={{ color: '#fff' }}>{nome}</strong> — Lv.{nivel.nivel} conquistado.
               </div>
             </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <button
+              onClick={() => setExtrato(true)}
+              style={{ textAlign: 'right', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              title="Ver extrato de XP"
+            >
               <div style={{ fontSize: 32, fontWeight: 800, color: '#d4a017', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{xpTotal.toLocaleString()}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginTop: 3 }}>XP total</div>
-            </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginTop: 3 }}>XP total · ver extrato ↗</div>
+            </button>
           </div>
 
           {/* Barra de XP RPG */}
