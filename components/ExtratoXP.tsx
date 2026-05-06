@@ -78,7 +78,7 @@ export default function ExtratoXP({
       titulo: t.descricao || t.categoria,
       subtitulo: `${t.tipo === 'credito' ? '+' : '-'}${fmtBRL(t.valor)} · ${t.categoria}`,
       xp: 10,
-      cor: t.tipo === 'credito' ? '#4ade80' : '#f87171',
+      cor: t.tipo === 'credito' ? cores.positive : cores.negative,
       data: t.data_hora,
       tipo: 'transacao',
     })

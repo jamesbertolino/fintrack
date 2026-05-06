@@ -239,7 +239,7 @@ body {
   background: #F9FAFB !important;
 }
 
-/* Texto branco → cinza escuro */
+/* ── Texto branco → cinza escuro ─────────────────────────────────────────── */
 [data-tema="claro"] [style*="color: #fff"],
 [data-tema="claro"] [style*="color: rgb(255, 255, 255)"],
 [data-tema="claro"] [style*="color: white"],
@@ -248,11 +248,93 @@ body {
   color: #111827 !important;
 }
 
-[data-tema="claro"] [style*="color: rgba(255,255,255,"] {
-  color: rgba(17,24,39,0.55) !important;
+/* Texto semitransparente branco → cinza com contraste adequado (WCAG AA) */
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.65)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.65)"] { color: rgba(17,24,39,0.75) !important; }
+
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.5)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.5)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.6)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.6)"] { color: rgba(17,24,39,0.65) !important; }
+
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.4)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.4)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.45)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.45)"] { color: rgba(17,24,39,0.55) !important; }
+
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.3)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.3)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.35)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.35)"] { color: rgba(17,24,39,0.45) !important; }
+
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.25)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.25)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,0.2)"],
+[data-tema="claro"] [style*="color: rgba(255,255,255,.2)"] { color: rgba(17,24,39,0.38) !important; }
+
+/* ── COR PRIMÁRIA: verde → azul (botões e estados ativos) ─────────────────── */
+/* Botões com fundo verde sólido → azul primário */
+[data-tema="claro"] [style*="background: #16a34a"] {
+  background: #2563EB !important;
+  color: #fff !important;
+}
+[data-tema="claro"] [style*="background: #15803d"] {
+  background: #1d4ed8 !important;
+  color: #fff !important;
+}
+/* Exceção: badges de nível de força de senha e elementos de dados puros —
+   quando dentro de barras de progresso, manter semântica verde */
+[data-tema="claro"] [style*="background: linear-gradient(90deg, #16a34a"] {
+  background: linear-gradient(90deg, #2563EB, #3b82f6) !important;
 }
 
-/* Bordas escuras → cinza claro */
+/* Fundo highlight ativo verde claro → azul claro */
+[data-tema="claro"] [style*="background: rgba(74,222,128,0.1)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,.1)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,0.12)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,.12)"] {
+  background: rgba(37,99,235,0.08) !important;
+}
+[data-tema="claro"] [style*="background: rgba(74,222,128,0.06)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,.06)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,0.03)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,.03)"] {
+  background: rgba(37,99,235,0.05) !important;
+}
+[data-tema="claro"] [style*="background: rgba(74,222,128,0.15)"],
+[data-tema="claro"] [style*="background: rgba(74,222,128,.15)"] {
+  background: rgba(37,99,235,0.10) !important;
+}
+
+/* ── TEXTO ACENTO: verde neon → azul primário ou verde escuro legível ─────── */
+/* Verde como COR DE AÇÃO / destaque → azul no tema claro */
+[data-tema="claro"] [style*="color: #4ade80"] { color: #15803d !important; }
+[data-tema="claro"] [style*="color: #22c55e"] { color: #15803d !important; }
+[data-tema="claro"] [style*="color: #16a34a"] { color: #2563EB !important; }
+
+/* Verde semitransparente */
+[data-tema="claro"] [style*="color: rgba(74,222,128,0.7)"],
+[data-tema="claro"] [style*="color: rgba(74,222,128,.7)"],
+[data-tema="claro"] [style*="color: rgba(74,222,128,0.6)"],
+[data-tema="claro"] [style*="color: rgba(74,222,128,.6)"] { color: rgba(21,128,61,0.85) !important; }
+
+[data-tema="claro"] [style*="color: rgba(74,222,128,0.4)"],
+[data-tema="claro"] [style*="color: rgba(74,222,128,.4)"],
+[data-tema="claro"] [style*="color: rgba(74,222,128,0.3)"] { color: rgba(21,128,61,0.55) !important; }
+
+/* ── VERMELHO SEMÂNTICO: mais legível no claro ─────────────────────────────── */
+[data-tema="claro"] [style*="color: #f87171"] { color: #dc2626 !important; }
+[data-tema="claro"] [style*="color: #ef4444"] { color: #dc2626 !important; }
+[data-tema="claro"] [style*="color: rgba(239,68,68"] { color: rgba(220,38,38,0.85) !important; }
+[data-tema="claro"] [style*="background: rgba(239,68,68,0.1)"],
+[data-tema="claro"] [style*="background: rgba(239,68,68,.1)"] {
+  background: rgba(220,38,38,0.08) !important;
+}
+[data-tema="claro"] [style*="border: 1px solid rgba(239,68,68"] {
+  border-color: rgba(220,38,38,0.35) !important;
+}
+
+/* ── BORDAS VERDES → CINZA/AZUL ────────────────────────────────────────────── */
 [data-tema="claro"] [style*="border: 1px solid #1a3a1a"],
 [data-tema="claro"] [style*="border: 1px solid #3d2e0a"],
 [data-tema="claro"] [style*="border: 1px solid #1e2d1e"],
@@ -260,22 +342,114 @@ body {
 [data-tema="claro"] [style*="borderColor: #1a3a1a"] {
   border-color: #E5E7EB !important;
 }
+[data-tema="claro"] [style*="border: 1px solid rgba(74,222,128,0.3)"],
+[data-tema="claro"] [style*="border: 1px solid rgba(74,222,128,.3)"],
+[data-tema="claro"] [style*="border: 1px solid rgba(74,222,128,0.2)"],
+[data-tema="claro"] [style*="border: 1px solid rgba(74,222,128,.2)"] {
+  border-color: rgba(37,99,235,0.25) !important;
+}
+[data-tema="claro"] [style*="border-color: rgba(74,222,128"] {
+  border-color: rgba(37,99,235,0.25) !important;
+}
 
-/* Inputs dark */
-[data-tema="claro"] input[style*="background: rgba(0,0,0"],
-[data-tema="claro"] input[style*="background:rgba(0,0,0"] {
+/* ── INPUTS: contraste e uniformidade ─────────────────────────────────────── */
+[data-tema="claro"] input,
+[data-tema="claro"] textarea,
+[data-tema="claro"] select {
   background: #FFFFFF !important;
   color: #111827 !important;
   border-color: #D1D5DB !important;
 }
-[data-tema="claro"] input::placeholder {
-  color: rgba(17,24,39,0.35) !important;
+[data-tema="claro"] input:focus,
+[data-tema="claro"] textarea:focus,
+[data-tema="claro"] select:focus {
+  border-color: #2563EB !important;
+  outline-color: rgba(37,99,235,0.25) !important;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12) !important;
+}
+[data-tema="claro"] input::placeholder,
+[data-tema="claro"] textarea::placeholder {
+  color: rgba(17,24,39,0.38) !important;
+}
+[data-tema="claro"] input[style*="background: rgba(0,0,0"],
+[data-tema="claro"] input[style*="background:rgba(0,0,0"],
+[data-tema="claro"] input[style*="background: #0a1a0a"] {
+  background: #FFFFFF !important;
+  color: #111827 !important;
+  border-color: #D1D5DB !important;
 }
 
-/* Scrollbar */
+/* ── AMARELO/OURO → AZUL ───────────────────────────────────────────────────── */
+[data-tema="claro"] [style*="color: #d4a017"],
+[data-tema="claro"] [style*="color: #D4A017"] { color: #2563EB !important; }
+
+/* ── FUNDOS SEMITRANSPARENTES ESCUROS → CINZA CLARO ──────────────────────── */
+[data-tema="claro"] [style*="background: rgba(0,0,0,0.4)"],
+[data-tema="claro"] [style*="background: rgba(0,0,0,.4)"],
+[data-tema="claro"] [style*="background: rgba(0,0,0,0.3)"],
+[data-tema="claro"] [style*="background: rgba(0,0,0,.3)"],
+[data-tema="claro"] [style*="background: rgba(0,0,0,0.2)"],
+[data-tema="claro"] [style*="background: rgba(0,0,0,.2)"] {
+  background: #F3F4F6 !important;
+  border-color: #E5E7EB !important;
+}
+[data-tema="claro"] [style*="background: rgba(255,255,255,0.02)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,.02)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,0.03)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,.03)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,0.04)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,.04)"] {
+  background: rgba(17,24,39,0.03) !important;
+}
+[data-tema="claro"] [style*="background: rgba(255,255,255,0.08)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,.08)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,0.06)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,.06)"] {
+  background: rgba(17,24,39,0.05) !important;
+}
+
+/* ── VERDE RECEITA (22,163,74 = estado crédito/income) — semântico ────────── */
+[data-tema="claro"] [style*="background: rgba(22,163,74"] {
+  background: rgba(21,128,61,0.10) !important;
+}
+[data-tema="claro"] [style*="border-color: rgba(22,163,74"],
+[data-tema="claro"] [style*="border: 1px solid rgba(22,163,74"],
+[data-tema="claro"] [style*="border: 2px solid rgba(22,163,74"] {
+  border-color: rgba(21,128,61,0.35) !important;
+}
+[data-tema="claro"] [style*="color: rgba(22,163,74"] { color: #15803d !important; }
+
+/* ── BARRA DE PROGRESSO (borda de tracejado) ────────────────────────────── */
+[data-tema="claro"] [style*="background: rgba(255,255,255,0.06)"],
+[data-tema="claro"] [style*="background: rgba(255,255,255,.06)"] {
+  background: #E5E7EB !important;
+}
+
+/* ── LINHA SEPARADORA INLINE ────────────────────────────────────────────── */
+[data-tema="claro"] [style*="background: #1a2a1a"],
+[data-tema="claro"] [style*="background: #1e2d1e"] {
+  background: #E5E7EB !important;
+}
+
+/* ── SCROLLBAR ─────────────────────────────────────────────────────────────── */
 [data-tema="claro"] ::-webkit-scrollbar-track { background: #F3F4F6; }
 [data-tema="claro"] ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
 [data-tema="claro"] ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* ── HIERARQUIA VISUAL: peso de texto ──────────────────────────────────────── */
+/* Textos de valor/métrica grandes → mais peso no tema claro */
+[data-tema="claro"] [style*="font-size: 24px"],
+[data-tema="claro"] [style*="font-size: 22px"],
+[data-tema="claro"] [style*="font-size: 28px"],
+[data-tema="claro"] [style*="font-size: 32px"] {
+  color: #0f172a !important;
+}
+
+/* Seleção de texto */
+[data-tema="claro"] ::selection {
+  background: rgba(37,99,235,0.15);
+  color: #0f172a;
+}
 
 /* ─── Fontes medievais ───────────────────────────────────────────────────────── */
 .font-display {
