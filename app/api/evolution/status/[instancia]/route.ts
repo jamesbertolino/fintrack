@@ -67,6 +67,16 @@ export async function GET(
     const grupoData = await grupoRes.json()
     grupoJid = (grupoData.id ?? grupoData.groupJid ?? grupoData.jid ?? null) as string | null
     console.log('[status] grupo criado:', grupoJid, grupoData)
+
+    // Define imagem do grupo como logo do app
+    if (grupoJid) {
+      const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL}/logo.png`
+      await fetch(`${process.env.EVOLUTION_URL}/group/updateGroupPicture/${instancia}`, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json', 'apikey': process.env.EVOLUTION_API_KEY! },
+        body:    JSON.stringify({ groupJid: grupoJid, image: logoUrl }),
+      }).catch(() => {/* não bloqueia se falhar */})
+    }
   }
 
   // Salva grupo no banco

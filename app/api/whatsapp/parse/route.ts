@@ -132,7 +132,7 @@ SAÍDA:
     return NextResponse.json({
       ok: true,
       interpretacao: {
-        descricao: parsed.descricao,
+        descricao: parsed.descricao.toUpperCase(),
         valor:     parsed.valor,
         tipo:      parsed.tipo,
         categoria: parsed.categoria,
@@ -150,7 +150,7 @@ SAÍDA:
     .from('transactions')
     .insert({
       user_id:   profile.id,
-      descricao: parsed.descricao,
+      descricao: parsed.descricao.toUpperCase(),
       valor:     parsed.tipo === 'debito' ? -Math.abs(parsed.valor) : Math.abs(parsed.valor),
       tipo:      parsed.tipo,
       categoria: parsed.categoria,

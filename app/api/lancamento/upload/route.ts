@@ -80,7 +80,7 @@ function processarCSV(texto: string): TransacaoDetectada[] {
     const tipo  = credito > 0 ? 'credito' : 'debito'
     const valor = credito > 0 ? credito : debito
     const { categoria, nao_categorizado } = detectarCategoria(hist)
-    resultado.push({ descricao: hist.trim(), valor, tipo, categoria, data_hora: parseData(dataVal), nao_categorizado })
+    resultado.push({ descricao: hist.trim().toUpperCase(), valor, tipo, categoria, data_hora: parseData(dataVal), nao_categorizado })
   }
   return resultado
 }

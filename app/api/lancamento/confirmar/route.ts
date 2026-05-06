@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
   }) => ({
     user_id:   user.id,
-    descricao: t.descricao,
+    descricao: t.descricao.toUpperCase(),
     valor:     t.tipo === 'debito' ? -Math.abs(t.valor) : Math.abs(t.valor),
     tipo:      t.tipo,
     categoria: t.categoria,

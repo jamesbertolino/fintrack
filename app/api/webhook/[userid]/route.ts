@@ -62,7 +62,7 @@ function validarPayload(body: unknown): ResultadoValidacao {
   return {
     ok: true,
     data: {
-      descricao: p.descricao.trim().slice(0, 255),
+      descricao: p.descricao.trim().toUpperCase().slice(0, 255),
       valor: parseFloat((p.valor as number).toFixed(2)),
       data_hora: p.data_hora,
       tipo,

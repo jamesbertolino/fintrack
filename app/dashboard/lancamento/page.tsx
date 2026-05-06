@@ -318,7 +318,7 @@ useEffect(() => {
     if (!user) return
     const { error } = await supabase.from('transactions').insert({
       user_id: user.id,
-      descricao: descricao.trim(),
+      descricao: descricao.trim().toUpperCase(),
       valor: tipo === 'debito' ? -v : v,
       tipo,
       categoria,
@@ -510,7 +510,7 @@ useEffect(() => {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        descricao: editDescricao,
+        descricao: editDescricao.toUpperCase(),
         categoria: editCategoria,
         conta_id: editContaId || null,
         data_hora: editDataHora ? new Date(editDataHora).toISOString() : transacaoEditando.data_hora,

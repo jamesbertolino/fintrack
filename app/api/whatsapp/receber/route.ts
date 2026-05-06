@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
 
       await supabase.from('transactions').insert({
         user_id:           pendente.user_id,
-        descricao:         interpretacao.descricao,
+        descricao:         interpretacao.descricao.toUpperCase(),
         valor:             interpretacao.tipo === 'debito' ? -Math.abs(interpretacao.valor) : Math.abs(interpretacao.valor),
         tipo:              interpretacao.tipo,
         categoria:         interpretacao.categoria,
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
         user_id:           profile.id,
         mensagem_original: mensagem,
         interpretacao: {
-          descricao: interp.descricao,
+          descricao: interp.descricao.toUpperCase(),
           valor:     interp.valor,
           tipo:      interp.tipo,
           categoria: interp.categoria,
