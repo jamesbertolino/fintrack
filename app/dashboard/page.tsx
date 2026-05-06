@@ -304,7 +304,7 @@ useEffect(() => {
         } : {}),
       }}>
         {/* Logo */}
-        <div style={{ padding: '1rem', borderBottom: `1px solid ${cores.border}`, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        <div style={{ padding: '1rem', borderBottom: `1px solid ${cores.sidebarBorder}`, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
           <LogoPoupaUp collapsed={collapsed} />
         </div>
 
@@ -312,18 +312,18 @@ useEffect(() => {
         {!collapsed && profile && (
           <div
             onClick={() => router.push('/dashboard/perfil')}
-            style={{ padding: '10px 1rem', borderBottom: `1px solid ${cores.border}`, display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
+            style={{ padding: '10px 1rem', borderBottom: `1px solid ${cores.sidebarBorder}`, display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
           >
             <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: cores.sidebarText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
             </div>
           </div>
         )}
 
         <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
           {!collapsed && (
-            <div style={{ padding: '6px 1rem 4px', fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
+            <div style={{ padding: '6px 1rem 4px', fontSize: 9, color: cores.sidebarTextFaint, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
               {tx.navSep1}
             </div>
           )}
@@ -340,12 +340,12 @@ useEffect(() => {
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: !collapsed ? '7px 1rem' : '7px 14px',
                 width: '100%',
-                background: paginaAtiva === item.id ? cores.navActive : 'transparent',
+                background: paginaAtiva === item.id ? cores.sidebarActive : 'transparent',
                 border: 'none',
-                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.navActiveColor}` : '2px solid transparent',
+                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
                 cursor: 'pointer',
-                color: paginaAtiva === item.id ? cores.navActiveColor : cores.textMuted,
-                fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
+                color: paginaAtiva === item.id ? cores.sidebarActiveColor : cores.sidebarTextMuted,
+                fontSize: 12, fontWeight: paginaAtiva === item.id ? 600 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
               <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</span>
@@ -354,11 +354,11 @@ useEffect(() => {
           ))}
 
           {!collapsed && (
-            <div style={{ padding: '10px 1rem 4px', fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
+            <div style={{ padding: '10px 1rem 4px', fontSize: 9, color: cores.sidebarTextFaint, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
               {tx.navSep2}
             </div>
           )}
-          {collapsed && <div style={{ height: 1, background: '#1e2d1e', margin: '6px 10px' }} />}
+          {collapsed && <div style={{ height: 1, background: cores.sidebarBorder, margin: '6px 10px' }} />}
 
           {NAV_ITEMS.slice(4).map(item => (
             <button key={item.id}
@@ -372,12 +372,12 @@ useEffect(() => {
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: !collapsed ? '7px 1rem' : '7px 14px',
                 width: '100%',
-                background: paginaAtiva === item.id ? cores.navActive : 'transparent',
+                background: paginaAtiva === item.id ? cores.sidebarActive : 'transparent',
                 border: 'none',
-                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.navActiveColor}` : '2px solid transparent',
+                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
                 cursor: 'pointer',
-                color: paginaAtiva === item.id ? cores.navActiveColor : cores.textMuted,
-                fontSize: 12, fontWeight: paginaAtiva === item.id ? 500 : 400,
+                color: paginaAtiva === item.id ? cores.sidebarActiveColor : cores.sidebarTextMuted,
+                fontSize: 12, fontWeight: paginaAtiva === item.id ? 600 : 400,
                 transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
               }}>
               <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</span>
@@ -389,13 +389,13 @@ useEffect(() => {
         {!collapsed && (
           <div
             onClick={() => router.push('/dashboard/evolucao')}
-            style={{ margin: '0 .75rem 1rem', background: 'rgba(0,0,0,.3)', border: `1px solid ${nivel.cor}33`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', transition: 'border-color .2s' }}
+            style={{ margin: '0 .75rem 1rem', background: 'rgba(0,0,0,.25)', border: `1px solid ${nivel.cor}33`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', transition: 'border-color .2s' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 9, color: nivel.cor, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.1em', fontFamily: tx.fontDisplay }}>{tx.xpIcone} {nomeNivel}</span>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>Nv.{nivel.nivel}</span>
+              <span style={{ fontSize: 9, color: cores.sidebarTextFaint, fontVariantNumeric: 'tabular-nums' }}>Nv.{nivel.nivel}</span>
             </div>
-            <div style={{ height: 6, background: 'rgba(255,255,255,.06)', borderRadius: 999, overflow: 'hidden', border: `1px solid ${nivel.cor}22` }}>
+            <div style={{ height: 6, background: 'rgba(255,255,255,.1)', borderRadius: 999, overflow: 'hidden', border: `1px solid ${nivel.cor}22` }}>
               <div style={{
                 height: '100%', width: `${nivel.pct}%`, borderRadius: 999,
                 background: m ? `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor}, #D4AF37)` : `linear-gradient(90deg, ${nivel.cor}88, ${nivel.cor})`,
@@ -405,9 +405,9 @@ useEffect(() => {
               }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', fontVariantNumeric: 'tabular-nums' }}>{nivel.xpNoNivel.toLocaleString()} pts</span>
+              <span style={{ fontSize: 9, color: cores.sidebarTextFaint, fontVariantNumeric: 'tabular-nums' }}>{nivel.xpNoNivel.toLocaleString()} pts</span>
               {proxNomeNivel
-                ? <span style={{ fontSize: 9, color: 'rgba(255,255,255,.2)' }}>falta {(nivel.xpParaProximo - nivel.xpNoNivel).toLocaleString()} p/ {proxNomeNivel}</span>
+                ? <span style={{ fontSize: 9, color: cores.sidebarTextFaint }}>falta {(nivel.xpParaProximo - nivel.xpNoNivel).toLocaleString()} p/ {proxNomeNivel}</span>
                 : <span style={{ fontSize: 9, color: nivel.cor }}>{tx.xpIcone} {nomeNivel}</span>
               }
             </div>
@@ -417,8 +417,8 @@ useEffect(() => {
         <button onClick={sair} style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: !collapsed ? '10px 1rem' : '10px 14px',
-          background: 'transparent', border: 'none', borderTop: `1px solid ${cores.borderMid}`,
-          color: cores.textFaint, cursor: 'pointer', fontSize: 12, width: '100%',
+          background: 'transparent', border: 'none', borderTop: `1px solid ${cores.sidebarBorder}`,
+          color: cores.sidebarTextFaint, cursor: 'pointer', fontSize: 12, width: '100%',
         }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M5 7h7M10 4l3 3-3 3M6 3H3a1 1 0 00-1 1v6a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>

@@ -182,14 +182,50 @@ body {
   background-image: none !important;
 }
 
-/* Sidebar — azul naval (contraste elegante) */
+/* ── Sidebar — azul naval (fundo sempre escuro, texto sempre claro) ────────── */
 [data-tema="claro"] aside {
   background: linear-gradient(180deg, #1e3a5f 0%, #1a3354 100%) !important;
-  border-right-color: #1a3354 !important;
+  border-right-color: rgba(255,255,255,0.10) !important;
 }
 
-[data-tema="claro"] aside nav button {
-  color: rgba(255,255,255,0.65) !important;
+/* EXCEÇÃO GLOBAL: dentro do aside, NENHUMA cor de texto deve ser convertida para escuro */
+[data-tema="claro"] aside [style*="color: #fff"],
+[data-tema="claro"] aside [style*="color: rgb(255, 255, 255)"],
+[data-tema="claro"] aside [style*="color: white"],
+[data-tema="claro"] aside [style*="color: #ededed"],
+[data-tema="claro"] aside [style*="color: #F5E6C8"] {
+  color: rgba(255,255,255,0.90) !important;
+}
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.65)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.65)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.5)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.5)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.4)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.4)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.35)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.35)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.3)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.3)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.25)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.25)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,0.2)"],
+[data-tema="claro"] aside [style*="color: rgba(255,255,255,.2)"] {
+  /* Preservar as opacidades originais — legíveis no fundo navy escuro */
+  opacity: 1;
+}
+
+/* Fundos escuros dentro do aside — NÃO converter para claro */
+[data-tema="claro"] aside [style*="background: rgba(0,0,0"],
+[data-tema="claro"] aside [style*="background: rgba(255,255,255,0.06)"],
+[data-tema="claro"] aside [style*="background: rgba(255,255,255,.06)"],
+[data-tema="claro"] aside [style*="background: rgba(255,255,255,0.1)"],
+[data-tema="claro"] aside [style*="background: rgba(255,255,255,.1)"] {
+  background: rgba(0,0,0,0.25) !important;
+}
+
+/* Textos da topbar do mobile (hambúrguer) — NÃO converter se estiver na topbar escura */
+[data-tema="claro"] [style*="color: rgba(255,255,255,.4)"][style*="border: none"] {
+  /* Topbar back buttons — will be caught by main converter, OK */
 }
 
 [data-tema="claro"] main {
@@ -273,7 +309,7 @@ body {
 [data-tema="claro"] [style*="color: rgba(255,255,255,.2)"] { color: rgba(17,24,39,0.38) !important; }
 
 /* ── COR PRIMÁRIA: verde → azul (botões e estados ativos) ─────────────────── */
-/* Botões com fundo verde sólido → azul primário */
+/* Botões com fundo verde sólido → azul primário, texto SEMPRE branco */
 [data-tema="claro"] [style*="background: #16a34a"] {
   background: #2563EB !important;
   color: #fff !important;
@@ -282,10 +318,44 @@ body {
   background: #1d4ed8 !important;
   color: #fff !important;
 }
-/* Exceção: badges de nível de força de senha e elementos de dados puros —
-   quando dentro de barras de progresso, manter semântica verde */
+
+/* EXCEÇÃO: texto dentro de botão azul convertido → manter branco (maior especificidade) */
+[data-tema="claro"] [style*="background: #16a34a"] [style*="color: #fff"],
+[data-tema="claro"] [style*="background: #16a34a"][style*="color: #fff"] {
+  color: #fff !important;
+}
+
+/* Barra de progresso com gradiente → azul */
 [data-tema="claro"] [style*="background: linear-gradient(90deg, #16a34a"] {
   background: linear-gradient(90deg, #2563EB, #3b82f6) !important;
+}
+
+/* ── GRADIENTES DINÂMICOS de páginas internas (template literals) ──────────── */
+/* evolucao/page.tsx hero card — 135deg com #0d1117 */
+[data-tema="claro"] [style*="background: linear-gradient(135deg, #0d1117"] {
+  background: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+/* Outros gradientes de cards com fundos escuros */
+[data-tema="claro"] [style*="background: linear-gradient(120deg, #0d1117"],
+[data-tema="claro"] [style*="background: linear-gradient(to right, #0d1117"],
+[data-tema="claro"] [style*="background: linear-gradient(to bottom, #0d1117"] {
+  background: #FFFFFF !important;
+  color: #0f172a !important;
+}
+/* Cards com #080b0f ou #0a1205 em gradientes não cobertos */
+[data-tema="claro"] [style*="background: linear-gradient(135deg, #080b0f"],
+[data-tema="claro"] [style*="background: linear-gradient(135deg, #0a1205"] {
+  background: #F9FAFB !important;
+  color: #0f172a !important;
+}
+
+/* Garantir que texto dentro de cards convertidos seja sempre visível */
+[data-tema="claro"] [style*="background: linear-gradient(135deg, #0d1117"] [style*="color: rgba(255,255,255"],
+[data-tema="claro"] [style*="background: linear-gradient(135deg, #0d1117"] [style*="color: #fff"] {
+  /* já cobertos pelos seletores de texto acima — OK */
 }
 
 /* Fundo highlight ativo verde claro → azul claro */

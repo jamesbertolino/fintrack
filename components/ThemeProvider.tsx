@@ -58,10 +58,22 @@ export function useCores() {
     textFaint:    c ? 'rgba(15,23,42,0.40)'
                     : m ? 'rgba(245,230,200,0.22)'
                     : 'rgba(255,255,255,0.25)',
-    // ── Sidebar ───────────────────────────────────────────────────────
+    // ── Sidebar (fundo sempre escuro — texto SEMPRE claro) ────────────
     sidebarBg:    c ? 'linear-gradient(180deg,#1e3a5f 0%,#1a3354 100%)'
                     : m ? 'linear-gradient(180deg,#160d04 0%,#0e0904 100%)'
                     : 'linear-gradient(180deg,#0a1205 0%,#080b0f 100%)',
+    sidebarText:      'rgba(255,255,255,0.80)',
+    sidebarTextMuted: 'rgba(255,255,255,0.50)',
+    sidebarTextFaint: 'rgba(255,255,255,0.30)',
+    sidebarBorder:  c ? 'rgba(255,255,255,0.10)'
+                      : m ? '#3d2e0a'
+                      : '#1e2d1e',
+    sidebarActive:  c ? 'rgba(255,255,255,0.12)'
+                      : m ? 'rgba(212,175,55,0.12)'
+                      : 'rgba(74,222,128,0.12)',
+    sidebarActiveColor: c ? '#93c5fd'  /* azul claro legível no navy */
+                          : m ? '#D4AF37'
+                          : 'rgba(74,222,128,1)',
     // ── Topbar ────────────────────────────────────────────────────────
     topbarBg:     c ? '#FFFFFF'
                     : m ? 'linear-gradient(90deg,#150f05,#0e0904)'
