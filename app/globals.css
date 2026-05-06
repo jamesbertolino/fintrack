@@ -162,48 +162,53 @@ body {
 
 /* Textura de pedra apenas no tema medieval (via data-tema) */
 
-/* ─── Tema claro — pergaminho ────────────────────────────────────────────────── */
+/* ─── Tema claro — moderno ────────────────────────────────────────────────────── */
 [data-tema="claro"] {
-  --background: #F5E6C8;
-  --foreground: #2C1A06;
-  --rpg-bg:          #F5E6C8;
-  --rpg-surface:     #EDD9A3;
-  --rpg-surface-alt: #E8D08A;
-  --rpg-border:      #C8A96E;
-  --rpg-border-gold: #D4AF37;
-  --rpg-text-muted:  rgba(44,26,6,0.50);
-  --rpg-glow-green:  0 0 12px rgba(74,90,58,0.2);
-  --rpg-glow-gold:   0 0 12px rgba(212,175,55,0.25);
+  --background: #F3F4F6;
+  --foreground: #111827;
+  --rpg-bg:          #F3F4F6;
+  --rpg-surface:     #FFFFFF;
+  --rpg-surface-alt: #F9FAFB;
+  --rpg-border:      #E5E7EB;
+  --rpg-border-gold: #D1D5DB;
+  --rpg-text-muted:  rgba(17,24,39,0.55);
+  --rpg-glow-green:  0 0 12px rgba(37,99,235,0.15);
+  --rpg-glow-gold:   0 0 12px rgba(37,99,235,0.20);
 }
 
 [data-tema="claro"] body {
-  background: #F5E6C8 !important;
-  color: #2C1A06 !important;
-  background-image:
-    repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(180,140,80,0.12) 31px, rgba(180,140,80,0.12) 32px),
-    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(180,140,80,0.07) 47px, rgba(180,140,80,0.07) 48px) !important;
+  background: #F3F4F6 !important;
+  color: #111827 !important;
+  background-image: none !important;
 }
 
-/* Superfícies principais */
+/* Sidebar — azul naval (contraste elegante) */
 [data-tema="claro"] aside {
-  background: linear-gradient(180deg, #E8CFA0 0%, #DFC08A 100%) !important;
-  border-right-color: #C8A96E !important;
+  background: linear-gradient(180deg, #1e3a5f 0%, #1a3354 100%) !important;
+  border-right-color: #1a3354 !important;
 }
 
-[data-tema="claro"] nav button {
-  color: rgba(44,26,6,0.55) !important;
+[data-tema="claro"] aside nav button {
+  color: rgba(255,255,255,0.65) !important;
 }
 
 [data-tema="claro"] main {
-  background: #F5E6C8 !important;
+  background: #F3F4F6 !important;
+}
+
+/* Topbar */
+[data-tema="claro"] [style*="background: linear-gradient(90deg, #0a1205"],
+[data-tema="claro"] [style*="background: linear-gradient(90deg, #150f05"] {
+  background: #FFFFFF !important;
+  border-bottom-color: #E5E7EB !important;
 }
 
 /* Fundos escuros de página */
 [data-tema="claro"] [style*="background: #0e0904"],
 [data-tema="claro"] [style*="background: #080b0f"],
 [data-tema="claro"] [style*="background: #0a0a0a"] {
-  background: #F5E6C8 !important;
-  color: #2C1A06 !important;
+  background: #F3F4F6 !important;
+  color: #111827 !important;
 }
 
 /* Superfícies de cards e painéis */
@@ -212,48 +217,65 @@ body {
 [data-tema="claro"] [style*="background: #0d1117"],
 [data-tema="claro"] [style*="background: linear-gradient(145deg, #0d1117"],
 [data-tema="claro"] [style*="background: linear-gradient(145deg, #1c1409"] {
-  background: #EDD9A3 !important;
-  border-color: #C8A96E !important;
-  box-shadow: 0 2px 8px rgba(100,70,20,0.15) !important;
-  color: #2C1A06 !important;
+  background: #FFFFFF !important;
+  border-color: #E5E7EB !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04) !important;
+  color: #111827 !important;
 }
 
 /* Inputs e superfícies secundárias */
 [data-tema="claro"] [style*="background: #0a1a0a"],
 [data-tema="claro"] [style*="background: #150f05"],
 [data-tema="claro"] [style*="background: #0a1205"],
-[data-tema="claro"] [style*="background: #0a0f0a"] {
-  background: #E8CFA0 !important;
-  border-color: #C8A96E !important;
-  color: #2C1A06 !important;
+[data-tema="claro"] [style*="background: #0a0f0a"],
+[data-tema="claro"] [style*="background: #0f1f0f"] {
+  background: #F9FAFB !important;
+  border-color: #D1D5DB !important;
+  color: #111827 !important;
 }
 
-/* Topbar */
-[data-tema="claro"] [style*="background: linear-gradient(90deg, #0a1205"],
-[data-tema="claro"] [style*="background: linear-gradient(90deg, #150f05"] {
-  background: linear-gradient(90deg, #E8CFA0, #DFC08A) !important;
-  border-bottom-color: #C8A96E !important;
+/* Fundo painéis "surface alt" verde escuro */
+[data-tema="claro"] [style*="background: #0a1205"] {
+  background: #F9FAFB !important;
 }
 
-/* Texto branco → pergaminho escuro */
+/* Texto branco → cinza escuro */
 [data-tema="claro"] [style*="color: #fff"],
 [data-tema="claro"] [style*="color: rgb(255, 255, 255)"],
 [data-tema="claro"] [style*="color: white"],
-[data-tema="claro"] [style*="color: #F5E6C8"] {
-  color: #2C1A06 !important;
+[data-tema="claro"] [style*="color: #F5E6C8"],
+[data-tema="claro"] [style*="color: #ededed"] {
+  color: #111827 !important;
 }
 
 [data-tema="claro"] [style*="color: rgba(255,255,255,"] {
-  color: rgba(44,26,6,0.55) !important;
+  color: rgba(17,24,39,0.55) !important;
 }
 
-/* Bordas escuras → couro claro */
+/* Bordas escuras → cinza claro */
 [data-tema="claro"] [style*="border: 1px solid #1a3a1a"],
 [data-tema="claro"] [style*="border: 1px solid #3d2e0a"],
+[data-tema="claro"] [style*="border: 1px solid #1e2d1e"],
 [data-tema="claro"] [style*="border-color: #1a3a1a"],
 [data-tema="claro"] [style*="borderColor: #1a3a1a"] {
-  border-color: #C8A96E !important;
+  border-color: #E5E7EB !important;
 }
+
+/* Inputs dark */
+[data-tema="claro"] input[style*="background: rgba(0,0,0"],
+[data-tema="claro"] input[style*="background:rgba(0,0,0"] {
+  background: #FFFFFF !important;
+  color: #111827 !important;
+  border-color: #D1D5DB !important;
+}
+[data-tema="claro"] input::placeholder {
+  color: rgba(17,24,39,0.35) !important;
+}
+
+/* Scrollbar */
+[data-tema="claro"] ::-webkit-scrollbar-track { background: #F3F4F6; }
+[data-tema="claro"] ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
+[data-tema="claro"] ::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
 /* ─── Fontes medievais ───────────────────────────────────────────────────────── */
 .font-display {

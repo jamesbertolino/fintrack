@@ -9,7 +9,10 @@
       "Bash(npm run *)",
       "PowerShell(Get-ChildItem -Path \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\\\\app\" -Recurse -Directory | Where-Object { $_.Name -match \"auth|signup|register\" } | Select-Object -ExpandProperty FullName)",
       "Bash(xargs grep *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" -Recurse -Depth 2)",
+      "Bash(Select-Object FullName)",
+      "Bash(Head -50)"
     ]
   }
 }

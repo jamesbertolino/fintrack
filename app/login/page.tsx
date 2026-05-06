@@ -4,11 +4,16 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
+import { useCores, useTema } from '@/components/ThemeProvider'
 
 function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+
+  const cores = useCores()
+  const { tema } = useTema()
+  const isClaro = tema === 'claro'
 
   const [isMobile, setIsMobile] = useState(false)
 
@@ -105,26 +110,26 @@ function LoginContent() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', fontSize: 13, padding: '9px 12px',
-    borderRadius: 8, border: '1px solid #1a3a1a',
-    background: 'rgba(0,0,0,0.3)', color: '#fff', outline: 'none',
+    borderRadius: 8, border: `1px solid ${cores.inputBorder}`,
+    background: cores.inputBg, color: cores.text, outline: 'none',
     boxSizing: 'border-box',
   }
 
   if (estado === 'aguardando_email') return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', padding: '1rem' }}>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui', padding: '1rem' }}>
       <div style={{ maxWidth: 420, width: '100%', textAlign: 'center' }}>
         <div style={{ fontSize: 56, marginBottom: 16 }}>📧</div>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Confirme seu email</h2>
-        <p style={{ fontSize: 14, color: 'rgba(255,255,255,.5)', marginBottom: 24, lineHeight: 1.6 }}>
-          Enviamos um link de confirmação para <strong style={{ color: '#4ade80' }}>{emailDigitado}</strong>.
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: cores.text, marginBottom: 8 }}>Confirme seu email</h2>
+        <p style={{ fontSize: 14, color: cores.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+          Enviamos um link de confirmação para <strong style={{ color: cores.accent }}>{emailDigitado}</strong>.
           <br />Acesse seu email e clique no link para ativar sua conta.
         </p>
-        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: 20, fontSize: 13, color: 'rgba(255,255,255,.5)', textAlign: 'left' }}>
+        <div style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 12, padding: '1rem', marginBottom: 20, fontSize: 13, color: cores.textMuted, textAlign: 'left' }}>
           <div style={{ marginBottom: 8 }}>✉️ Verifique sua caixa de entrada</div>
           <div style={{ marginBottom: 8 }}>📁 Verifique também o spam</div>
           <div>⏱ O link expira em 24 horas</div>
         </div>
-        <button onClick={() => { setEstado('form'); setTab('login') }} style={{ fontSize: 13, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+        <button onClick={() => { setEstado('form'); setTab('login') }} style={{ fontSize: 13, color: cores.accent, background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
           Voltar para o login
         </button>
       </div>
@@ -135,13 +140,13 @@ function LoginContent() {
   const formulario = (
     <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 320 }}>
 
-      <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', background: cores.surfaceDark, border: `1px solid ${cores.borderMid}`, borderRadius: 8, padding: 3, marginBottom: '1.5rem' }}>
         {(['login', 'cadastro'] as const).map(t => (
           <button key={t} onClick={() => { setTab(t); setErro(''); setEstado('form') }} style={{
             flex: 1, padding: '8px', textAlign: 'center', fontSize: 13, fontWeight: 500,
             borderRadius: 6, cursor: 'pointer', border: 'none',
-            background: tab === t ? '#16a34a' : 'transparent',
-            color: tab === t ? '#fff' : 'rgba(255,255,255,0.4)',
+            background: tab === t ? (isClaro ? '#2563EB' : '#16a34a') : 'transparent',
+            color: tab === t ? '#fff' : cores.textMuted,
             transition: 'all .15s',
           }}>
             {t === 'login' ? 'Entrar' : 'Criar conta'}
@@ -161,8 +166,8 @@ function LoginContent() {
       {/* ── LOGIN ── */}
       {tab === 'login' && (
         <form onSubmit={handleLogin}>
-          <div style={{ fontSize: 17, fontWeight: 500, color: '#fff', marginBottom: 3 }}>Bem-vindo de volta</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>Continue subindo de nível</div>
+          <div style={{ fontSize: 17, fontWeight: 500, color: cores.text, marginBottom: 3 }}>Bem-vindo de volta</div>
+          <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem' }}>Continue subindo de nível</div>
           <button type="button" onClick={loginGoogle} style={{
             width: '100%', padding: '11px', marginBottom: 16, boxSizing: 'border-box',
             background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
@@ -178,16 +183,16 @@ function LoginContent() {
             Entrar com Google
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>ou</span>
-            <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
+            <div style={{ flex: 1, height: 1, background: cores.borderMid }} />
+            <span style={{ fontSize: 11, color: cores.textFaint }}>ou</span>
+            <div style={{ flex: 1, height: 1, background: cores.borderMid }} />
           </div>
           {[
             { label: 'E-mail', key: 'email', type: 'email', placeholder: 'seu@email.com' },
             { label: 'Senha',  key: 'senha', type: showPw ? 'text' : 'password', placeholder: '••••••••' },
           ].map(({ label, key, type, placeholder }) => (
             <div key={key} style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: cores.textMuted, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
               <div style={{ position: 'relative' }}>
                 <input type={type} placeholder={placeholder}
                   value={loginForm[key as keyof typeof loginForm]}
@@ -195,7 +200,7 @@ function LoginContent() {
                   required style={{ ...inputStyle, paddingRight: key === 'senha' ? 36 : 12 }} />
                 {key === 'senha' && (
                   <button type="button" onClick={() => setShowPw(!showPw)}
-                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: showPw ? '#4ade80' : 'rgba(255,255,255,0.3)' }}>
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: showPw ? cores.accent : cores.textFaint }}>
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.2"/><circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/></svg>
                   </button>
                 )}
@@ -203,10 +208,10 @@ function LoginContent() {
             </div>
           ))}
           <div style={{ textAlign: 'right', marginBottom: 12 }}>
-            <span style={{ fontSize: 11, color: 'rgba(74,222,128,0.7)', cursor: 'pointer' }}>Esqueci minha senha</span>
+            <span style={{ fontSize: 11, color: cores.accent, cursor: 'pointer', opacity: 0.8 }}>Esqueci minha senha</span>
           </div>
           <button type="submit" disabled={loading} style={{
-            width: '100%', padding: 12, background: '#16a34a', color: '#fff', border: 'none',
+            width: '100%', padding: 12, background: cores.accent, color: '#fff', border: 'none',
             borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer',
             opacity: loading ? 0.6 : 1,
           }}>
@@ -218,8 +223,8 @@ function LoginContent() {
       {/* ── CADASTRO ── */}
       {tab === 'cadastro' && estado === 'form' && (
         <form onSubmit={handleCadastro}>
-          <div style={{ fontSize: 17, fontWeight: 500, color: '#fff', marginBottom: 3 }}>Criar sua conta</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: '1.25rem' }}>7 dias grátis no plano Pro</div>
+          <div style={{ fontSize: 17, fontWeight: 500, color: cores.text, marginBottom: 3 }}>Criar sua conta</div>
+          <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem' }}>7 dias grátis no plano Pro</div>
           <button type="button" onClick={loginGoogle} style={{
             width: '100%', padding: '11px', marginBottom: 16, boxSizing: 'border-box',
             background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
@@ -235,16 +240,16 @@ function LoginContent() {
             Entrar com Google
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>ou</span>
-            <div style={{ flex: 1, height: 1, background: '#1a3a1a' }} />
+            <div style={{ flex: 1, height: 1, background: cores.borderMid }} />
+            <span style={{ fontSize: 11, color: cores.textFaint }}>ou</span>
+            <div style={{ flex: 1, height: 1, background: cores.borderMid }} />
           </div>
           {[
             { label: 'Nome',   key: 'nome',  type: 'text',  placeholder: 'Seu nome' },
             { label: 'E-mail', key: 'email', type: 'email', placeholder: 'seu@email.com' },
           ].map(({ label, key, type, placeholder }) => (
             <div key={key} style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
+              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: cores.textMuted, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</label>
               <input type={type} placeholder={placeholder}
                 value={cadForm[key as keyof typeof cadForm]}
                 onChange={e => { setCadForm(prev => ({ ...prev, [key]: e.target.value })); if (key === 'email') setEmailDigitado(e.target.value) }}
@@ -252,20 +257,20 @@ function LoginContent() {
             </div>
           ))}
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Senha</label>
+            <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: cores.textMuted, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Senha</label>
             <div style={{ position: 'relative' }}>
               <input type={showPw ? 'text' : 'password'} placeholder="mín. 8 caracteres"
                 value={cadForm.senha}
                 onChange={e => { setCadForm(prev => ({ ...prev, senha: e.target.value })); calcularForca(e.target.value) }}
                 required style={{ ...inputStyle, paddingRight: 36 }} />
               <button type="button" onClick={() => setShowPw(!showPw)}
-                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: showPw ? '#4ade80' : 'rgba(255,255,255,0.3)' }}>
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: showPw ? cores.accent : cores.textFaint }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7s2.5-4 6-4 6 4 6 4-2.5 4-6 4-6-4-6-4z" stroke="currentColor" strokeWidth="1.2"/><circle cx="7" cy="7" r="1.5" stroke="currentColor" strokeWidth="1.2"/></svg>
               </button>
             </div>
             {cadForm.senha && (
               <>
-                <div style={{ height: 3, borderRadius: 2, marginTop: 5, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                <div style={{ height: 3, borderRadius: 2, marginTop: 5, background: cores.border, overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: 2, width: `${forca.pct}%`, background: forca.cor, transition: 'all .3s' }} />
                 </div>
                 <div style={{ fontSize: 10, marginTop: 3, color: forca.cor }}>{forca.label}</div>
@@ -273,16 +278,16 @@ function LoginContent() {
             )}
           </div>
           <button type="submit" disabled={loading} style={{
-            width: '100%', padding: 12, background: '#16a34a', color: '#fff', border: 'none',
+            width: '100%', padding: 12, background: cores.accent, color: '#fff', border: 'none',
             borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer',
             opacity: loading ? 0.6 : 1,
           }}>
             {loading ? 'Criando conta...' : 'Criar conta grátis'}
           </button>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: '0.875rem', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 10, color: cores.textFaint, textAlign: 'center', marginTop: '0.875rem', lineHeight: 1.6 }}>
             Ao criar sua conta você concorda com os{' '}
-            <span style={{ color: 'rgba(74,222,128,0.6)', cursor: 'pointer' }}>Termos</span> e a{' '}
-            <span style={{ color: 'rgba(74,222,128,0.6)', cursor: 'pointer' }}>Privacidade</span>
+            <span style={{ color: cores.accent, cursor: 'pointer', opacity: 0.7 }}>Termos</span> e a{' '}
+            <span style={{ color: cores.accent, cursor: 'pointer', opacity: 0.7 }}>Privacidade</span>
           </div>
         </form>
       )}
@@ -298,8 +303,8 @@ function LoginContent() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 20, padding: '4px 12px', fontSize: 11, color: '#4ade80', fontWeight: 500, marginBottom: '0.875rem' }}>
             +50 XP — conta criada!
           </div>
-          <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', marginBottom: 6 }}>Bem-vindo, {nomeUsuario}!</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 16, fontWeight: 500, color: cores.text, marginBottom: 6 }}>Bem-vindo, {nomeUsuario}!</div>
+          <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem', lineHeight: 1.6 }}>
             Você está no nível 1. Verifique seu e-mail para ativar a conta e começar a subir de nível.
           </div>
           <button onClick={() => router.push('/dashboard')} style={{ width: '100%', padding: 12, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
@@ -312,10 +317,10 @@ function LoginContent() {
 
   // ── MOBILE: coluna única ─────────────────────────────────────────────────
   if (isMobile) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Hero compacto */}
-      <div style={{ background: '#0a1a0a', borderBottom: '1px solid #1a3a1a', padding: '1.5rem' }}>
+      {/* Hero compacto — sidebar color para contraste */}
+      <div style={{ background: cores.sidebarBg, borderBottom: `1px solid ${cores.borderMid}`, padding: '1.5rem' }}>
         <div style={{ marginBottom: '1rem' }}>
           <PoupaUpLogo mode="full" />
         </div>
@@ -326,7 +331,7 @@ function LoginContent() {
           {[['847', 'usuários'], ['R$ 2.4M', 'economizados'], ['4.9★', 'avaliação']].map(([val, lbl]) => (
             <div key={lbl}>
               <div style={{ fontSize: 15, fontWeight: 500, color: '#4ade80' }}>{val}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>{lbl}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)' }}>{lbl}</div>
             </div>
           ))}
         </div>
@@ -343,8 +348,8 @@ function LoginContent() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
 
-      {/* Lado esquerdo */}
-      <div style={{ background: '#0a1a0a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2.5rem' }}>
+      {/* Lado esquerdo — sempre escuro para contraste */}
+      <div style={{ background: cores.sidebarBg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2.5rem' }}>
         <div><PoupaUpLogo mode="full" /></div>
         <div>
           <div style={{ fontSize: 28, fontWeight: 500, color: '#fff', lineHeight: 1.3, marginBottom: '1.5rem' }}>
@@ -376,8 +381,8 @@ function LoginContent() {
         </div>
       </div>
 
-      {/* Lado direito */}
-      <div style={{ background: '#0f1f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', borderLeft: '1px solid #1a3a1a' }}>
+      {/* Lado direito — fundo do tema */}
+      <div style={{ background: cores.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', borderLeft: `1px solid ${cores.border}` }}>
         {formulario}
       </div>
     </div>

@@ -672,8 +672,8 @@ export default function PerfilPage() {
                 </div>
               )}
               {tema === 'claro' && (
-                <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, fontSize: 11, color: '#fbbf24' }}>
-                  ⚠️ Tema claro disponível — algumas telas ainda estão sendo adaptadas.
+                <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(37,99,235,.08)', border: '1px solid rgba(37,99,235,.2)', borderRadius: 8, fontSize: 11, color: '#2563EB' }}>
+                  ☀️ Tema claro ativo — visual moderno e limpo.
                 </div>
               )}
             </div>

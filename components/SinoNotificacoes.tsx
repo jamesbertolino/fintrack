@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
+import { useCores } from '@/components/ThemeProvider'
 
 interface Notificacao {
   id: string
@@ -32,6 +33,7 @@ export default function SinoNotificacoes() {
   const router = useRouter()
   const supabase = createClient()
   const ref = useRef<HTMLDivElement>(null)
+  const cores = useCores()
 
   const [notifs, setNotifs]   = useState<Notificacao[]>([])
   const [aberto, setAberto]   = useState(false)
@@ -103,10 +105,11 @@ export default function SinoNotificacoes() {
       <button
         onClick={() => { setAberto(!aberto); if (!aberto) carregar() }}
         style={{
-          width: 34, height: 34, borderRadius: 8, background: aberto ? 'rgba(74,222,128,.1)' : 'transparent',
-          border: `1px solid ${aberto ? 'rgba(74,222,128,.3)' : '#1a3a1a'}`,
+          width: 34, height: 34, borderRadius: 8,
+          background: aberto ? cores.accentGlow : 'transparent',
+          border: `1px solid ${aberto ? cores.accent : cores.borderMid}`,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: aberto ? '#4ade80' : 'rgba(255,255,255,.5)', position: 'relative',
+          color: aberto ? cores.accent : cores.textMuted, position: 'relative',
           animation: animando ? 'shake .3s ease' : 'none',
           transition: 'all .15s',
         }}
@@ -119,7 +122,7 @@ export default function SinoNotificacoes() {
           <div style={{
             position: 'absolute', top: -4, right: -4,
             width: 16, height: 16, borderRadius: '50%',
-            background: '#16a34a', border: '2px solid #0a0a0a',
+            background: '#16a34a', border: `2px solid ${cores.pageBg}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 9, fontWeight: 700, color: '#fff',
           }}>
@@ -133,22 +136,22 @@ export default function SinoNotificacoes() {
         <div style={{
           position: 'absolute', top: 42, right: 0,
           width: 340, maxHeight: 420, overflowY: 'auto',
-          background: '#111', border: '1px solid #1a3a1a',
+          background: cores.surface, border: `1px solid ${cores.border}`,
           borderRadius: 12, zIndex: 100,
-          boxShadow: '0 8px 32px rgba(0,0,0,.5)',
+          boxShadow: cores.cardShadow,
         }}>
           {/* Header dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid #1a3a1a' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: `1px solid ${cores.border}`, color: cores.text }}>
             <span style={{ fontSize: 13, fontWeight: 600 }}>
-              Notificações {naoLidas > 0 && <span style={{ color: '#4ade80' }}>({naoLidas})</span>}
+              Notificações {naoLidas > 0 && <span style={{ color: cores.accent }}>({naoLidas})</span>}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               {naoLidas > 0 && (
-                <button onClick={marcarTodas} style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <button onClick={marcarTodas} style={{ fontSize: 10, color: cores.textMuted, background: 'none', border: 'none', cursor: 'pointer' }}>
                   marcar todas
                 </button>
               )}
-              <button onClick={() => { setAberto(false); router.push('/dashboard/notificacoes') }} style={{ fontSize: 10, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => { setAberto(false); router.push('/dashboard/notificacoes') }} style={{ fontSize: 10, color: cores.accent, background: 'none', border: 'none', cursor: 'pointer' }}>
                 ver todas →
               </button>
             </div>
@@ -156,35 +159,35 @@ export default function SinoNotificacoes() {
 
           {/* Lista */}
           {notifs.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>
+            <div style={{ padding: '2rem', textAlign: 'center', color: cores.textFaint, fontSize: 12 }}>
               Nenhuma notificação ainda
             </div>
           ) : notifs.slice(0, 8).map(n => (
             <div key={n.id} style={{
               display: 'flex', gap: 10, padding: '10px 14px',
-              borderBottom: '1px solid #1a2a1a',
-              background: n.lida ? 'transparent' : 'rgba(74,222,128,.03)',
+              borderBottom: `1px solid ${cores.border}`,
+              background: n.lida ? 'transparent' : cores.accentGlow,
               cursor: n.lida ? 'default' : 'pointer',
               transition: 'background .12s',
             }}
               onClick={e => !n.lida && marcarLida(n.id, e)}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
-              onMouseLeave={e => (e.currentTarget.style.background = n.lida ? 'transparent' : 'rgba(74,222,128,.03)')}
+              onMouseEnter={e => (e.currentTarget.style.background = cores.navActive)}
+              onMouseLeave={e => (e.currentTarget.style.background = n.lida ? 'transparent' : cores.accentGlow)}
             >
               <div style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>
                 {ICONES[n.tipo] || ICONES.default}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: n.lida ? 400 : 600, color: n.lida ? 'rgba(255,255,255,.6)' : '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <span style={{ fontSize: 12, fontWeight: n.lida ? 400 : 600, color: n.lida ? cores.textMuted : cores.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {n.titulo}
                   </span>
-                  {!n.lida && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />}
+                  {!n.lida && <div style={{ width: 6, height: 6, borderRadius: '50%', background: cores.accent, flexShrink: 0 }} />}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                <div style={{ fontSize: 11, color: cores.textMuted, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {n.mensagem}
                 </div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginTop: 3 }}>{fmtTempo(n.created_at)}</div>
+                <div style={{ fontSize: 10, color: cores.textFaint, marginTop: 3 }}>{fmtTempo(n.created_at)}</div>
               </div>
             </div>
           ))}
