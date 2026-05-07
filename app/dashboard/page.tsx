@@ -13,6 +13,7 @@ import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/Priori
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel, getNomeNivel } from '@/lib/calcularXP'
 import { useCores, useTema } from '@/components/ThemeProvider'
+import { APP_VERSION, APP_BUILD } from '@/lib/version'
 
 interface Transacao {
   id: string
@@ -411,6 +412,21 @@ useEffect(() => {
                 : <span style={{ fontSize: 9, color: nivel.cor }}>{tx.xpIcone} {nomeNivel}</span>
               }
             </div>
+          </div>
+        )}
+
+        {!collapsed && (
+          <div style={{ padding: '0 .75rem .75rem', display: 'flex', justifyContent: 'center' }}>
+            <span style={{
+              fontSize: 9, color: cores.sidebarTextFaint,
+              background: 'rgba(255,255,255,.04)',
+              border: `1px solid ${cores.sidebarBorder}`,
+              borderRadius: 6, padding: '3px 8px',
+              letterSpacing: '.04em', fontVariantNumeric: 'tabular-nums',
+              userSelect: 'none' as const,
+            }}>
+              v{APP_VERSION} · {APP_BUILD}
+            </span>
           </div>
         )}
 
