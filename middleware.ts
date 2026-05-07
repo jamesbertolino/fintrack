@@ -16,7 +16,9 @@ export async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname
-  const isPublic = ROTAS_PUBLICAS.some(r => pathname.startsWith(r))
+  const isPublic = ROTAS_PUBLICAS.some(r =>
+    r === '/' ? pathname === '/' : pathname.startsWith(r)
+  )
   const isApi    = pathname.startsWith('/api')
   const isSetup  = pathname.startsWith('/setup')
 
