@@ -7,7 +7,13 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request })
   const supabase = createMiddlewareClient(request, response)
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // falha na rede ou token inválido → trata como não autenticado
+  }
 
   const pathname = request.nextUrl.pathname
   const isPublic = ROTAS_PUBLICAS.some(r => pathname.startsWith(r))
@@ -46,11 +52,6 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const precisaSetup = !profile?.setup_completo
-
-    console.log('[middleware] user:', user?.id)
-    console.log('[middleware] profile:', JSON.stringify(profile))
-    console.log('[middleware] pathname:', pathname)
-    console.log('[middleware] precisaSetup:', precisaSetup)
 
     if (precisaSetup) {
       const url = request.nextUrl.clone()
