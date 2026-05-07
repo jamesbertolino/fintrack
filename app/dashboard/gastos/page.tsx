@@ -64,6 +64,8 @@ export default function GastosPage() {
   const [movendo, setMovendo]             = useState(false)
   const [excluindoLote, setExcluindoLote] = useState(false)
 
+  const [deletando, setDeletando] = useState<string | null>(null)
+
   // ─── modal edição ───
   const [modalAberto, setModalAberto]               = useState(false)
   const [transacaoEditando, setTransacaoEditando]   = useState<Transacao | null>(null)
@@ -167,9 +169,16 @@ export default function GastosPage() {
   async function excluirSelecionados() {
     if (!selecionados.length) return
     setExcluindoLote(true)
-    await Promise.all(selecionados.map(id => supabase.from('transactions').delete().eq('id', id)))
+    await Promise.all(selecionados.map(id => fetch(`/api/lancamento/${id}`, { method: 'DELETE' })))
     setSelecionados([])
     setExcluindoLote(false)
+    carregar()
+  }
+
+  async function deletar(id: string) {
+    setDeletando(id)
+    await fetch(`/api/lancamento/${id}`, { method: 'DELETE' })
+    setDeletando(null)
     carregar()
   }
 
@@ -507,19 +516,19 @@ export default function GastosPage() {
             </div>
           ) : (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4, alignItems: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px 28px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4, alignItems: 'center' }}>
                 <input type="checkbox"
                   checked={selecionados.length === filtradas.length && filtradas.length > 0}
                   onChange={toggleTodos}
                   style={{ cursor: 'pointer', accentColor: '#4ade80', width: 14, height: 14 }} />
-                {['Descrição', 'Categoria', 'Data', 'Valor'].map(h => (
+                {['Descrição', 'Categoria', 'Data', 'Valor', ''].map(h => (
                   <div key={h} style={{ fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', textAlign: h === 'Valor' ? 'right' : 'left' }}>{h}</div>
                 ))}
               </div>
 
               {filtradas.map(t => (
                 <div key={t.id} style={{
-                  display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10,
+                  display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px 28px', gap: 10,
                   padding: '8px', borderRadius: 6, transition: 'background .12s',
                   borderBottom: '1px solid rgba(255,255,255,.04)',
                   background: selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : 'transparent',
@@ -544,11 +553,17 @@ export default function GastosPage() {
                   <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', alignSelf: 'center' }}>
                     {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
                   </div>
+                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 4, alignSelf: 'center', opacity: deletando === t.id ? 0.4 : 1 }}
+                    onMouseEnter={e => { e.stopPropagation(); (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
+                    onMouseLeave={e => { e.stopPropagation(); (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.2)' }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
                 </div>
               ))}
 
               {/* Rodapé — mostra saldo do filtro quando filtro ativo, saldo do período quando não */}
-              <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px', gap: 10, padding: '10px 8px', borderTop: '1px solid #1a3a1a', marginTop: 4 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px 28px', gap: 10, padding: '10px 8px', borderTop: '1px solid #1a3a1a', marginTop: 4 }}>
                 <div />
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
                   {filtroAtivo
@@ -560,6 +575,7 @@ export default function GastosPage() {
                 <div style={{ fontSize: 13, fontWeight: 600, color: (filtroAtivo ? saldoFiltrado : saldoPeriodo) >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>
                   {(filtroAtivo ? saldoFiltrado : saldoPeriodo) >= 0 ? '+' : '-'}{fmtBRL(Math.abs(filtroAtivo ? saldoFiltrado : saldoPeriodo))}
                 </div>
+                <div />
               </div>
             </div>
           )}
