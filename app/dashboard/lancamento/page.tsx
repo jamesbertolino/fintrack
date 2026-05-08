@@ -359,6 +359,8 @@ useEffect(() => {
     const data = await res.json()
     setProcessan(false)
     setEtapa('')
+    // Sempre mostra o debug mesmo em caso de erro ou 0 transações
+    if (data._csv_debug) setCsvDebug(data._csv_debug)
     if (!data.ok || !data.transacoes?.length) {
       setErro(data.error || 'Não foi possível extrair transações do documento')
       return
@@ -366,7 +368,6 @@ useEffect(() => {
     const comDuplicatas = detectarDuplicatas(data.transacoes, historico)
     setTransacoesDetectadas(comDuplicatas)
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
-    setCsvDebug(data._csv_debug || '')
     setTipoDocumento(data.tipo_documento || '')
 
     if (data.conta_vinculada) {
@@ -793,6 +794,21 @@ useEffect(() => {
               </div>
             )}
 
+            {/* Debug CSV — visível mesmo sem transações para diagnóstico */}
+            {csvDebug && !processando && (
+              <details style={{ marginTop: 10, marginBottom: 4 }}>
+                <summary style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', cursor: 'pointer', userSelect: 'none', marginBottom: 6 }}>
+                  🔍 CSV bruto gerado pela IA ({csvDebug.split('\n').length - 1} linhas) — clique para expandir
+                </summary>
+                <pre style={{
+                  fontSize: 10, color: 'rgba(255,255,255,.6)', background: 'rgba(0,0,0,.35)',
+                  border: '1px solid rgba(255,255,255,.08)', borderRadius: 6,
+                  padding: '8px 10px', overflowX: 'auto', maxHeight: 320,
+                  overflowY: 'auto', whiteSpace: 'pre', lineHeight: 1.6,
+                }}>{csvDebug}</pre>
+              </details>
+            )}
+
             {transacoesDetectadas.length > 0 && !processando && (
               <div style={{ marginTop: 14 }}>
 
@@ -805,19 +821,6 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {csvDebug && (
-                  <details style={{ marginBottom: 14 }}>
-                    <summary style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', cursor: 'pointer', userSelect: 'none', marginBottom: 6 }}>
-                      🔍 CSV bruto gerado pela IA ({csvDebug.split('\n').length - 1} linhas)
-                    </summary>
-                    <pre style={{
-                      fontSize: 10, color: 'rgba(255,255,255,.55)', background: 'rgba(0,0,0,.3)',
-                      border: '1px solid rgba(255,255,255,.08)', borderRadius: 6,
-                      padding: '8px 10px', overflowX: 'auto', maxHeight: 300,
-                      overflowY: 'auto', whiteSpace: 'pre', lineHeight: 1.6,
-                    }}>{csvDebug}</pre>
-                  </details>
-                )}
 
                 {/* Banco detectado + tipo de documento */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>

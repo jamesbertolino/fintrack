@@ -493,6 +493,7 @@ async function processarPDF(bytes: ArrayBuffer) {
     tipo_documento: 'extrato_bancario',
     banco_nome: null as string | null,
     resumo: `${transacoes.length} transações extraídas do PDF (${paginasValidas.length} páginas)`,
+    _csv_debug: `[FALLBACK LOCAL — IA indisponível]\n\nTexto extraído (primeiros 3000 chars):\n${textoUnido.slice(0, 3000)}`,
   }
 }
 
