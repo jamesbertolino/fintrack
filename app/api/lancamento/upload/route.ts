@@ -366,9 +366,10 @@ Regras:
 - Se não houver transações na página, retorne só o cabeçalho`
 
 // ─── Converte CSV com saldo em transações usando comparação de saldo ───────────
-function processarCSVComSaldo(csv: string): TransacaoDetectada[] {
+function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; lacunas: string[] } {
   const linhas = csv.split('\n').map(l => l.trim()).filter(Boolean)
-  const resultado: TransacaoDetectada[] = []
+  const transacoes: TransacaoDetectada[] = []
+  const lacunas: string[] = []
   let saldoAnt = NaN
 
   // Encontra cabeçalho
@@ -377,14 +378,14 @@ function processarCSVComSaldo(csv: string): TransacaoDetectada[] {
     const l = linhas[i].toLowerCase()
     if (l.includes('data') && l.includes('hist')) { iCab = i; break }
   }
-  if (iCab === -1) return []
+  if (iCab === -1) return { transacoes, lacunas }
 
   const cab = linhas[iCab].split(';').map(c => c.toLowerCase().trim())
   const iData  = cab.findIndex(c => c === 'data')
   const iHist  = cab.findIndex(c => c.includes('hist'))
   const iValor = cab.findIndex(c => c.includes('valor'))
   const iSaldo = cab.findIndex(c => c.includes('saldo'))
-  if (iData === -1 || iHist === -1 || iValor === -1) return []
+  if (iData === -1 || iHist === -1 || iValor === -1) return { transacoes, lacunas }
 
   for (let i = iCab + 1; i < linhas.length; i++) {
     const cols = linhas[i].split(';').map(c => c.trim().replace(/"/g, ''))
@@ -400,13 +401,20 @@ function processarCSVComSaldo(csv: string): TransacaoDetectada[] {
     let tipo: string
     if (!isNaN(saldoAtu) && !isNaN(saldoAnt)) {
       tipo = saldoAtu > saldoAnt ? 'credito' : 'debito'
+
+      // Detecta lacuna: diferença de saldo não bate com o valor da transação
+      const diff = Math.abs(saldoAtu - saldoAnt)
+      if (Math.abs(diff - valorNum) > 0.02) {
+        const faltando = Math.abs(diff - valorNum)
+        lacunas.push(`⚠️ Lacuna em ${dataVal} após "${hist}": saldo saltou R$ ${diff.toFixed(2)} mas valor é R$ ${valorNum.toFixed(2)} — possível R$ ${faltando.toFixed(2)} em transações não extraídas`)
+      }
     } else {
       tipo = 'debito' // fallback conservador
     }
     if (!isNaN(saldoAtu)) saldoAnt = saldoAtu
 
     const { categoria, nao_categorizado } = detectarCategoria(hist)
-    resultado.push({
+    transacoes.push({
       descricao: hist.trim().toUpperCase(),
       valor: valorNum,
       tipo,
@@ -415,7 +423,7 @@ function processarCSVComSaldo(csv: string): TransacaoDetectada[] {
       data_hora: parseData(dataVal),
     })
   }
-  return resultado
+  return { transacoes, lacunas }
 }
 
 // ─── Processa PDF: cada página → IA (CSV+saldo) → saldo determina débito/crédito
@@ -434,10 +442,18 @@ async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
+      // Prepara páginas com sobreposição: inclui as últimas 400 chars da página anterior
+      // para não perder transações que ficam no limite entre páginas
+      const paginasComContexto = paginasValidas.map((pagina, idx) => {
+        if (idx === 0) return pagina
+        const overlap = paginasValidas[idx - 1].slice(-400)
+        return `[...continuação da página anterior]\n${overlap}\n[página atual]\n${pagina}`
+      })
+
       const paginaParaCSV = (pagina: string): Promise<string> =>
         fetchOpenAI(openaiKey, {
-          model: 'gpt-4o-mini',
-          max_tokens: 4096,
+          model: 'gpt-4o',
+          max_tokens: 8192,
           temperature: 0,
           messages: [{
             role: 'user',
@@ -454,30 +470,37 @@ async function processarPDF(bytes: ArrayBuffer) {
       // Lotes de 8 páginas em paralelo
       const csvPaginas: string[] = []
       const BATCH = 8
-      for (let i = 0; i < paginasValidas.length; i += BATCH) {
-        const lote = await Promise.all(paginasValidas.slice(i, i + BATCH).map(paginaParaCSV))
+      for (let i = 0; i < paginasComContexto.length; i += BATCH) {
+        const lote = await Promise.all(paginasComContexto.slice(i, i + BATCH).map(paginaParaCSV))
         csvPaginas.push(...lote)
       }
 
-      // Concatena mantendo um único cabeçalho
+      // Concatena mantendo um único cabeçalho, deduplicando por Saldo+Valor (chave natural)
       const linhas: string[] = ['Data;Historico;Valor;Saldo']
+      const vistas = new Set<string>()
       for (const csv of csvPaginas) {
         for (const linha of csv.split('\n')) {
           const l = linha.trim()
           if (!l || l.toLowerCase().startsWith('data;')) continue
+          // Chave de deduplicação: data + valor + saldo (ignora variação na descrição)
+          const cols = l.split(';')
+          const chave = `${cols[0]?.trim()}|${cols[2]?.trim()}|${cols[3]?.trim()}`
+          if (vistas.has(chave)) continue
+          vistas.add(chave)
           linhas.push(l)
         }
       }
 
       const csvUnido = linhas.join('\n')
       // Usa saldo para determinar crédito/débito — não depende de interpretação da IA
-      const transacoes = processarCSVComSaldo(csvUnido)
+      const { transacoes, lacunas } = processarCSVComSaldo(csvUnido)
 
       return {
         transacoes,
         tipo_documento: 'extrato_bancario',
         banco_nome: null as string | null,
         resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
+        lacunas,
         _csv_debug: csvUnido,
       }
     } catch {
@@ -623,12 +646,14 @@ export async function POST(request: NextRequest) {
       }
 
       const naoCat = transacoes.filter(t => t.nao_categorizado).length
+      const lacunas: string[] = (parsed as { lacunas?: string[] }).lacunas || []
       return NextResponse.json({
         ok: true, transacoes,
         resumo: `${transacoes.length} transações${naoCat ? ` (${naoCat} sem categoria)` : ''} — ${parsed.resumo || ''}`.trim(),
         banco_nome, banco_id, banco_nao_encontrado,
         tipo_documento: parsed.tipo_documento || 'extrato_bancario',
         conta_vinculada: banco_nome,
+        lacunas,
         _csv_debug: parsed._csv_debug,
       })
     }

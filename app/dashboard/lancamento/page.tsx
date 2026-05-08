@@ -196,6 +196,7 @@ export default function LancamentoPage() {
   const [transacoesDetectadas, setTransacoesDetectadas] = useState<TransacaoDetectada[]>([])
   const [resumoDetectado, setResumo] = useState('')
   const [csvDebug, setCsvDebug]       = useState('')
+  const [lacunasDetectadas, setLacunas] = useState<string[]>([])
   const [tipoDocumento, setTipoDocumento] = useState('')
   const [bancoDetectado, setBancoDetectado] = useState<{ id: string; nome_curto: string; cor: string | null } | null>(null)
   const [contaUpload, setContaUpload] = useState('')
@@ -360,6 +361,7 @@ useEffect(() => {
     setProcessan(false)
     setEtapa('')
     setCsvDebug(data._csv_debug || '')
+    setLacunas(data.lacunas || [])
     if (!data.ok || !data.transacoes?.length) {
       setErro(data.error || 'Não foi possível extrair transações do documento')
       return
@@ -806,6 +808,17 @@ useEffect(() => {
                   overflowY: 'auto', whiteSpace: 'pre', lineHeight: 1.6,
                 }}>{csvDebug}</pre>
               </details>
+            )}
+
+            {lacunasDetectadas.length > 0 && !processando && (
+              <div style={{ marginTop: 10, background: 'rgba(255,165,0,.12)', border: '1px solid rgba(255,165,0,.35)', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#ffb347', marginBottom: 6 }}>
+                  ⚠️ {lacunasDetectadas.length} possível{lacunasDetectadas.length > 1 ? 'is lacuna' : ' lacuna'} detectada{lacunasDetectadas.length > 1 ? 's' : ''} — revise o extrato original
+                </div>
+                {lacunasDetectadas.map((msg, i) => (
+                  <div key={i} style={{ fontSize: 11, color: 'rgba(255,179,71,.8)', marginTop: 3 }}>{msg}</div>
+                ))}
+              </div>
             )}
 
             {transacoesDetectadas.length > 0 && !processando && (
