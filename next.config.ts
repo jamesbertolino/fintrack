@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['pdf-parse'],
+  serverExternalPackages: ['unpdf'],
   async redirects() {
     return [
       { source: '/cadastro', destination: '/login', permanent: true },

@@ -243,13 +243,9 @@ function parseIAResponse(texto: string): any {
 
 // ─── Processa PDF: extrai texto localmente e envia como texto para a IA ────────
 async function processarPDF(bytes: ArrayBuffer) {
-  // Import dinâmico evita que pdf-parse tente ler arquivos de teste no boot serverless
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const pdfParseModule = await import('pdf-parse' as any)
-  const pdfParse: (buf: Buffer) => Promise<{ text: string }> = pdfParseModule.default ?? pdfParseModule
-
-  const buffer = Buffer.from(bytes)
-  const { text } = await pdfParse(buffer)
+  // unpdf usa pdfjs-dist sem APIs de browser (funciona em Node.js serverless)
+  const { extractText } = await import('unpdf')
+  const { text } = await extractText(new Uint8Array(bytes), { mergePages: true })
 
   if (!text || text.trim().length < 20) {
     throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
