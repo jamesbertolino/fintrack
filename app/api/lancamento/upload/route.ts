@@ -244,78 +244,8 @@ function parseIAResponse(texto: string): any {
 // ─── Converte texto bruto do PDF em CSV estruturado (sem IA) ─────────────────
 // Suporta o padrão brasileiro: data (uma vez por bloco) → linhas de descrição
 // → linha de código + valor + saldo (ex: "0000705 710,70 36.751,41")
-function pdfTextToCSV(text: string): string {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
 
-  // Linha de transação: [código opcional] valor saldo  — dois valores monetários
-  // ex: "0000705 710,70 36.751,41"  ou  "710,70 36.751,41"
-  const reLinhaValor = /(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s*$/
-  const reData       = /\b(\d{2}\/\d{2}\/\d{4})\b/
-  const reApenasNum  = /^[\d\s.,]+$/
-
-  const rows: string[] = ['Data;Historico;Credito;Debito']
-  let dataAtual = ''
-  const descAcum: string[] = []   // linhas de descrição acumuladas desde a última data/transação
-
-  const emitir = (valor: string, saldoAnterior: string, saldoAtual: string) => {
-    const desc = descAcum.filter(l =>
-      !l.match(reData) &&                          // não é data
-      !l.match(/^COD\.?\s*LANC/i) &&              // não é cabeçalho
-      l.length > 1 &&
-      !l.match(reApenasNum)                         // não é só número
-    ).join(' ').replace(/[;]/g, ' ').replace(/\s{2,}/g, ' ').trim()
-    descAcum.length = 0
-
-    if (!dataAtual || !desc || !valor) return
-
-    // Determina débito ou crédito comparando saldos
-    const saldoAnt = parseFloat(saldoAnterior.replace(/\./g, '').replace(',', '.')) || 0
-    const saldoAtu = parseFloat(saldoAtual.replace(/\./g, '').replace(',', '.')) || 0
-    const isCredito = saldoAtu > saldoAnt
-
-    const credito = isCredito ? valor : ''
-    const debito  = isCredito ? '' : valor
-    rows.push(`${dataAtual};${desc};${credito};${debito}`)
-  }
-
-  let saldoAnterior = ''
-
-  for (const linha of lines) {
-    const mData = linha.match(reData)
-    // Atualiza data atual se a linha é uma data (sozinha ou com pouco texto)
-    if (mData) {
-      const resto = linha.replace(reData, '').trim()
-      if (!resto.match(reLinhaValor)) {
-        dataAtual = mData[1]
-        // Texto residual na linha da data pode ser início de descrição
-        if (resto && !resto.match(/^COD\.?\s*LANC/i) && !resto.match(reApenasNum)) {
-          descAcum.push(resto)
-        }
-        continue
-      }
-    }
-
-    // Linha com valor + saldo → fecha a transação acumulada
-    const mValor = linha.match(reLinhaValor)
-    if (mValor) {
-      const valor    = mValor[1]
-      const saldoAtu = mValor[2]
-      // Acumula o texto antes dos valores como parte da descrição
-      const prefixo = linha.replace(reLinhaValor, '').replace(/^\d{4,8}\s*/, '').trim()
-      if (prefixo && !prefixo.match(reApenasNum)) descAcum.push(prefixo)
-      emitir(valor, saldoAnterior, saldoAtu)
-      saldoAnterior = saldoAtu
-      continue
-    }
-
-    // Linha de texto → acumula como descrição
-    descAcum.push(linha)
-  }
-
-  return rows.join('\n')
-}
-
-// ─── Processa PDF: extrai texto e converte com regex → processarCSV ───────────
+// ─── Processa PDF: extrai texto com unpdf e envia para IA identificar ─────────
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
   const { text } = await extractText(new Uint8Array(bytes), { mergePages: true })
@@ -324,17 +254,31 @@ async function processarPDF(bytes: ArrayBuffer) {
     throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
   }
 
-  const csv = pdfTextToCSV(text)
-  const transacoes = processarCSV(csv)
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
 
-  return {
-    transacoes,
-    tipo_documento: 'extrato_bancario',
-    banco_nome: null as string | null,
-    resumo: `${transacoes.length} transações extraídas do PDF`,
-    _csv: csv,
-    _texto: text,
-  }
+  // Limita a 12k chars — gpt-4o-mini responde em ~5-8s dentro do timeout
+  const conteudo = text.slice(0, 12000)
+
+  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: 4096,
+      temperature: 0,
+      messages: [{
+        role: 'user',
+        content: `${PROMPT_BASE}\n\nTexto extraído do PDF (pode ser extrato, fatura, comprovante, nota fiscal ou holerite — identifique o tipo e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
+      }],
+    }),
+  })
+
+  const chatData = await chatRes.json()
+  if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
+
+  const content = chatData.choices?.[0]?.message?.content || ''
+  return parseIAResponse(content)
 }
 
 // ─── Processa imagem via OpenAI Vision ────────────────────────────────────────
@@ -449,7 +393,7 @@ export async function POST(request: NextRequest) {
       const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => ({
         ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
       }))
-      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF', _debug_csv: parsed._csv, _debug_texto: parsed._texto?.slice(0, 500) }, { status: 400 })
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF' }, { status: 400 })
 
       const banco_nome = parsed.banco_nome || null
       let banco_id: string | null = null
