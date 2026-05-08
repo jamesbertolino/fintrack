@@ -295,7 +295,8 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   const hIdx = flat.search(/Saldo\s*\(R\$\)/i)
   const content = hIdx !== -1 ? flat.slice(hIdx + 20) : flat
 
-  const reTrans = /\b(\d{6,7})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
+  // Código: qualquer token com pelo menos 1 dígito (ex: 0000705, AG02154MAQ010411SEQ021)
+  const reTrans = /\b([A-Z]*\d[A-Z\d]*)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
   const reData4 = /\b(\d{2}\/\d{2}\/\d{4})\b/g
   const reData2 = /\b\d{2}\/\d{2}\b/g
 
@@ -319,6 +320,8 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
       .replace(reData4, '')
       .replace(reData2, '')
       .replace(/COD\.?\s*LANC\.[^A-Z]*/gi, '')
+      .replace(/\bDES:\s*/gi, '')          // remove prefixo "DES:" de PIX
+      .replace(/\bAG\d+\b/g, '')           // remove "AG02154" (agência no código)
       .replace(/\s{2,}/g, ' ')
       .trim()
 
