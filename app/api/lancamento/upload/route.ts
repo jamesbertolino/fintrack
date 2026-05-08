@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rateLimit'
-import * as pdfParseModule from 'pdf-parse'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
@@ -246,7 +243,11 @@ function parseIAResponse(texto: string): any {
 
 // ─── Processa PDF: extrai texto localmente e envia como texto para a IA ────────
 async function processarPDF(bytes: ArrayBuffer) {
-  // Extrai texto do PDF localmente — sem limite de tokens de entrada
+  // Import dinâmico evita que pdf-parse tente ler arquivos de teste no boot serverless
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pdfParseModule = await import('pdf-parse' as any)
+  const pdfParse: (buf: Buffer) => Promise<{ text: string }> = pdfParseModule.default ?? pdfParseModule
+
   const buffer = Buffer.from(bytes)
   const { text } = await pdfParse(buffer)
 
