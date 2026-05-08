@@ -9,9 +9,11 @@ import { usePerfil } from '@/hooks/usePerfil'
 const TIPS_KEY = 'poupaup_tips_v1'
 
 function useTips() {
-  const [dismissed, setDismissed] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem(TIPS_KEY) || '{}') } catch { return {} }
-  })
+  const [dismissed, setDismissed] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    try { setDismissed(JSON.parse(localStorage.getItem(TIPS_KEY) || '{}')) } catch { /* ignore */ }
+  }, [])
 
   function dismiss(id: string) {
     const next = { ...dismissed, [id]: true }
@@ -71,6 +73,7 @@ interface Transacao {
 
 interface TransacaoDetectada {
   descricao: string
+  tipo_pagamento?: string
   valor: number
   tipo: string
   categoria: string
@@ -948,6 +951,11 @@ useEffect(() => {
                                   {TODAS_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               )}
+                              {t.tipo_pagamento && (
+                                <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.35)', border: '1px solid rgba(255,255,255,.1)' }}>
+                                  {t.tipo_pagamento}
+                                </span>
+                              )}
                               <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>
@@ -1034,6 +1042,11 @@ useEffect(() => {
                                 style={{ fontSize: 11, padding: '2px 8px', background: '#0a0a0a', border: '1px solid rgba(251,191,36,.3)', borderRadius: 6, color: '#fbbf24', outline: 'none', cursor: 'pointer' }}>
                                 {TODAS_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
+                              {t.tipo_pagamento && (
+                                <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.35)', border: '1px solid rgba(255,255,255,.1)' }}>
+                                  {t.tipo_pagamento}
+                                </span>
+                              )}
                               <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>

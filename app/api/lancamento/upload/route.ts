@@ -6,6 +6,7 @@ const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Edu
 
 export interface TransacaoDetectada {
   descricao: string
+  tipo_pagamento?: string
   valor: number
   tipo: string
   categoria: string
@@ -103,7 +104,8 @@ Formato obrigatório:
   "resumo": "ex: 23 transações de Jan/2025",
   "transacoes": [
     {
-      "descricao": "descrição limpa e legível da transação",
+      "descricao": "nome do estabelecimento, pessoa ou finalidade — nunca o tipo de pagamento",
+      "tipo_pagamento": "PIX | TED | DOC | Débito | Crédito | Boleto | Transferência | Saque | Tarifa | null",
       "valor": 150.00,
       "tipo": "debito ou credito",
       "categoria": "categoria mais provável da lista",
@@ -113,16 +115,19 @@ Formato obrigatório:
   ]
 }
 
-Regras de categorização:
+Regras CRÍTICAS de extração:
+- "descricao" deve ser o DESTINATÁRIO ou FINALIDADE real da transação (ex: "SUPERMERCADO EXTRA", "NETFLIX", "JOAO SILVA", "ALUGUEL APARTAMENTO")
+- NUNCA coloque em "descricao" o tipo de pagamento (PIX, TED, Débito, Crédito, Cartão Visa, etc.)
+- "tipo_pagamento" é o meio/modalidade: PIX, TED, DOC, Débito, Crédito, Boleto, Transferência, Saque, Tarifa, Estorno, etc.
+- Quando o documento tiver linha com "PIX - MERCADINHO SILVA": descricao="MERCADINHO SILVA", tipo_pagamento="PIX"
+- Quando tiver "Compra Cartão Visa - iFood": descricao="IFOOD", tipo_pagamento="Crédito"
+- Se a descrição real vier na linha abaixo do tipo (padrão comum em extratos): use a linha de baixo como descricao
 - Use a categoria mais específica possível
-- Defina nao_categorizado: true SOMENTE quando a descrição for ambígua (ex: siglas, códigos, PIX genérico sem destinatário claro, TED sem descrição)
-- Defina nao_categorizado: false quando conseguir inferir a categoria com boa certeza
-- tipo "debito" para gastos/saídas/compras/pagamentos/débitos/descontos
-- tipo "credito" para receitas/entradas/depósitos/salário/créditos/proventos
+- nao_categorizado: true SOMENTE quando impossível inferir o destinatário (ex: apenas código numérico sem nome)
+- tipo "debito" para gastos/saídas; tipo "credito" para receitas/entradas
 - valor sempre número positivo
 - Para holerites: salário líquido = credito, descontos = debito
-- Para notas fiscais: itens comprados = debito
-- data_hora sempre ISO 8601, se sem hora use T00:00:00.000Z
+- data_hora sempre ISO 8601, sem hora use T00:00:00.000Z
 - Ignore totais, saldos, cabeçalhos e rodapés
 - Extraia TODAS as transações sem omitir nenhuma`
 
