@@ -245,7 +245,69 @@ function parseIAResponse(texto: string): any {
 // Suporta o padrão brasileiro: data (uma vez por bloco) → linhas de descrição
 // → linha de código + valor + saldo (ex: "0000705 710,70 36.751,41")
 
-// ─── Processa PDF: extrai texto com unpdf e envia para IA identificar ─────────
+// ─── Fallback local para PDF: regex busca datas + padrão valor+saldo ──────────
+function pdfParserLocal(text: string): TransacaoDetectada[] {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  // Detecta linha com dois valores monetários no final: valor + saldo corrente
+  const reValorSaldo = /(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s*$/
+  const reData       = /\b(\d{2}\/\d{2}\/\d{4})\b/
+  const reSoNum      = /^[\d\s.,]+$/
+
+  const resultado: TransacaoDetectada[] = []
+  let dataAtual  = ''
+  let saldoAnt   = 0
+  const descAcum: string[] = []
+
+  const flush = (valor: string, saldoAtuStr: string) => {
+    const desc = descAcum
+      .filter(l => !l.match(reData) && !l.match(/^COD\.?\s*LANC/i) && l.length > 2 && !l.match(reSoNum))
+      .join(' ').replace(/[;]/g, ' ').replace(/\s{2,}/g, ' ').trim()
+    descAcum.length = 0
+    if (!dataAtual || !desc || !valor) return
+
+    const saldoAtu = parseFloat(saldoAtuStr.replace(/\./g, '').replace(',', '.')) || 0
+    const isCredito = saldoAtu > saldoAnt
+    saldoAnt = saldoAtu
+
+    const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0
+    if (valorNum === 0) return
+
+    const tipo = isCredito ? 'credito' : 'debito'
+    const { categoria, nao_categorizado } = detectarCategoria(desc)
+    resultado.push({
+      descricao: desc.toUpperCase(),
+      valor: valorNum,
+      tipo,
+      categoria,
+      nao_categorizado,
+      data_hora: parseData(dataAtual),
+    })
+  }
+
+  for (const linha of lines) {
+    const mData = linha.match(reData)
+    if (mData) {
+      const resto = linha.replace(reData, '').trim()
+      if (!resto.match(reValorSaldo)) {
+        dataAtual = mData[1]
+        if (resto && !resto.match(/^COD\.?\s*LANC/i) && !resto.match(reSoNum)) descAcum.push(resto)
+        continue
+      }
+    }
+    const mVS = linha.match(reValorSaldo)
+    if (mVS) {
+      const prefixo = linha.replace(reValorSaldo, '').replace(/^\d{4,8}\s*/, '').trim()
+      if (prefixo && !prefixo.match(reSoNum)) descAcum.push(prefixo)
+      flush(mVS[1], mVS[2])
+      continue
+    }
+    descAcum.push(linha)
+  }
+
+  return resultado
+}
+
+// ─── Processa PDF: tenta IA, cai para parser local se falhar ─────────────────
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
   const { text } = await extractText(new Uint8Array(bytes), { mergePages: true })
@@ -255,30 +317,41 @@ async function processarPDF(bytes: ArrayBuffer) {
   }
 
   const openaiKey = process.env.OPENAI_API_KEY
-  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+  if (openaiKey) {
+    try {
+      const conteudo = text.slice(0, 12000)
+      const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 4096,
+          temperature: 0,
+          messages: [{
+            role: 'user',
+            content: `${PROMPT_BASE}\n\nTexto extraído do PDF (extrato, fatura, comprovante, nota fiscal ou holerite — identifique o tipo e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
+          }],
+        }),
+      })
+      const chatData = await chatRes.json()
+      if (chatRes.ok) {
+        const content = chatData.choices?.[0]?.message?.content || ''
+        const parsed = parseIAResponse(content)
+        if (parsed.transacoes?.length > 0) return parsed
+      }
+    } catch {
+      // IA falhou — usa parser local abaixo
+    }
+  }
 
-  // Limita a 12k chars — gpt-4o-mini responde em ~5-8s dentro do timeout
-  const conteudo = text.slice(0, 12000)
-
-  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [{
-        role: 'user',
-        content: `${PROMPT_BASE}\n\nTexto extraído do PDF (pode ser extrato, fatura, comprovante, nota fiscal ou holerite — identifique o tipo e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
-      }],
-    }),
-  })
-
-  const chatData = await chatRes.json()
-  if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
-
-  const content = chatData.choices?.[0]?.message?.content || ''
-  return parseIAResponse(content)
+  // Fallback: parser local por regex
+  const transacoes = pdfParserLocal(text)
+  return {
+    transacoes,
+    tipo_documento: 'extrato_bancario',
+    banco_nome: null as string | null,
+    resumo: `${transacoes.length} transações extraídas do PDF`,
+  }
 }
 
 // ─── Processa imagem via OpenAI Vision ────────────────────────────────────────
