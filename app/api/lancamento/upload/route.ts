@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rateLimit'
+import * as pdfParseModule from 'pdf-parse'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pdfParse: (buf: Buffer) => Promise<{ text: string }> = (pdfParseModule as any).default ?? pdfParseModule
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
@@ -241,58 +244,18 @@ function parseIAResponse(texto: string): any {
   }
 }
 
-// ─── Processa PDF via OpenAI ───────────────────────────────────────────────────
+// ─── Processa PDF: extrai texto localmente e envia como texto para a IA ────────
 async function processarPDF(bytes: ArrayBuffer) {
-  const openaiKey = process.env.OPENAI_API_KEY
-  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+  // Extrai texto do PDF localmente — sem limite de tokens de entrada
+  const buffer = Buffer.from(bytes)
+  const { text } = await pdfParse(buffer)
 
-  const blob = new Blob([bytes], { type: 'application/pdf' })
-  const form = new FormData()
-  form.append('file', blob, 'extrato.pdf')
-  form.append('purpose', 'assistants')
-
-  const uploadRes = await fetch('https://api.openai.com/v1/files', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${openaiKey}` },
-    body: form,
-  })
-  const uploadData = await uploadRes.json()
-  if (!uploadRes.ok) throw new Error(uploadData.error?.message || 'Erro ao fazer upload do PDF')
-
-  const fileId = uploadData.id
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mensagens: any[] = [{ role: 'user', content: [{ type: 'text', text: PROMPT_BASE }, { type: 'file', file: { file_id: fileId } }] }]
-
-    const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-      body: JSON.stringify({ model: 'gpt-4o', max_tokens: 16384, messages: mensagens }),
-    })
-    const chatData = await chatRes.json()
-    if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
-
-    const texto  = chatData.choices?.[0]?.message?.content || ''
-    const finish = chatData.choices?.[0]?.finish_reason
-    const parsed = parseIAResponse(texto)
-
-    if (finish === 'length' && (parsed.transacoes || []).length > 0) {
-      const ultima = parsed.transacoes[parsed.transacoes.length - 1] as { descricao?: string }
-      mensagens.push({ role: 'assistant', content: texto })
-      mensagens.push({
-        role: 'user',
-        content: `A resposta foi truncada. Continue extraindo as transações restantes a partir da que vem DEPOIS de "${ultima?.descricao ?? ''}". Retorne APENAS o array JSON de transações.`,
-      })
-      const extras = await chatComContinuacao(openaiKey, mensagens)
-      parsed.transacoes = [...parsed.transacoes, ...extras]
-    }
-
-    return parsed
-  } finally {
-    await fetch(`https://api.openai.com/v1/files/${fileId}`, {
-      method: 'DELETE', headers: { 'Authorization': `Bearer ${openaiKey}` },
-    }).catch(() => {})
+  if (!text || text.trim().length < 20) {
+    throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
   }
+
+  // Reutiliza o mesmo fluxo do CSV: envia texto bruto para a IA com continuação automática
+  return processarCSVComIA(text)
 }
 
 // ─── Processa imagem via OpenAI Vision ────────────────────────────────────────
