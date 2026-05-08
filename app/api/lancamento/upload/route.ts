@@ -350,47 +350,83 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   return resultado
 }
 
-// ─── Processa PDF: tenta IA, cai para parser local se falhar ─────────────────
+// ─── Processa PDF: página por página em paralelo via IA ──────────────────────
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
-  const { text } = await extractText(new Uint8Array(bytes), { mergePages: true })
 
-  if (!text || text.trim().length < 20) {
+  // Extrai página por página (mergePages: false → text é string[])
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resultado = await extractText(new Uint8Array(bytes), { mergePages: false }) as any
+  const paginas: string[] = Array.isArray(resultado.text)
+    ? resultado.text
+    : [resultado.text ?? '']
+
+  const paginasValidas = paginas.filter((p: string) => p && p.trim().length > 10)
+  if (paginasValidas.length === 0) {
     throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
   }
 
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
-      const conteudo = text.slice(0, 12000)
-      const chatRes = await fetchOpenAI(openaiKey, {
-        model: 'gpt-4o-mini',
-        max_tokens: 4096,
-        temperature: 0,
-        messages: [{
-          role: 'user',
-          content: `${PROMPT_BASE}\n\nTexto extraído do PDF (extrato, fatura, comprovante, nota fiscal ou holerite — identifique o tipo e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
-        }],
-      })
-      const chatData = await chatRes.json()
-      if (chatRes.ok) {
-        const content = chatData.choices?.[0]?.message?.content || ''
-        const parsed = parseIAResponse(content)
-        if (parsed.transacoes?.length > 0) return parsed
+      // Agrupa de 3 em 3 páginas e processa todos os chunks em paralelo
+      const CHUNK = 3
+      const chunks: string[] = []
+      for (let i = 0; i < paginasValidas.length; i += CHUNK) {
+        chunks.push(
+          paginasValidas.slice(i, i + CHUNK)
+            .join('\n\n--- PRÓXIMA PÁGINA ---\n\n')
+            .slice(0, 10000)
+        )
+      }
+
+      const respostas = await Promise.all(
+        chunks.map(conteudo =>
+          fetchOpenAI(openaiKey, {
+            model: 'gpt-4o-mini',
+            max_tokens: 4096,
+            temperature: 0,
+            messages: [{
+              role: 'user',
+              content: `${PROMPT_BASE}\n\nTexto do PDF (extrato, fatura, comprovante, nota fiscal ou holerite — identifique e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
+            }],
+          })
+          .then(async res => {
+            const data = await res.json()
+            if (!res.ok) return { transacoes: [] }
+            try { return parseIAResponse(data.choices?.[0]?.message?.content || '') }
+            catch { return { transacoes: [] } }
+          })
+          .catch(() => ({ transacoes: [] }))
+        )
+      )
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const todasTransacoes = respostas.flatMap((r: any) => r.transacoes || [])
+      if (todasTransacoes.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const primeiro = respostas.find((r: any) => r.tipo_documento) || respostas[0] || {}
+        return {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          transacoes: todasTransacoes as any,
+          tipo_documento: (primeiro as { tipo_documento?: string }).tipo_documento || 'extrato_bancario',
+          banco_nome: (primeiro as { banco_nome?: string }).banco_nome || null as string | null,
+          resumo: `${todasTransacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
+        }
       }
     } catch {
       // IA falhou — usa parser local abaixo
     }
   }
 
-  // Fallback: parser local por regex
-  const transacoes = pdfParserLocal(text)
+  // Fallback: parser local por regex no texto unido
+  const textoUnido = paginasValidas.join(' ')
+  const transacoes = pdfParserLocal(textoUnido)
   return {
     transacoes,
     tipo_documento: 'extrato_bancario',
     banco_nome: null as string | null,
-    resumo: `${transacoes.length} transações extraídas do PDF`,
-    _debug: text.slice(0, 1000),
+    resumo: `${transacoes.length} transações extraídas do PDF (${paginasValidas.length} páginas)`,
   }
 }
 
