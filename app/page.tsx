@@ -11,6 +11,7 @@ export default function LandingPage() {
   const [consentBanner, setConsentBanner] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!localStorage.getItem('lgpd_consent')) setConsentBanner(true)
   }, [])
 
