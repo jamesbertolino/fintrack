@@ -353,24 +353,72 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   return resultado
 }
 
-// ─── Prompt simplificado para conversão de página PDF → CSV ──────────────────
-const PROMPT_PDF_PAGINA = `Você é um extrator de extratos bancários brasileiros.
-Analise o texto abaixo e retorne APENAS um CSV válido (sem markdown, sem texto extra) com o cabeçalho:
-Data;Historico;Credito;Debito
+// ─── Prompt: página PDF → CSV com saldo (crédito/débito determinado pelo app) ─
+const PROMPT_PDF_PAGINA = `Você é um extrator de extratos bancários. Analise o texto e retorne APENAS CSV sem markdown:
+Data;Historico;Valor;Saldo
 
-Regras CRÍTICAS:
-- Data no formato DD/MM/YYYY
-- Historico: nome do estabelecimento/beneficiário — NUNCA o tipo de pagamento (PIX, Cartão, etc.)
-- Credito: preencha APENAS se o saldo da conta AUMENTOU (dinheiro ENTROU na conta: salário, Pix recebido, estorno, rendimento)
-- Debito: preencha APENAS se o saldo da conta DIMINUIU (dinheiro SAIU da conta: compra, pagamento, saque, transferência enviada)
-- Nunca preencha Credito e Debito ao mesmo tempo na mesma linha
-- Use o saldo consecutivo para determinar: saldo subiu = Credito, saldo caiu = Debito
-- Valores no formato brasileiro: 710,70 (sem R$, sem separador de milhar desnecessário)
-- Ignore linhas de cabeçalho, totais, saldos iniciais e rodapés
-- Não inclua COD. LANC. nem linhas com valor 0,00
-- Se a página não tiver transações, retorne apenas o cabeçalho`
+Regras:
+- Data: DD/MM/YYYY (se a data se repete para várias transações, use a mesma para todas)
+- Historico: nome do estabelecimento/beneficiário APENAS — sem PIX, Cartão, TED, DOC, Débito, etc.
+- Valor: número positivo da transação (sem sinal, sem R$), formato brasileiro: 1.234,56
+- Saldo: saldo da conta APÓS a transação, formato brasileiro: 36.751,41
+- Ignore cabeçalho, rodapé, totais e COD. LANC.
+- Se não houver transações na página, retorne só o cabeçalho`
 
-// ─── Processa PDF: cada página → IA → CSV → processarCSV (mesmo fluxo do CSV) ─
+// ─── Converte CSV com saldo em transações usando comparação de saldo ───────────
+function processarCSVComSaldo(csv: string): TransacaoDetectada[] {
+  const linhas = csv.split('\n').map(l => l.trim()).filter(Boolean)
+  const resultado: TransacaoDetectada[] = []
+  let saldoAnt = NaN
+
+  // Encontra cabeçalho
+  let iCab = -1
+  for (let i = 0; i < linhas.length; i++) {
+    const l = linhas[i].toLowerCase()
+    if (l.includes('data') && l.includes('hist')) { iCab = i; break }
+  }
+  if (iCab === -1) return []
+
+  const cab = linhas[iCab].split(';').map(c => c.toLowerCase().trim())
+  const iData  = cab.findIndex(c => c === 'data')
+  const iHist  = cab.findIndex(c => c.includes('hist'))
+  const iValor = cab.findIndex(c => c.includes('valor'))
+  const iSaldo = cab.findIndex(c => c.includes('saldo'))
+  if (iData === -1 || iHist === -1 || iValor === -1) return []
+
+  for (let i = iCab + 1; i < linhas.length; i++) {
+    const cols = linhas[i].split(';').map(c => c.trim().replace(/"/g, ''))
+    const dataVal = cols[iData] || ''
+    const hist    = cols[iHist] || ''
+    if (!dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || !hist) continue
+
+    const valorNum  = parseBRL(cols[iValor] || '')
+    const saldoAtu  = iSaldo !== -1 ? parseBRL(cols[iSaldo] || '') : NaN
+    if (valorNum === 0) continue
+
+    // Crédito/débito pelo saldo: saldo subiu = crédito, saldo caiu = débito
+    let tipo: string
+    if (!isNaN(saldoAtu) && !isNaN(saldoAnt)) {
+      tipo = saldoAtu > saldoAnt ? 'credito' : 'debito'
+    } else {
+      tipo = 'debito' // fallback conservador
+    }
+    if (!isNaN(saldoAtu)) saldoAnt = saldoAtu
+
+    const { categoria, nao_categorizado } = detectarCategoria(hist)
+    resultado.push({
+      descricao: hist.trim().toUpperCase(),
+      valor: valorNum,
+      tipo,
+      categoria,
+      nao_categorizado,
+      data_hora: parseData(dataVal),
+    })
+  }
+  return resultado
+}
+
+// ─── Processa PDF: cada página → IA (CSV+saldo) → saldo determina débito/crédito
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
 
@@ -386,7 +434,6 @@ async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
-      // Cada página vira uma chamada independente: IA retorna CSV, não JSON
       const paginaParaCSV = (pagina: string): Promise<string> =>
         fetchOpenAI(openaiKey, {
           model: 'gpt-4o-mini',
@@ -412,8 +459,8 @@ async function processarPDF(bytes: ArrayBuffer) {
         csvPaginas.push(...lote)
       }
 
-      // Junta todos os CSVs: mantém só o primeiro cabeçalho
-      const linhas: string[] = ['Data;Historico;Credito;Debito']
+      // Concatena mantendo um único cabeçalho
+      const linhas: string[] = ['Data;Historico;Valor;Saldo']
       for (const csv of csvPaginas) {
         for (const linha of csv.split('\n')) {
           const l = linha.trim()
@@ -423,14 +470,15 @@ async function processarPDF(bytes: ArrayBuffer) {
       }
 
       const csvUnido = linhas.join('\n')
-      const transacoes = processarCSV(csvUnido)
+      // Usa saldo para determinar crédito/débito — não depende de interpretação da IA
+      const transacoes = processarCSVComSaldo(csvUnido)
 
       return {
         transacoes,
         tipo_documento: 'extrato_bancario',
         banco_nome: null as string | null,
         resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
-        _csv_debug: csvUnido,  // removido após validação
+        _csv_debug: csvUnido,
       }
     } catch {
       // IA falhou — usa parser local abaixo
