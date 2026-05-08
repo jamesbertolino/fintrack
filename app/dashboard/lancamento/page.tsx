@@ -12,6 +12,7 @@ function useTips() {
   const [dismissed, setDismissed] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     try { setDismissed(JSON.parse(localStorage.getItem(TIPS_KEY) || '{}')) } catch { /* ignore */ }
   }, [])
 
