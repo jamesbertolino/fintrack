@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 // Mapa código BACEN → URL do logotipo
 // Fonte: CDNs oficiais dos bancos / favicon de alta resolução
@@ -378,6 +379,11 @@ function logoParaBanco(codigo: string, nome: string): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  const rl = rateLimit({ key: `bancos-atualizar:${getClientIp(request)}`, limit: 3, windowSec: 3600 })
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Rate limit excedido' }, { status: 429 })
+  }
+
   const secret = request.headers.get('x-n8n-secret')
   if (secret !== process.env.N8N_WEBHOOK_SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })

@@ -23,8 +23,8 @@ privilegiado e nunca deve ser exposto ao cliente.
 | `app/api/grupo/convidar/route.ts` | Envia convite pelo número WhatsApp do destinatário — acesso cross-user para buscar instância do grupo | ✅ Justificado |
 | `app/api/grupo/aceitar/route.ts` | Aceita convite via token público — não há sessão no momento do aceite | ✅ Justificado |
 | `app/api/grupo/ranking/route.ts` | Agrega dados de múltiplos membros do grupo — acesso cross-user por design | ✅ Justificado |
-| `app/api/conta/excluir/route.ts` | Cascade delete de transações vinculadas à conta — service role necessário para deletar registros de outros owners se houver compartilhamento | ⚠️ Revisar — verificar se o user tem ownership antes de chamar service role |
-| `app/api/bancos/atualizar/route.ts` | Sincronização de dados de bancos (admin) — operação de manutenção | ⚠️ Revisar — adicionar verificação de role admin |
+| `app/api/conta/excluir/route.ts` | Cascade delete completo da conta — user verificado via `auth.getUser()` na linha 8; todas as operações admin filtram por `user.id` | ✅ Justificado |
+| `app/api/bancos/atualizar/route.ts` | Sincronização de bancos via webhook n8n — protegido por `x-n8n-secret` + rate limit 3 req/h por IP (adicionado 2026-05-08) | ✅ Justificado |
 | `app/api/whatsapp/parse/route.ts` | Protegido por `x-n8n-secret`; busca profile por número WhatsApp (cross-user) | ✅ Justificado — protegido por secret |
 
 ---
@@ -33,5 +33,6 @@ privilegiado e nunca deve ser exposto ao cliente.
 
 1. **Nunca** retornar o service role key em resposta de API.
 2. **Sempre** validar o usuário com o cliente autenticado antes de usar o service role para operações que afetam dados daquele usuário.
-3. Os dois itens marcados com ⚠️ devem ser priorizados na próxima revisão de segurança.
+3. Todos os usos de service role estão justificados e revisados (2026-05-08).
 4. Para multi-tenant futuro, avaliar Row Security com `set_config('app.current_user_id', ...)`.
+5. **Pendência de infraestrutura:** criptografia de campos sensíveis (whatsapp, email) requer pgcrypto/Supabase Vault — não implementável sem migração de schema.

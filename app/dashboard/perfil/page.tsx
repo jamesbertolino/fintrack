@@ -74,6 +74,13 @@ export default function PerfilPage() {
   const [modalAvatarAberto, setModalAv] = useState(false)
   const [contasPerfil, setContasPerfil] = useState<ContaPerfil[]>([])
   const [contaPadrao, setContaPadrao]   = useState('')
+  const [mfaAtivo, setMfaAtivo]         = useState(false)
+  const [mfaFactorId, setMfaFactorId]   = useState('')
+  const [mfaEtapa, setMfaEtapa]         = useState<'idle' | 'qr' | 'verificando'>('idle')
+  const [mfaUri, setMfaUri]             = useState('')
+  const [mfaSecretKey, setMfaSecretKey] = useState('')
+  const [mfaCodigo, setMfaCodigo]       = useState('')
+  const [exportando, setExportando]     = useState(false)
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [notificacoesCelular, setNotificacoesCelular] = useState(true)
@@ -171,6 +178,7 @@ export default function PerfilPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
+    carregarMfa()
   }, [carregar])
 
   async function salvarPerfil(e: React.FormEvent) {
@@ -195,6 +203,52 @@ export default function PerfilPage() {
     setSucesso('Perfil atualizado com sucesso!')
     carregar()
     setTimeout(() => setSucesso(''), 3000)
+  }
+
+  async function carregarMfa() {
+    const { data } = await supabase.auth.mfa.listFactors()
+    const totp = data?.totp?.find(f => f.status === 'verified')
+    if (totp) { setMfaAtivo(true); setMfaFactorId(totp.id) }
+    else { setMfaAtivo(false); setMfaFactorId('') }
+  }
+
+  async function iniciarMfa() {
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'PoupaUp' })
+    if (error || !data) { setErro('Erro ao iniciar MFA: ' + error?.message); return }
+    setMfaUri(data.totp.uri)
+    setMfaSecretKey(data.totp.secret)
+    setMfaFactorId(data.id)
+    setMfaEtapa('qr')
+  }
+
+  async function confirmarMfa() {
+    setMfaEtapa('verificando')
+    const { data: ch, error: ce } = await supabase.auth.mfa.challenge({ factorId: mfaFactorId })
+    if (ce || !ch) { setErro('Erro ao criar desafio MFA'); setMfaEtapa('qr'); return }
+    const { error: ve } = await supabase.auth.mfa.verify({ factorId: mfaFactorId, challengeId: ch.id, code: mfaCodigo })
+    if (ve) { setErro('Código inválido. Tente novamente.'); setMfaEtapa('qr'); return }
+    setMfaAtivo(true); setMfaEtapa('idle'); setMfaCodigo(''); setSucesso('MFA ativado com sucesso!')
+    setTimeout(() => setSucesso(''), 3000)
+  }
+
+  async function desativarMfa() {
+    if (!window.confirm('Deseja desativar a autenticação de dois fatores?')) return
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId })
+    if (error) { setErro('Erro ao desativar MFA: ' + error.message); return }
+    setMfaAtivo(false); setMfaFactorId(''); setMfaEtapa('idle'); setSucesso('MFA desativado.')
+    setTimeout(() => setSucesso(''), 3000)
+  }
+
+  async function exportarDados() {
+    setExportando(true)
+    const res = await fetch('/api/export')
+    if (!res.ok) { setErro('Erro ao exportar dados'); setExportando(false); return }
+    const blob = await res.blob()
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = `poupaup-dados-${new Date().toISOString().slice(0, 10)}.json`
+    a.click(); URL.revokeObjectURL(url)
+    setExportando(false)
   }
 
   async function alterarSenha(e: React.FormEvent) {
@@ -1301,6 +1355,64 @@ export default function PerfilPage() {
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>Você está conectado neste dispositivo.</div>
               <button onClick={async () => { await supabase.auth.signOut(); router.push('/login') }} style={{ padding: '9px 16px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, color: '#f87171', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
                 Encerrar todas as sessões
+              </button>
+            </div>
+
+            {/* MFA */}
+            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Autenticação de dois fatores (MFA)</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
+                Proteja sua conta com um código TOTP gerado por app como Google Authenticator ou Authy.
+              </div>
+              {mfaAtivo && mfaEtapa === 'idle' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 12, color: '#4ade80' }}>✅ MFA ativo</span>
+                  <button onClick={desativarMfa} style={{ padding: '6px 14px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>Desativar</button>
+                </div>
+              )}
+              {!mfaAtivo && mfaEtapa === 'idle' && (
+                <button onClick={iniciarMfa} style={{ padding: '9px 16px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, color: '#4ade80', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>Ativar MFA</button>
+              )}
+              {mfaEtapa === 'qr' && (
+                <div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginBottom: 10 }}>
+                    Escaneie o QR code com seu app autenticador ou insira a chave manualmente:
+                  </div>
+                  {/* QR code via API pública de geração */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(mfaUri)}`}
+                    alt="QR Code MFA"
+                    width={160} height={160}
+                    style={{ borderRadius: 8, display: 'block', marginBottom: 10 }}
+                  />
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', wordBreak: 'break-all', marginBottom: 14, fontFamily: 'monospace' }}>
+                    Chave: {mfaSecretKey}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="text" maxLength={6} placeholder="Código de 6 dígitos"
+                      value={mfaCodigo} onChange={e => setMfaCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      style={{ width: 140, fontSize: 14, padding: '8px 10px', borderRadius: 8, border: '1px solid #1a3a1a', background: '#0a0a0a', color: '#fff', textAlign: 'center', letterSpacing: '0.2em' }}
+                    />
+                    <button onClick={confirmarMfa} disabled={mfaCodigo.length !== 6} style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, cursor: mfaCodigo.length !== 6 ? 'default' : 'pointer', opacity: mfaCodigo.length !== 6 ? 0.5 : 1 }}>Confirmar</button>
+                    <button onClick={() => { setMfaEtapa('idle'); setMfaCodigo('') }} style={{ padding: '8px 12px', background: 'transparent', border: '1px solid #333', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+                  </div>
+                </div>
+              )}
+              {mfaEtapa === 'verificando' && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Verificando código...</div>
+              )}
+            </div>
+
+            {/* Exportar dados LGPD */}
+            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Exportar meus dados</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
+                Baixe todos os seus dados em formato JSON (LGPD art. 18 — portabilidade).
+              </div>
+              <button onClick={exportarDados} disabled={exportando} style={{ padding: '9px 16px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, color: '#4ade80', fontSize: 12, fontWeight: 500, cursor: exportando ? 'default' : 'pointer', opacity: exportando ? 0.6 : 1 }}>
+                {exportando ? 'Preparando...' : '⬇ Baixar dados'}
               </button>
             </div>
 
