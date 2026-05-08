@@ -355,6 +355,7 @@ async function processarPDF(bytes: ArrayBuffer) {
     tipo_documento: 'extrato_bancario',
     banco_nome: null as string | null,
     resumo: `${transacoes.length} transações extraídas do PDF`,
+    _debug: text.slice(0, 1000),
   }
 }
 
@@ -466,7 +467,7 @@ export async function POST(request: NextRequest) {
       const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => ({
         ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
       }))
-      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF' }, { status: 400 })
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF', _debug: parsed._debug }, { status: 400 })
 
       const banco_nome = parsed.banco_nome || null
       let banco_id: string | null = null
