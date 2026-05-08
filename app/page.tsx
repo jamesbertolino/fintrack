@@ -8,6 +8,16 @@ export default function LandingPage() {
   const router = useRouter()
   const observerRef = useRef<IntersectionObserver | null>(null)
   const [toastContaExcluida, setToastContaExcluida] = useState(false)
+  const [consentBanner, setConsentBanner] = useState(false)
+
+  useEffect(() => {
+    if (!localStorage.getItem('lgpd_consent')) setConsentBanner(true)
+  }, [])
+
+  function aceitarConsent() {
+    localStorage.setItem('lgpd_consent', new Date().toISOString())
+    setConsentBanner(false)
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -60,6 +70,25 @@ export default function LandingPage() {
           .mock-grid { grid-template-columns: 1fr 1fr !important; }
         }
       `}</style>
+
+      {/* ── Banner de consentimento LGPD ── */}
+      {consentBanner && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9998, background: '#0d1a0d', borderTop: '1px solid #1a3a1a', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, backdropFilter: 'blur(8px)' }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.5, maxWidth: 700 }}>
+            Usamos cookies essenciais para o funcionamento do app e dados de acesso para segurança, conforme nossa{' '}
+            <a href="/privacidade" style={{ color: '#4ade80', textDecoration: 'underline' }}>Política de Privacidade</a>{' '}
+            (LGPD · Lei nº 13.709/2018). Não vendemos seus dados.
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            <a href="/privacidade" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,.1)' }}>
+              Ver política
+            </a>
+            <button onClick={aceitarConsent} style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a', background: '#4ade80', border: 'none', borderRadius: 8, padding: '8px 20px', cursor: 'pointer' }}>
+              Entendi e aceito
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toast conta excluída */}
       {toastContaExcluida && (
@@ -286,8 +315,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ padding: '2.5rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24 }}>
+      <footer style={{ borderTop: '1px solid #1a2a1a', padding: '2.5rem 1.5rem', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24, marginBottom: 20 }}>
           <div>
             <PoupaUpLogo mode="compact" />
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginTop: 8 }}>Poupar. Evoluir. Conquistar.</div>
@@ -297,9 +326,15 @@ export default function LandingPage() {
             <a href="/login" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Cadastrar</a>
             <a href="/privacidade" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Privacidade</a>
             <a href="/privacidade#termos" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Termos de Uso</a>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Contato</span>
+            <a href="mailto:privacidade@poupaup.com.br" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Contato</a>
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.2)' }}>© 2026 PoupaUp · Poupar. Evoluir. Conquistar.</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,.05)' }}>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.18)' }}>© 2026 PoupaUp. Todos os direitos reservados.</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.18)', display: 'flex', gap: 16 }}>
+            <span>🔒 Dados protegidos pela LGPD</span>
+            <span>🇧🇷 Feito no Brasil</span>
+          </div>
         </div>
       </footer>
     </div>
