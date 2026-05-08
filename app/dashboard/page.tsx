@@ -416,7 +416,7 @@ useEffect(() => {
         )}
 
         {!collapsed && (
-          <div style={{ padding: '0 .75rem .75rem', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ padding: '0 .75rem .75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <span style={{
               fontSize: 9, color: cores.sidebarTextFaint,
               background: 'rgba(255,255,255,.04)',
@@ -427,6 +427,11 @@ useEffect(() => {
             }}>
               v{APP_VERSION} · {APP_BUILD}
             </span>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <a href="/privacidade" target="_blank" style={{ fontSize: 9, color: cores.sidebarTextFaint, textDecoration: 'none', opacity: 0.6 }}>Privacidade</a>
+              <span style={{ fontSize: 9, color: cores.sidebarTextFaint, opacity: 0.3 }}>·</span>
+              <a href="/privacidade#termos" target="_blank" style={{ fontSize: 9, color: cores.sidebarTextFaint, textDecoration: 'none', opacity: 0.6 }}>Termos</a>
+            </div>
           </div>
         )}
 
