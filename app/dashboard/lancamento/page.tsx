@@ -350,33 +350,10 @@ useEffect(() => {
     setErro('')
 
     const isPDF = arquivo.name.toLowerCase().endsWith('.pdf')
-    let uploadForm = new FormData()
+    const uploadForm = new FormData()
+    uploadForm.append('arquivo', arquivo)
 
-    if (isPDF) {
-      // Etapa 1: extrai texto e converte para CSV localmente
-      setEtapa('📄 Lendo PDF e extraindo texto...')
-      const parsePDFForm = new FormData()
-      parsePDFForm.append('arquivo', arquivo)
-      const parseRes  = await fetch('/api/lancamento/upload/parse-pdf', { method: 'POST', body: parsePDFForm })
-      const parseData = await parseRes.json()
-
-      if (!parseRes.ok) {
-        setErro(parseData.error || 'Erro ao ler o PDF')
-        setProcessan(false); setEtapa(''); return
-      }
-
-      // Etapa 2: monta CSV para enviar à IA
-      setEtapa(`🔄 Convertendo para CSV (${parseData.linhas_detectadas} linhas detectadas)...`)
-      const csvBlob = new Blob([parseData.csv], { type: 'text/csv' })
-      const csvFile = new File([csvBlob], arquivo.name.replace('.pdf', '.csv'), { type: 'text/csv' })
-      uploadForm = new FormData()
-      uploadForm.append('arquivo', csvFile)
-    } else {
-      uploadForm.append('arquivo', arquivo)
-    }
-
-    // Etapa 3: envia para a IA
-    setEtapa('🤖 Enviando para análise da IA...')
+    setEtapa(isPDF ? '📄 Enviando PDF para a IA...' : '🤖 Analisando com IA...')
     const res  = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm })
     const data = await res.json()
     setProcessan(false)

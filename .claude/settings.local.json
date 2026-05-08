@@ -22,7 +22,14 @@
       "Bash(grep -o 'Criar conta.\\\\{0,200\\\\}' /c/Users/James/AppData/Local/Temp/login_page.html)",
       "Bash(grep -o '\"unauthorized\".\\\\{0,100\\\\}' /c/Users/James/AppData/Local/Temp/dashboard_page.html)",
       "Bash(grep -o 'Carregando.\\\\{0,50\\\\}\\\\|\"redirect\".\\\\{0,100\\\\}\\\\|login.\\\\{0,50\\\\}' __TRACKED_VAR__/dashboard_page.html)",
-      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(type\\(d\\), d\\)\")"
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(type\\(d\\), d\\)\")",
+      "Bash(node -e \"require\\('pdf-parse'\\); console.log\\('ok'\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"import\\('unpdf'\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")",
+      "Bash(git commit -m 'fix: suprimir react-hooks/set-state-in-effect no banner LGPD *)"
     ]
   }
 }

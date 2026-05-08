@@ -241,9 +241,8 @@ function parseIAResponse(texto: string): any {
   }
 }
 
-// ─── Processa PDF: extrai texto localmente e envia como texto para a IA ────────
+// ─── Processa PDF: extrai texto localmente e envia para a IA em chamada única ──
 async function processarPDF(bytes: ArrayBuffer) {
-  // unpdf usa pdfjs-dist sem APIs de browser (funciona em Node.js serverless)
   const { extractText } = await import('unpdf')
   const { text } = await extractText(new Uint8Array(bytes), { mergePages: true })
 
@@ -251,8 +250,29 @@ async function processarPDF(bytes: ArrayBuffer) {
     throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
   }
 
-  // Reutiliza o mesmo fluxo do CSV: envia texto bruto para a IA com continuação automática
-  return processarCSVComIA(text)
+  const openaiKey = process.env.OPENAI_API_KEY
+  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+
+  // Limita a 40k chars para caber dentro do timeout de 60s
+  const conteudo = text.slice(0, 40000)
+
+  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      max_tokens: 8192,
+      messages: [{
+        role: 'user',
+        content: `${PROMPT_BASE}\n\nTexto extraído do PDF:\n\`\`\`\n${conteudo}\n\`\`\``,
+      }],
+    }),
+  })
+  const chatData = await chatRes.json()
+  if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
+
+  const content = chatData.choices?.[0]?.message?.content || ''
+  return parseIAResponse(content)
 }
 
 // ─── Processa imagem via OpenAI Vision ────────────────────────────────────────
