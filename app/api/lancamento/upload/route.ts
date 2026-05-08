@@ -358,14 +358,16 @@ const PROMPT_PDF_PAGINA = `Você é um extrator de extratos bancários brasileir
 Analise o texto abaixo e retorne APENAS um CSV válido (sem markdown, sem texto extra) com o cabeçalho:
 Data;Historico;Credito;Debito
 
-Regras:
+Regras CRÍTICAS:
 - Data no formato DD/MM/YYYY
-- Historico: apenas o nome do estabelecimento/beneficiário (sem tipo de pagamento)
-- Credito: valor se for entrada/receita, vazio se for saída
-- Debito: valor se for saída/despesa, vazio se for entrada
-- Valores no formato brasileiro: 710,70 (sem R$, sem ponto de milhar desnecessário)
-- Ignore linhas de cabeçalho, totais, saldos e rodapés
-- Não inclua a linha COD. LANC.
+- Historico: nome do estabelecimento/beneficiário — NUNCA o tipo de pagamento (PIX, Cartão, etc.)
+- Credito: preencha APENAS se o saldo da conta AUMENTOU (dinheiro ENTROU na conta: salário, Pix recebido, estorno, rendimento)
+- Debito: preencha APENAS se o saldo da conta DIMINUIU (dinheiro SAIU da conta: compra, pagamento, saque, transferência enviada)
+- Nunca preencha Credito e Debito ao mesmo tempo na mesma linha
+- Use o saldo consecutivo para determinar: saldo subiu = Credito, saldo caiu = Debito
+- Valores no formato brasileiro: 710,70 (sem R$, sem separador de milhar desnecessário)
+- Ignore linhas de cabeçalho, totais, saldos iniciais e rodapés
+- Não inclua COD. LANC. nem linhas com valor 0,00
 - Se a página não tiver transações, retorne apenas o cabeçalho`
 
 // ─── Processa PDF: cada página → IA → CSV → processarCSV (mesmo fluxo do CSV) ─
