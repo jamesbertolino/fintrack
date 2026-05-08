@@ -242,54 +242,74 @@ function parseIAResponse(texto: string): any {
 }
 
 // ─── Converte texto bruto do PDF em CSV estruturado (sem IA) ─────────────────
+// Suporta o padrão brasileiro: data (uma vez por bloco) → linhas de descrição
+// → linha de código + valor + saldo (ex: "0000705 710,70 36.751,41")
 function pdfTextToCSV(text: string): string {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  const reData  = /\b(\d{2}\/\d{2}\/\d{4})\b/
-  const reValor = /\b(\d{1,3}(?:\.\d{3})*,\d{2})\b/
-  const reSinal = /\b(D|C|Déb|Créd|deb|cred|débito|crédito|debit|credit)\b/i
+
+  // Linha de transação: [código opcional] valor saldo  — dois valores monetários
+  // ex: "0000705 710,70 36.751,41"  ou  "710,70 36.751,41"
+  const reLinhaValor = /(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s*$/
+  const reData       = /\b(\d{2}\/\d{2}\/\d{4})\b/
+  const reApenasNum  = /^[\d\s.,]+$/
+
   const rows: string[] = ['Data;Historico;Credito;Debito']
+  let dataAtual = ''
+  const descAcum: string[] = []   // linhas de descrição acumuladas desde a última data/transação
 
-  for (let i = 0; i < lines.length; i++) {
-    const linha = lines[i]
+  const emitir = (valor: string, saldoAnterior: string, saldoAtual: string) => {
+    const desc = descAcum.filter(l =>
+      !l.match(reData) &&                          // não é data
+      !l.match(/^COD\.?\s*LANC/i) &&              // não é cabeçalho
+      l.length > 1 &&
+      !l.match(reApenasNum)                         // não é só número
+    ).join(' ').replace(/[;]/g, ' ').replace(/\s{2,}/g, ' ').trim()
+    descAcum.length = 0
+
+    if (!dataAtual || !desc || !valor) return
+
+    // Determina débito ou crédito comparando saldos
+    const saldoAnt = parseFloat(saldoAnterior.replace(/\./g, '').replace(',', '.')) || 0
+    const saldoAtu = parseFloat(saldoAtual.replace(/\./g, '').replace(',', '.')) || 0
+    const isCredito = saldoAtu > saldoAnt
+
+    const credito = isCredito ? valor : ''
+    const debito  = isCredito ? '' : valor
+    rows.push(`${dataAtual};${desc};${credito};${debito}`)
+  }
+
+  let saldoAnterior = ''
+
+  for (const linha of lines) {
     const mData = linha.match(reData)
-    if (!mData) continue
-
-    const data = mData[1]
-    let desc  = linha.replace(reData, '').trim()
-    let valor = ''
-    let isCredito = false
-
-    const mValor = linha.match(reValor)
-    if (mValor) { valor = mValor[1]; desc = desc.replace(reValor, '').trim() }
-
-    const mSinal = linha.match(reSinal)
-    if (mSinal) {
-      isCredito = /c|cred|créd/i.test(mSinal[1])
-      desc = desc.replace(reSinal, '').trim()
-    }
-
-    if (!valor) {
-      for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
-        const mV = lines[j].match(reValor)
-        if (mV) {
-          valor = mV[1]
-          if (!desc || desc.length < 3) desc = lines[j].replace(reValor, '').replace(reData, '').trim()
-          const mS = lines[j].match(reSinal)
-          if (mS) isCredito = /c|cred|créd/i.test(mS[1])
-          break
+    // Atualiza data atual se a linha é uma data (sozinha ou com pouco texto)
+    if (mData) {
+      const resto = linha.replace(reData, '').trim()
+      if (!resto.match(reLinhaValor)) {
+        dataAtual = mData[1]
+        // Texto residual na linha da data pode ser início de descrição
+        if (resto && !resto.match(/^COD\.?\s*LANC/i) && !resto.match(reApenasNum)) {
+          descAcum.push(resto)
         }
-        if (!desc || desc.length < 3) {
-          const candidate = lines[j].replace(reData, '').trim()
-          if (candidate.length > 3 && !candidate.match(/^\d+$/)) desc = candidate
-        }
+        continue
       }
     }
 
-    if (!valor || !desc || desc.length < 2) continue
-    desc = desc.replace(/[;]/g, ' ').replace(/\s{2,}/g, ' ').trim()
-    const credito = isCredito ? valor : ''
-    const debito  = isCredito ? '' : valor
-    rows.push(`${data};${desc};${credito};${debito}`)
+    // Linha com valor + saldo → fecha a transação acumulada
+    const mValor = linha.match(reLinhaValor)
+    if (mValor) {
+      const valor    = mValor[1]
+      const saldoAtu = mValor[2]
+      // Acumula o texto antes dos valores como parte da descrição
+      const prefixo = linha.replace(reLinhaValor, '').replace(/^\d{4,8}\s*/, '').trim()
+      if (prefixo && !prefixo.match(reApenasNum)) descAcum.push(prefixo)
+      emitir(valor, saldoAnterior, saldoAtu)
+      saldoAnterior = saldoAtu
+      continue
+    }
+
+    // Linha de texto → acumula como descrição
+    descAcum.push(linha)
   }
 
   return rows.join('\n')
