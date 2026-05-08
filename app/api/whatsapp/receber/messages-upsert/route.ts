@@ -5,11 +5,8 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json()
   } catch {
-    console.log('[whatsapp/receber] body inválido')
     return NextResponse.json({ ok: true })
   }
-
-  console.log('[whatsapp/receber] body recebido:', JSON.stringify(body, null, 2))
 
   const evento  = body.event as string | undefined
   const data    = body.data as Record<string, unknown> | undefined
@@ -17,7 +14,6 @@ export async function POST(request: NextRequest) {
 
   // Ignora eventos que não são mensagens recebidas
   if (evento !== 'messages.upsert') {
-    console.log('[whatsapp/receber] evento ignorado:', evento)
     return NextResponse.json({ ok: true })
   }
 
@@ -26,7 +22,6 @@ export async function POST(request: NextRequest) {
 
   // Ignora grupos e status broadcast
   if (remoteJid?.endsWith('@g.us') || remoteJid?.endsWith('@broadcast')) {
-    console.log('[whatsapp/receber] grupo/broadcast ignorado:', remoteJid)
     return NextResponse.json({ ok: true })
   }
 
@@ -37,11 +32,7 @@ export async function POST(request: NextRequest) {
     || ((messageObj?.extendedTextMessage as Record<string, unknown>)?.text as string)
     || ''
 
-  console.log('[whatsapp/receber] numero:', numero)
-  console.log('[whatsapp/receber] mensagem:', mensagem)
-
   if (!mensagem || !numero) {
-    console.log('[whatsapp/receber] sem mensagem ou número, ignorando')
     return NextResponse.json({ ok: true })
   }
 
@@ -56,9 +47,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ numero, mensagem }),
     })
     const parseData = await parseRes.json()
-    console.log('[whatsapp/receber] parse status:', parseRes.status, 'resposta:', JSON.stringify(parseData))
   } catch (err) {
-    console.log('[whatsapp/receber] erro ao chamar parse:', err)
   }
 
   return NextResponse.json({ ok: true })

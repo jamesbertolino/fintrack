@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { rateLimit } from '@/lib/rateLimit'
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Presente','Outros']
 
@@ -223,6 +224,15 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+    // 10 uploads / 60 s por usuário
+    const rl = rateLimit({ key: `upload:${user.id}`, limit: 10, windowSec: 60 })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Muitas requisições. Aguarde alguns instantes.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+      )
+    }
 
     const formData = await request.formData()
     const arquivo = formData.get('arquivo') as File | null

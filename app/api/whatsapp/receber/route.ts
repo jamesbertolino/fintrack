@@ -31,21 +31,14 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json()
   } catch {
-    console.log('[whatsapp/receber] body inválido')
     return NextResponse.json({ ok: true })
   }
-
-  console.log('[whatsapp/receber] body completo:', JSON.stringify(body, null, 2))
-  console.log('[whatsapp/receber] remoteJid:', (body.data as Record<string, unknown> | undefined)?.key && ((body.data as Record<string, unknown>).key as Record<string, unknown>)?.remoteJid)
-  console.log('[whatsapp/receber] participant:', (body.data as Record<string, unknown> | undefined)?.key && ((body.data as Record<string, unknown>).key as Record<string, unknown>)?.participant)
-  console.log('[whatsapp/receber] pushName:', (body.data as Record<string, unknown> | undefined)?.pushName)
 
   const evento = body.event as string | undefined
   const data   = body.data as Record<string, unknown> | undefined
   const key    = data?.key as Record<string, unknown> | undefined
 
   if (evento !== 'messages.upsert') {
-    console.log('[whatsapp/receber] evento ignorado:', evento)
     return NextResponse.json({ ok: true })
   }
 
@@ -54,7 +47,6 @@ export async function POST(request: NextRequest) {
   const grupoJid  = isGrupo ? remoteJid : null
 
   if (!isGrupo) {
-    console.log('[whatsapp/receber] ignorando mensagem privada — apenas grupos são processados')
     return NextResponse.json({ ok: true, ignorado: 'mensagem privada' })
   }
 
@@ -62,18 +54,12 @@ export async function POST(request: NextRequest) {
     .replace('@s.whatsapp.net', '')
     .replace('@lid', '')
 
-  console.log('[debug] participante via sender:', participante)
-
   const messageObj = data?.message as Record<string, unknown> | undefined
   const mensagem   = (messageObj?.conversation as string)
     || ((messageObj?.extendedTextMessage as Record<string, unknown>)?.text as string)
     || ''
 
-  console.log('[whatsapp/receber] grupoJid:', grupoJid)
-  console.log('[whatsapp/receber] mensagem:', mensagem)
-
   if (!mensagem) {
-    console.log('[whatsapp/receber] sem texto, ignorando')
     return NextResponse.json({ ok: true })
   }
 
@@ -86,7 +72,6 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (!grupo) {
-    console.log('[whatsapp/receber] grupo não cadastrado no PoupaUp:', grupoJid)
     return NextResponse.json({ ok: true })
   }
 
@@ -104,10 +89,7 @@ export async function POST(request: NextRequest) {
     .or(`whatsapp.eq.${participante},whatsapp.ilike.%${participante.slice(-8)}%`)
     .single()
 
-  console.log('[debug] profile encontrado:', profile?.nome, profile?.whatsapp)
-
   if (!profile) {
-    console.log('[whatsapp/receber] participante não cadastrado no PoupaUp:', participante)
     if (instancia) {
       await enviarMensagem(
         instancia,
@@ -220,9 +202,7 @@ export async function POST(request: NextRequest) {
       }),
     })
     dadosIA = await respostaIA.json() as Record<string, unknown>
-    console.log('[whatsapp/receber] parse status:', respostaIA.status, 'resposta:', JSON.stringify(dadosIA))
   } catch (err) {
-    console.log('[whatsapp/receber] erro ao chamar parse:', err)
   }
 
   if (!dadosIA.ok) {

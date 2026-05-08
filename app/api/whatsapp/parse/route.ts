@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 function getSupabase() {
   return createClient(
@@ -15,6 +16,15 @@ export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-n8n-secret')
   if (secret !== N8N_SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
+  // 60 req / 60 s por IP — webhook pode ser chamado com frequência, mas não ilimitado
+  const rl = rateLimit({ key: `parse:${getClientIp(request)}`, limit: 60, windowSec: 60 })
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Rate limit excedido' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    )
   }
 
   const { numero, mensagem, grupo_id, apenas_interpretar } = await request.json()

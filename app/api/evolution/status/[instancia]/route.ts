@@ -21,16 +21,12 @@ export async function GET(
     return NextResponse.json({ error: 'user_id obrigatório' }, { status: 400 })
   }
 
-  console.log('[status] instancia:', instancia, 'userId:', userId)
-
   const evoRes = await fetch(
     `${process.env.EVOLUTION_URL}/instance/connectionState/${instancia}`,
     { headers: { 'apikey': process.env.EVOLUTION_API_KEY! } }
   )
   const evoData = await evoRes.json()
   const state: string = evoData.instance?.state || evoData.state || 'close'
-
-  console.log('[status] state:', state)
 
   if (state !== 'open') {
     return NextResponse.json({ state })
@@ -44,8 +40,6 @@ export async function GET(
     .eq('id', userId)
     .single()
 
-  console.log('[status] profile query result:', profile, 'error:', profileError?.message)
-
   // Marca setup_completo e salva instância
   await supabase.from('profiles').update({
     setup_completo: true,
@@ -55,7 +49,6 @@ export async function GET(
   // Cria grupo WhatsApp
   let grupoJid: string | null = null
   if (profile?.whatsapp) {
-    console.log('[status] criando grupo...')
     const grupoRes = await fetch(
       `${process.env.EVOLUTION_URL}/group/create/${instancia}`,
       {
@@ -66,7 +59,6 @@ export async function GET(
     )
     const grupoData = await grupoRes.json()
     grupoJid = (grupoData.id ?? grupoData.groupJid ?? grupoData.jid ?? null) as string | null
-    console.log('[status] grupo criado:', grupoJid, grupoData)
 
     // Define imagem do grupo como logo do app
     if (grupoJid) {
@@ -96,8 +88,6 @@ export async function GET(
       await supabase.from('profiles').update({
         grupo_id_principal: novoGrupo.id,
       }).eq('id', userId)
-
-      console.log('[status] grupo salvo no banco:', novoGrupo.id)
     }
   }
 

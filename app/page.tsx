@@ -295,6 +295,8 @@ export default function LandingPage() {
           <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
             <a href="/login" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Entrar</a>
             <a href="/login" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Cadastrar</a>
+            <a href="/privacidade" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Privacidade</a>
+            <a href="/privacidade#termos" style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', textDecoration: 'none' }} className="nav-link">Termos de Uso</a>
             <span style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Contato</span>
           </div>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,.2)' }}>© 2026 PoupaUp · Poupar. Evoluir. Conquistar.</div>

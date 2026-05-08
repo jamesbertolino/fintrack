@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
         headers: { 'apikey': process.env.EVOLUTION_API_KEY! },
       }
     )
-    console.log('[encerrar-grupo] leaveGroup status:', leaveRes.status)
   }
 
   // 2. Deleta a instância na Evolution
@@ -24,7 +23,6 @@ export async function POST(request: NextRequest) {
     }
   )
   const deleteText = await deleteRes.text()
-  console.log('[encerrar-grupo] deleteInstance status:', deleteRes.status, deleteText)
 
   return NextResponse.json({ ok: true })
 }

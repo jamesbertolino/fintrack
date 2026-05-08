@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  // 20 req / 60 s por usuário — protege custo de IA
+  const rl = rateLimit({ key: `ia:${user.id}`, limit: 20, windowSec: 60 })
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Muitas requisições. Aguarde alguns instantes.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    )
+  }
 
   const { mensagem, historico } = await request.json()
 
@@ -98,7 +108,6 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
       const data = await res.json()
 
       if (res.ok && data.content?.[0]?.text) {
-        console.log('[ia] Respondido via Anthropic')
         return NextResponse.json({ resposta: data.content[0].text, via: 'anthropic' })
       }
 
@@ -131,7 +140,6 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
       const data = await res.json()
 
       if (res.ok && data.choices?.[0]?.message?.content) {
-        console.log('[ia] Respondido via OpenAI')
         return NextResponse.json({ resposta: data.choices[0].message.content, via: 'openai' })
       }
 

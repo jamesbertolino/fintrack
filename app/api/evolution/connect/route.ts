@@ -27,13 +27,11 @@ async function configurarWebhook(instancia: string) {
       events:   ['MESSAGES_UPSERT'],
     },
   }
-  console.log('[evolution/connect] webhook/set payload:', JSON.stringify(body))
   const res = await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
     method:  'POST',
     headers: evoHeaders(),
     body:    JSON.stringify(body),
   })
-  console.log('[evolution/connect] webhook/set status:', res.status, 'body:', await res.text())
 }
 
 export async function POST(request: NextRequest) {
@@ -61,10 +59,6 @@ export async function POST(request: NextRequest) {
 
   const instancia = `granaup_${profile.whatsapp}`
 
-  console.log('[evolution/connect] instancia:', instancia)
-  console.log('[evolution/connect] EVOLUTION_URL:', process.env.EVOLUTION_URL)
-  console.log('[evolution/connect] API_KEY primeiros 8:', process.env.EVOLUTION_API_KEY?.slice(0, 8))
-
   // Verifica se instância já existe
   const fetchRes = await fetch(`${EVO_URL()}/instance/fetchInstances`, {
     headers: evoHeaders(),
@@ -79,18 +73,12 @@ export async function POST(request: NextRequest) {
         state?: string
       }>
 
-      console.log('[evolution/connect] instâncias encontradas:', instances.map(i => ({
-        name: i.instance?.instanceName ?? i.name,
-        state: i.instance?.state ?? i.state,
-      })))
-
       const existing = instances.find(
         i => (i.instance?.instanceName ?? i.name) === instancia
       )
 
       if (existing) {
         const state = existing.instance?.state ?? existing.state ?? ''
-        console.log('[evolution/connect] instância existente:', instancia, 'state:', state)
 
         if (state === 'open') {
           // Já conectada — marca setup completo e retorna
@@ -114,7 +102,6 @@ export async function POST(request: NextRequest) {
           headers: evoHeaders(),
         })
         const qrText = await qrRes.text()
-        console.log('[evolution/connect] connect existente status:', qrRes.status, 'body:', qrText)
 
         let qrcode: string | null = null
         try {
@@ -127,10 +114,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ instancia, qrcode })
       }
     } catch {
-      console.log('[evolution/connect] fetchInstances parse error, prosseguindo com criação')
     }
   } else {
-    console.log('[evolution/connect] fetchInstances falhou:', fetchRes.status)
   }
 
   // Cria instância na Evolution API
@@ -140,8 +125,6 @@ export async function POST(request: NextRequest) {
     qrcode:       true,
   }
 
-  console.log('[evolution/connect] payload:', JSON.stringify(payload))
-
   const evoRes = await fetch(`${EVO_URL()}/instance/create`, {
     method:  'POST',
     headers: evoHeaders(),
@@ -149,8 +132,6 @@ export async function POST(request: NextRequest) {
   })
 
   const evoText = await evoRes.text()
-  console.log('[evolution/connect] evo status:', evoRes.status)
-  console.log('[evolution/connect] evo body:', evoText)
 
   if (!evoText || !evoRes.ok) {
     return NextResponse.json(
@@ -168,8 +149,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-
-  console.log('[evolution/connect] evoData:', JSON.stringify(evoData, null, 2))
 
   // Verifica campos de erro da Evolution v2.x
   const evoError = (evoData.error ?? evoData.message) as string | undefined

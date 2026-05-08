@@ -12,8 +12,6 @@ export async function POST(request: NextRequest) {
     participants: [participante],
   })
 
-  console.log('[remover-membro] body enviado:', body)
-
   const res = await fetch(`${process.env.EVOLUTION_URL}/group/updateParticipant/${instancia}`, {
     method: 'POST',
     headers: {
@@ -24,7 +22,6 @@ export async function POST(request: NextRequest) {
   })
 
   const data = await res.json()
-  console.log('[remover-membro] status:', res.status, 'data:', JSON.stringify(data))
 
   const jaRemovido = JSON.stringify(data).includes('item-not-found')
   const ok = res.ok || jaRemovido

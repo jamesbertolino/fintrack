@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 function getSupabase() {
   return createClient(
@@ -13,6 +14,15 @@ const EVO_KEY    = () => process.env.EVOLUTION_API_KEY!
 const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KEY() })
 
 export async function POST(request: NextRequest) {
+  // 10 convites / 60 s por IP — evita spam de convites
+  const rl = rateLimit({ key: `convidar:${getClientIp(request)}`, limit: 10, windowSec: 60 })
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Muitas requisições. Aguarde alguns instantes.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    )
+  }
+
   const { userId, numero, grupo_id } = await request.json()
 
   if (!userId || !numero || !grupo_id) {
@@ -28,8 +38,6 @@ export async function POST(request: NextRequest) {
     .eq('id', grupo_id)
     .eq('ativo', true)
     .single()
-
-  console.log('[convidar] grupo encontrado:', grupo?.id, grupo?.nome, 'ativo:', grupo?.ativo)
 
   if (!grupo) {
     return NextResponse.json({ error: 'Grupo não encontrado' }, { status: 404 })
@@ -119,12 +127,10 @@ export async function POST(request: NextRequest) {
           }
         )
         const invData = await invRes.json()
-        console.log('[grupo/convidar] revokeInviteCode status:', invRes.status, 'data:', JSON.stringify(invData))
         if (invData.inviteCode) {
           whatsappLink = `https://chat.whatsapp.com/${invData.inviteCode}`
         }
       } catch (err) {
-        console.log('[grupo/convidar] erro ao gerar invite code:', err)
       }
     }
 
@@ -139,9 +145,7 @@ export async function POST(request: NextRequest) {
         headers: evoHeaders(),
         body:    JSON.stringify({ number: numeroFormatado, text: texto }),
       })
-      console.log('[grupo/convidar] sendText status:', evoRes.status)
     } catch (err) {
-      console.log('[grupo/convidar] erro ao enviar convite:', err)
     }
   }
 
