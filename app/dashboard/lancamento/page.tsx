@@ -359,8 +359,7 @@ useEffect(() => {
     const data = await res.json()
     setProcessan(false)
     setEtapa('')
-    // Sempre mostra o debug mesmo em caso de erro ou 0 transações
-    if (data._csv_debug) setCsvDebug(data._csv_debug)
+    setCsvDebug(data._csv_debug || '')
     if (!data.ok || !data.transacoes?.length) {
       setErro(data.error || 'Não foi possível extrair transações do documento')
       return

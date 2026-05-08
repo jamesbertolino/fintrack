@@ -605,7 +605,7 @@ export async function POST(request: NextRequest) {
       const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => ({
         ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
       }))
-      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF' }, { status: 400 })
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF', _csv_debug: parsed._csv_debug }, { status: 400 })
 
       const banco_nome = parsed.banco_nome || null
       let banco_id: string | null = null
@@ -629,6 +629,7 @@ export async function POST(request: NextRequest) {
         banco_nome, banco_id, banco_nao_encontrado,
         tipo_documento: parsed.tipo_documento || 'extrato_bancario',
         conta_vinculada: banco_nome,
+        _csv_debug: parsed._csv_debug,
       })
     }
 
