@@ -146,7 +146,25 @@ async function processarCSVComIA(texto: string) {
   const chatData = await chatRes.json()
   if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
   const content = chatData.choices?.[0]?.message?.content || ''
-  return JSON.parse(content.replace(/```json|```/g, '').trim())
+  return parseIAResponse(content)
+}
+
+// ─── Tenta recuperar JSON truncado pela IA ────────────────────────────────────
+function parseIAResponse(texto: string): Record<string, unknown> {
+  const limpo = texto.replace(/```json|```/g, '').trim()
+  try {
+    return JSON.parse(limpo)
+  } catch {
+    // JSON truncado: remove a última transação incompleta e fecha o objeto
+    const ultimoObjCompleto = limpo.lastIndexOf('},')
+    if (ultimoObjCompleto === -1) throw new Error('Resposta da IA não contém JSON válido')
+    const parcial = limpo.slice(0, ultimoObjCompleto + 1) + ']}'
+    try {
+      return JSON.parse(parcial)
+    } catch {
+      throw new Error('Não foi possível recuperar o JSON truncado da IA')
+    }
+  }
 }
 
 // ─── Processa PDF via OpenAI ───────────────────────────────────────────────────
@@ -174,14 +192,18 @@ async function processarPDF(bytes: ArrayBuffer) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
       body: JSON.stringify({
         model: 'gpt-4o',
-        max_tokens: 4096,
+        max_tokens: 16384,
         messages: [{ role: 'user', content: [{ type: 'text', text: PROMPT_BASE }, { type: 'file', file: { file_id: fileId } }] }],
       }),
     })
     const chatData = await chatRes.json()
     if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
     const texto = chatData.choices?.[0]?.message?.content || ''
-    return JSON.parse(texto.replace(/```json|```/g, '').trim())
+    const finish = chatData.choices?.[0]?.finish_reason
+    if (finish === 'length') {
+      console.warn('[upload/pdf] resposta truncada pelo limite de tokens — tentando recuperar JSON parcial')
+    }
+    return parseIAResponse(texto)
   } finally {
     await fetch(`https://api.openai.com/v1/files/${fileId}`, {
       method: 'DELETE', headers: { 'Authorization': `Bearer ${openaiKey}` },
@@ -215,7 +237,7 @@ async function processarImagem(bytes: ArrayBuffer, mimeType: string) {
   const chatData = await chatRes.json()
   if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI Vision')
   const texto = chatData.choices?.[0]?.message?.content || ''
-  return JSON.parse(texto.replace(/```json|```/g, '').trim())
+  return parseIAResponse(texto)
 }
 
 // ─── Handler principal ───────────────────────────────────────────────────────
