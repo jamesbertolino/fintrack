@@ -150,7 +150,8 @@ async function processarCSVComIA(texto: string) {
 }
 
 // ─── Tenta recuperar JSON truncado pela IA ────────────────────────────────────
-function parseIAResponse(texto: string): Record<string, unknown> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseIAResponse(texto: string): any {
   const limpo = texto.replace(/```json|```/g, '').trim()
   try {
     return JSON.parse(limpo)
