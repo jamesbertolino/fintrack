@@ -241,7 +241,61 @@ function parseIAResponse(texto: string): any {
   }
 }
 
-// ─── Processa PDF: extrai texto localmente e envia para a IA em chamada única ──
+// ─── Converte texto bruto do PDF em CSV estruturado (sem IA) ─────────────────
+function pdfTextToCSV(text: string): string {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  const reData  = /\b(\d{2}\/\d{2}\/\d{4})\b/
+  const reValor = /\b(\d{1,3}(?:\.\d{3})*,\d{2})\b/
+  const reSinal = /\b(D|C|Déb|Créd|deb|cred|débito|crédito|debit|credit)\b/i
+  const rows: string[] = ['Data;Historico;Credito;Debito']
+
+  for (let i = 0; i < lines.length; i++) {
+    const linha = lines[i]
+    const mData = linha.match(reData)
+    if (!mData) continue
+
+    const data = mData[1]
+    let desc  = linha.replace(reData, '').trim()
+    let valor = ''
+    let isCredito = false
+
+    const mValor = linha.match(reValor)
+    if (mValor) { valor = mValor[1]; desc = desc.replace(reValor, '').trim() }
+
+    const mSinal = linha.match(reSinal)
+    if (mSinal) {
+      isCredito = /c|cred|créd/i.test(mSinal[1])
+      desc = desc.replace(reSinal, '').trim()
+    }
+
+    if (!valor) {
+      for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+        const mV = lines[j].match(reValor)
+        if (mV) {
+          valor = mV[1]
+          if (!desc || desc.length < 3) desc = lines[j].replace(reValor, '').replace(reData, '').trim()
+          const mS = lines[j].match(reSinal)
+          if (mS) isCredito = /c|cred|créd/i.test(mS[1])
+          break
+        }
+        if (!desc || desc.length < 3) {
+          const candidate = lines[j].replace(reData, '').trim()
+          if (candidate.length > 3 && !candidate.match(/^\d+$/)) desc = candidate
+        }
+      }
+    }
+
+    if (!valor || !desc || desc.length < 2) continue
+    desc = desc.replace(/[;]/g, ' ').replace(/\s{2,}/g, ' ').trim()
+    const credito = isCredito ? valor : ''
+    const debito  = isCredito ? '' : valor
+    rows.push(`${data};${desc};${credito};${debito}`)
+  }
+
+  return rows.join('\n')
+}
+
+// ─── Processa PDF: extrai texto e converte com regex → processarCSV ───────────
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
   const { text } = await extractText(new Uint8Array(bytes), { mergePages: true })
@@ -250,29 +304,15 @@ async function processarPDF(bytes: ArrayBuffer) {
     throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
   }
 
-  const openaiKey = process.env.OPENAI_API_KEY
-  if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
+  const csv = pdfTextToCSV(text)
+  const transacoes = processarCSV(csv)
 
-  // Limita a 40k chars para caber dentro do timeout de 60s
-  const conteudo = text.slice(0, 40000)
-
-  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 8192,
-      messages: [{
-        role: 'user',
-        content: `${PROMPT_BASE}\n\nTexto extraído do PDF:\n\`\`\`\n${conteudo}\n\`\`\``,
-      }],
-    }),
-  })
-  const chatData = await chatRes.json()
-  if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
-
-  const content = chatData.choices?.[0]?.message?.content || ''
-  return parseIAResponse(content)
+  return {
+    transacoes,
+    tipo_documento: 'extrato_bancario',
+    banco_nome: null as string | null,
+    resumo: `${transacoes.length} transações extraídas do PDF`,
+  }
 }
 
 // ─── Processa imagem via OpenAI Vision ────────────────────────────────────────
