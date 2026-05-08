@@ -362,8 +362,11 @@ Regras:
 - Historico: nome do estabelecimento/beneficiário APENAS — sem PIX, Cartão, TED, DOC, Débito, etc.
 - Valor: número positivo da transação (sem sinal, sem R$), formato brasileiro: 1.234,56
 - Saldo: saldo da conta APÓS a transação, formato brasileiro: 36.751,41
-- Ignore cabeçalho, rodapé, totais e COD. LANC.
-- Se não houver transações na página, retorne só o cabeçalho`
+- Ignore cabeçalho, nome do banco, número de agência/conta, e totais do período
+- COD. LANC. é código interno do banco — ignore essas linhas
+- RENDIMENTOS, JUROS POUPANÇA, RENDIMENTOS POUP FACIL, APLICACAO AUTOMATICA, RESGATE AUTOMATICO são transações válidas — EXTRAIA-OS
+- Se não houver transações na página, retorne só o cabeçalho
+- Se houver um bloco marcado como [CONTEXTO ANTERIOR], use-o apenas para referência de datas e saldos — NÃO extraia transações desse bloco`
 
 // ─── Converte CSV com saldo em transações usando comparação de saldo ───────────
 function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; lacunas: string[] } {
@@ -403,9 +406,10 @@ function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; 
       tipo = saldoAtu > saldoAnt ? 'credito' : 'debito'
 
       // Detecta lacuna: diferença de saldo não bate com o valor da transação
+      // Threshold de R$ 5 para evitar ruído de leitura da IA em centavos
       const diff = Math.abs(saldoAtu - saldoAnt)
-      if (Math.abs(diff - valorNum) > 0.02) {
-        const faltando = Math.abs(diff - valorNum)
+      const faltando = Math.abs(diff - valorNum)
+      if (faltando > 5.0) {
         lacunas.push(`⚠️ Lacuna em ${dataVal} após "${hist}": saldo saltou R$ ${diff.toFixed(2)} mas valor é R$ ${valorNum.toFixed(2)} — possível R$ ${faltando.toFixed(2)} em transações não extraídas`)
       }
     } else {
@@ -447,7 +451,7 @@ async function processarPDF(bytes: ArrayBuffer) {
       const paginasComContexto = paginasValidas.map((pagina, idx) => {
         if (idx === 0) return pagina
         const overlap = paginasValidas[idx - 1].slice(-400)
-        return `[...continuação da página anterior]\n${overlap}\n[página atual]\n${pagina}`
+        return `[CONTEXTO ANTERIOR — não extraia transações deste bloco, use apenas para referência]\n${overlap}\n[PÁGINA ATUAL — extraia todas as transações daqui]\n${pagina}`
       })
 
       const paginaParaCSV = (pagina: string): Promise<string> =>
