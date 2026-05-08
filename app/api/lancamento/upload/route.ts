@@ -131,6 +131,22 @@ Regras CRÍTICAS de extração:
 - Ignore totais, saldos, cabeçalhos e rodapés
 - Extraia TODAS as transações sem omitir nenhuma`
 
+// ─── Fetch OpenAI com timeout de 20s para não travar a serverless function ────
+async function fetchOpenAI(key: string, body: object): Promise<Response> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 20000)
+  try {
+    return await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify(body),
+      signal: ctrl.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // ─── Chama OpenAI e retorna todas as transações, continuando se truncado ──────
 async function chatComContinuacao(
   openaiKey: string,
@@ -142,11 +158,7 @@ async function chatComContinuacao(
   const mensagens: any[] = [...mensagensIniciais]
 
   for (let rodada = 0; rodada < 5; rodada++) {
-    const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-      body: JSON.stringify({ model, max_tokens: 16384, messages: mensagens }),
-    })
+    const chatRes = await fetchOpenAI(openaiKey, { model, max_tokens: 16384, messages: mensagens })
     const chatData = await chatRes.json()
     if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
 
@@ -193,11 +205,7 @@ async function processarCSVComIA(texto: string) {
   }]
 
   // Primeira chamada para obter metadados e transações
-  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-    body: JSON.stringify({ model: 'gpt-4o', max_tokens: 16384, messages: mensagens }),
-  })
+  const chatRes = await fetchOpenAI(openaiKey, { model: 'gpt-4o', max_tokens: 16384, messages: mensagens })
   const chatData = await chatRes.json()
   if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
 
@@ -320,18 +328,14 @@ async function processarPDF(bytes: ArrayBuffer) {
   if (openaiKey) {
     try {
       const conteudo = text.slice(0, 12000)
-      const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: 4096,
-          temperature: 0,
-          messages: [{
-            role: 'user',
-            content: `${PROMPT_BASE}\n\nTexto extraído do PDF (extrato, fatura, comprovante, nota fiscal ou holerite — identifique o tipo e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
-          }],
-        }),
+      const chatRes = await fetchOpenAI(openaiKey, {
+        model: 'gpt-4o-mini',
+        max_tokens: 4096,
+        temperature: 0,
+        messages: [{
+          role: 'user',
+          content: `${PROMPT_BASE}\n\nTexto extraído do PDF (extrato, fatura, comprovante, nota fiscal ou holerite — identifique o tipo e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
+        }],
       })
       const chatData = await chatRes.json()
       if (chatRes.ok) {
@@ -362,20 +366,16 @@ async function processarImagem(bytes: ArrayBuffer, mimeType: string) {
   const base64 = Buffer.from(bytes).toString('base64')
   const dataUrl = `data:${mimeType};base64,${base64}`
 
-  const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      max_tokens: 4096,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: PROMPT_BASE },
-          { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
-        ],
-      }],
-    }),
+  const chatRes = await fetchOpenAI(openaiKey, {
+    model: 'gpt-4o',
+    max_tokens: 4096,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: PROMPT_BASE },
+        { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
+      ],
+    }],
   })
   const chatData = await chatRes.json()
   if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI Vision')
