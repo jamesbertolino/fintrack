@@ -249,22 +249,56 @@ function parseIAResponse(texto: string): any {
   }
 }
 
-// ─── Fallback local para PDF: parser para texto contínuo (sem quebras de linha)
-// Formato Bradesco/BB: "...descrição NNNNNN valor saldo [data?] descrição..."
+// ─── Extrai tipo de pagamento do início da descrição ─────────────────────────
+const PREFIXOS_PAGAMENTO: [RegExp, string][] = [
+  [/^CARTAO VISA ELECTRON\b/i,          'Débito'],
+  [/^CARTAO MASTERCARD DEBITO\b/i,       'Débito'],
+  [/^CARTAO VISA\b/i,                    'Crédito'],
+  [/^CARTAO MASTERCARD\b/i,              'Crédito'],
+  [/^CARTAO\b/i,                         'Cartão'],
+  [/^PIX QR CODE ESTATICO\b/i,           'PIX'],
+  [/^PIX QR CODE\b/i,                    'PIX'],
+  [/^TRANSFERENCIA PIX\b/i,              'PIX'],
+  [/^PIX\b/i,                            'PIX'],
+  [/^PAGTO ELETRON COBRANCA\b/i,         'Boleto'],
+  [/^PAGTO ELETRON\b/i,                  'Pagamento Eletrônico'],
+  [/^PAGAMENTO BOLETO\b/i,               'Boleto'],
+  [/^DEBITO AUTOMATICO\b/i,              'Débito Automático'],
+  [/^TED\b/i,                            'TED'],
+  [/^DOC\b/i,                            'DOC'],
+  [/^SAQUE\b/i,                          'Saque'],
+  [/^TARIFA\b/i,                         'Tarifa'],
+  [/^ESTORNO\b/i,                        'Estorno'],
+  [/^RESGATE\b/i,                        'Resgate'],
+  [/^APLICACAO\b/i,                      'Aplicação'],
+  [/^TRANSFERENCIA\b/i,                  'Transferência'],
+  [/^DEPOSITO\b/i,                       'Depósito'],
+  [/^CREDITO EM CONTA\b/i,               'Crédito em Conta'],
+  [/^DES:\s*/i,                          ''],  // remove prefixo "DES:" mas não define tipo
+]
+
+function extrairTipoPagamento(raw: string): { descricao: string; tipo_pagamento: string } {
+  for (const [re, tipo] of PREFIXOS_PAGAMENTO) {
+    if (re.test(raw)) {
+      const descricao = raw.replace(re, '').replace(/^[-–:]\s*/, '').trim()
+      return { descricao: descricao || raw, tipo_pagamento: tipo }
+    }
+  }
+  return { descricao: raw, tipo_pagamento: '' }
+}
+
+// ─── Parser local para PDF: texto contínuo, padrão código+valor+saldo ─────────
 function pdfParserLocal(text: string): TransacaoDetectada[] {
-  // Texto extraído pelo unpdf é uma linha contínua — normaliza espaços
   const flat = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
 
-  // Pula cabeçalho até "Saldo (R$)" ou "Saldo(R$)" (header da tabela)
+  // Pula cabeçalho até header da tabela "Saldo (R$)"
   const hIdx = flat.search(/Saldo\s*\(R\$\)/i)
   const content = hIdx !== -1 ? flat.slice(hIdx + 20) : flat
 
-  // Padrão de fim de transação: código 6-7 dígitos + valor + saldo
-  const reTrans  = /\b(\d{6,7})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
-  const reData4  = /\b(\d{2}\/\d{2}\/\d{4})\b/g   // data completa DD/MM/YYYY
-  const reData2  = /\b\d{2}\/\d{2}\b/g              // data parcial MM/DD ou DD/MM
+  const reTrans = /\b(\d{6,7})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
+  const reData4 = /\b(\d{2}\/\d{2}\/\d{4})\b/g
+  const reData2 = /\b\d{2}\/\d{2}\b/g
 
-  // Saldo inicial: linha COD. LANC. tem o saldo anterior ao primeiro lançamento
   let saldoAnt = 0
   const mSaldo = content.match(/COD\.?\s*LANC\.[^0-9]*\d*[,\s.]*\d*,\d{2}\s+([\d.]+,\d{2})/)
   if (mSaldo) saldoAnt = parseFloat(mSaldo[1].replace(/\./g, '').replace(',', '.')) || 0
@@ -278,33 +312,33 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
     const segmento = content.slice(lastIndex, match.index).trim()
     lastIndex = match.index + match[0].length
 
-    // Última data completa no segmento = data da transação
     const datas = [...segmento.matchAll(reData4)]
     if (datas.length > 0) dataAtual = datas[datas.length - 1][1]
 
-    // Descrição: remove datas, COD. LANC., datas parciais, texto só numérico
-    const desc = segmento
+    const rawDesc = segmento
       .replace(reData4, '')
       .replace(reData2, '')
       .replace(/COD\.?\s*LANC\.[^A-Z]*/gi, '')
       .replace(/\s{2,}/g, ' ')
       .trim()
 
-    if (!desc || desc.length < 3 || !dataAtual) continue
-    if (/^[\d\s.,]+$/.test(desc)) continue
+    if (!rawDesc || rawDesc.length < 3 || !dataAtual) continue
+    if (/^[\d\s.,]+$/.test(rawDesc)) continue
 
-    const valor      = match[2]
-    const saldoAtuStr = match[3]
-    const saldoAtu   = parseFloat(saldoAtuStr.replace(/\./g, '').replace(',', '.')) || 0
-    const isCredito  = saldoAtu > saldoAnt
+    const valor     = match[2]
+    const saldoAtu  = parseFloat(match[3].replace(/\./g, '').replace(',', '.')) || 0
+    const isCredito = saldoAtu > saldoAnt
     saldoAnt = saldoAtu
 
     const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0
     if (valorNum === 0) continue
 
-    const { categoria, nao_categorizado } = detectarCategoria(desc)
+    const { descricao, tipo_pagamento } = extrairTipoPagamento(rawDesc)
+    const { categoria, nao_categorizado } = detectarCategoria(descricao)
+
     resultado.push({
-      descricao: desc.replace(/[;]/g, ' ').toUpperCase(),
+      descricao: descricao.replace(/[;]/g, ' ').toUpperCase(),
+      tipo_pagamento: tipo_pagamento || undefined,
       valor: valorNum,
       tipo: isCredito ? 'credito' : 'debito',
       categoria,
