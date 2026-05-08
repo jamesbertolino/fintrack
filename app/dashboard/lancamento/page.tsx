@@ -191,6 +191,7 @@ export default function LancamentoPage() {
   const inputRef                    = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver]     = useState(false)
   const [processando, setProcessan] = useState(false)
+  const [etapaUpload, setEtapa]     = useState('')
   const [confirmando, setConfirman] = useState(false)
   const [transacoesDetectadas, setTransacoesDetectadas] = useState<TransacaoDetectada[]>([])
   const [resumoDetectado, setResumo] = useState('')
@@ -347,11 +348,39 @@ useEffect(() => {
     setTransacoesDetectadas([])
     setEditandoCategoriaIdx(null)
     setErro('')
-    const form = new FormData()
-    form.append('arquivo', arquivo)
-    const res = await fetch('/api/lancamento/upload', { method: 'POST', body: form })
+
+    const isPDF = arquivo.name.toLowerCase().endsWith('.pdf')
+    let uploadForm = new FormData()
+
+    if (isPDF) {
+      // Etapa 1: extrai texto e converte para CSV localmente
+      setEtapa('📄 Lendo PDF e extraindo texto...')
+      const parsePDFForm = new FormData()
+      parsePDFForm.append('arquivo', arquivo)
+      const parseRes  = await fetch('/api/lancamento/upload/parse-pdf', { method: 'POST', body: parsePDFForm })
+      const parseData = await parseRes.json()
+
+      if (!parseRes.ok) {
+        setErro(parseData.error || 'Erro ao ler o PDF')
+        setProcessan(false); setEtapa(''); return
+      }
+
+      // Etapa 2: monta CSV para enviar à IA
+      setEtapa(`🔄 Convertendo para CSV (${parseData.linhas_detectadas} linhas detectadas)...`)
+      const csvBlob = new Blob([parseData.csv], { type: 'text/csv' })
+      const csvFile = new File([csvBlob], arquivo.name.replace('.pdf', '.csv'), { type: 'text/csv' })
+      uploadForm = new FormData()
+      uploadForm.append('arquivo', csvFile)
+    } else {
+      uploadForm.append('arquivo', arquivo)
+    }
+
+    // Etapa 3: envia para a IA
+    setEtapa('🤖 Enviando para análise da IA...')
+    const res  = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm })
     const data = await res.json()
     setProcessan(false)
+    setEtapa('')
     if (!data.ok || !data.transacoes?.length) {
       setErro(data.error || 'Não foi possível extrair transações do documento')
       return
@@ -760,18 +789,28 @@ useEffect(() => {
 
             {/* Processando */}
             {processando && (
-              <div style={{ marginTop: 14, padding: '14px 16px', background: 'rgba(167,139,250,.06)', border: '1px solid rgba(167,139,250,.2)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(167,139,250,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }}>
-                  🤖
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#a78bfa' }}>Analisando com IA...</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Detectando banco, datas, valores e categorias</div>
-                </div>
+              <div style={{ marginTop: 14, padding: '14px 16px', background: 'rgba(167,139,250,.06)', border: '1px solid rgba(167,139,250,.2)', borderRadius: 10 }}>
                 <style>{`
                   @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
                   @keyframes pulse { 0%,100% { transform: scale(1); opacity:.8 } 50% { transform: scale(1.12); opacity:1 } }
+                  @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .4 } }
                 `}</style>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: etapaUpload ? 10 : 0 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(167,139,250,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'pulse 1.5s ease-in-out infinite' }}>
+                    🤖
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#a78bfa' }}>
+                      {etapaUpload || 'Analisando com IA...'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Aguarde, este processo pode levar alguns segundos</div>
+                  </div>
+                </div>
+                {/* Barra de progresso animada */}
+                <div style={{ height: 3, background: 'rgba(167,139,250,.15)', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: 'linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed)', backgroundSize: '200% 100%', animation: 'slide 1.8s linear infinite', borderRadius: 2 }} />
+                </div>
+                <style>{`@keyframes slide { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
               </div>
             )}
 

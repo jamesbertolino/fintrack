@@ -22,6 +22,9 @@
   "functions": {
     "src/app/api/webhook/[userid]/route.ts": {
       "maxDuration": 10
+    },
+    "app/api/lancamento/upload/route.ts": {
+      "maxDuration": 60
     }
   }
 }
