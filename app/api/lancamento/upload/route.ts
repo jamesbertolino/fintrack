@@ -126,27 +126,95 @@ Regras de categorização:
 - Ignore totais, saldos, cabeçalhos e rodapés
 - Extraia TODAS as transações sem omitir nenhuma`
 
+// ─── Chama OpenAI e retorna todas as transações, continuando se truncado ──────
+async function chatComContinuacao(
+  openaiKey: string,
+  mensagensIniciais: { role: string; content: unknown }[],
+  model = 'gpt-4o',
+): Promise<unknown[]> {
+  const todasTransacoes: unknown[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mensagens: any[] = [...mensagensIniciais]
+
+  for (let rodada = 0; rodada < 5; rodada++) {
+    const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+      body: JSON.stringify({ model, max_tokens: 16384, messages: mensagens }),
+    })
+    const chatData = await chatRes.json()
+    if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
+
+    const texto  = chatData.choices?.[0]?.message?.content || ''
+    const finish = chatData.choices?.[0]?.finish_reason
+
+    const parsed = parseIAResponse(texto)
+    const lote: unknown[] = parsed.transacoes || []
+    todasTransacoes.push(...lote)
+
+    // Preenche campos de metadados apenas na primeira rodada
+    if (rodada === 0) {
+      parsed._meta = parsed._meta || {}
+      parsed._meta.tipo_documento = parsed.tipo_documento
+      parsed._meta.banco_nome     = parsed.banco_nome
+      parsed._meta.resumo         = parsed.resumo
+    }
+
+    if (finish !== 'length' || lote.length === 0) break
+
+    // Monta continuação — pede o restante a partir da última transação extraída
+    const ultima = lote[lote.length - 1] as { descricao?: string }
+    mensagens.push({ role: 'assistant', content: texto })
+    mensagens.push({
+      role: 'user',
+      content: `A resposta foi truncada. Continue extraindo as transações restantes a partir da que vem DEPOIS de "${ultima?.descricao ?? ''}". Retorne APENAS o array JSON de transações, sem o objeto externo.`,
+    })
+  }
+
+  return todasTransacoes
+}
+
 // ─── Processa CSV via OpenAI (qualquer formato) ──────────────────────────────
 async function processarCSVComIA(texto: string) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (!openaiKey) throw new Error('OPENAI_API_KEY não configurada')
 
+  // Envia até 100k chars — cobre extratos de ~12 meses
+  const conteudo = texto.slice(0, 100000)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mensagens: any[] = [{
+    role: 'user',
+    content: `${PROMPT_BASE}\n\nConteúdo do CSV:\n\`\`\`\n${conteudo}\n\`\`\``,
+  }]
+
+  // Primeira chamada para obter metadados e transações
   const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      max_tokens: 4096,
-      messages: [{
-        role: 'user',
-        content: `${PROMPT_BASE}\n\nConteúdo do CSV:\n\`\`\`\n${texto.slice(0, 20000)}\n\`\`\``,
-      }],
-    }),
+    body: JSON.stringify({ model: 'gpt-4o', max_tokens: 16384, messages: mensagens }),
   })
   const chatData = await chatRes.json()
   if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
+
   const content = chatData.choices?.[0]?.message?.content || ''
-  return parseIAResponse(content)
+  const finish  = chatData.choices?.[0]?.finish_reason
+  const parsed  = parseIAResponse(content)
+
+  let transacoes: unknown[] = parsed.transacoes || []
+
+  // Se truncado, busca o restante via continuação
+  if (finish === 'length' && transacoes.length > 0) {
+    mensagens.push({ role: 'assistant', content })
+    const ultima = transacoes[transacoes.length - 1] as { descricao?: string }
+    mensagens.push({
+      role: 'user',
+      content: `A resposta foi truncada. Continue extraindo as transações restantes a partir da que vem DEPOIS de "${ultima?.descricao ?? ''}". Retorne APENAS o array JSON de transações.`,
+    })
+    const extras = await chatComContinuacao(openaiKey, mensagens)
+    transacoes = [...transacoes, ...extras]
+  }
+
+  return { ...parsed, transacoes }
 }
 
 // ─── Tenta recuperar JSON truncado pela IA ────────────────────────────────────
@@ -188,23 +256,33 @@ async function processarPDF(bytes: ArrayBuffer) {
 
   const fileId = uploadData.id
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mensagens: any[] = [{ role: 'user', content: [{ type: 'text', text: PROMPT_BASE }, { type: 'file', file: { file_id: fileId } }] }]
+
     const chatRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 16384,
-        messages: [{ role: 'user', content: [{ type: 'text', text: PROMPT_BASE }, { type: 'file', file: { file_id: fileId } }] }],
-      }),
+      body: JSON.stringify({ model: 'gpt-4o', max_tokens: 16384, messages: mensagens }),
     })
     const chatData = await chatRes.json()
     if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro na OpenAI')
-    const texto = chatData.choices?.[0]?.message?.content || ''
+
+    const texto  = chatData.choices?.[0]?.message?.content || ''
     const finish = chatData.choices?.[0]?.finish_reason
-    if (finish === 'length') {
-      console.warn('[upload/pdf] resposta truncada pelo limite de tokens — tentando recuperar JSON parcial')
+    const parsed = parseIAResponse(texto)
+
+    if (finish === 'length' && (parsed.transacoes || []).length > 0) {
+      const ultima = parsed.transacoes[parsed.transacoes.length - 1] as { descricao?: string }
+      mensagens.push({ role: 'assistant', content: texto })
+      mensagens.push({
+        role: 'user',
+        content: `A resposta foi truncada. Continue extraindo as transações restantes a partir da que vem DEPOIS de "${ultima?.descricao ?? ''}". Retorne APENAS o array JSON de transações.`,
+      })
+      const extras = await chatComContinuacao(openaiKey, mensagens)
+      parsed.transacoes = [...parsed.transacoes, ...extras]
     }
-    return parseIAResponse(texto)
+
+    return parsed
   } finally {
     await fetch(`https://api.openai.com/v1/files/${fileId}`, {
       method: 'DELETE', headers: { 'Authorization': `Bearer ${openaiKey}` },
