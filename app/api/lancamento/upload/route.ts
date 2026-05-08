@@ -295,8 +295,8 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   const hIdx = flat.search(/Saldo\s*\(R\$\)/i)
   const content = hIdx !== -1 ? flat.slice(hIdx + 20) : flat
 
-  // Código: qualquer token com pelo menos 1 dígito (ex: 0000705, AG02154MAQ010411SEQ021)
-  const reTrans = /\b([A-Z]*\d[A-Z\d]*)\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
+  // Código numérico de 6-7 dígitos (padrão Bradesco/Itaú/BB) + valor + saldo
+  const reTrans = /\b(\d{6,7})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
   const reData4 = /\b(\d{2}\/\d{2}\/\d{4})\b/g
   const reData2 = /\b\d{2}\/\d{2}\b/g
 
@@ -353,18 +353,30 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   return resultado
 }
 
-// ─── Processa PDF: página por página em paralelo via IA ──────────────────────
+// ─── Prompt simplificado para conversão de página PDF → CSV ──────────────────
+const PROMPT_PDF_PAGINA = `Você é um extrator de extratos bancários brasileiros.
+Analise o texto abaixo e retorne APENAS um CSV válido (sem markdown, sem texto extra) com o cabeçalho:
+Data;Historico;Credito;Debito
+
+Regras:
+- Data no formato DD/MM/YYYY
+- Historico: apenas o nome do estabelecimento/beneficiário (sem tipo de pagamento)
+- Credito: valor se for entrada/receita, vazio se for saída
+- Debito: valor se for saída/despesa, vazio se for entrada
+- Valores no formato brasileiro: 710,70 (sem R$, sem ponto de milhar desnecessário)
+- Ignore linhas de cabeçalho, totais, saldos e rodapés
+- Não inclua a linha COD. LANC.
+- Se a página não tiver transações, retorne apenas o cabeçalho`
+
+// ─── Processa PDF: cada página → IA → CSV → processarCSV (mesmo fluxo do CSV) ─
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
 
-  // Extrai página por página (mergePages: false → text é string[])
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resultado = await extractText(new Uint8Array(bytes), { mergePages: false }) as any
-  const paginas: string[] = Array.isArray(resultado.text)
-    ? resultado.text
-    : [resultado.text ?? '']
-
+  const paginas: string[] = Array.isArray(resultado.text) ? resultado.text : [resultado.text ?? '']
   const paginasValidas = paginas.filter((p: string) => p && p.trim().length > 10)
+
   if (paginasValidas.length === 0) {
     throw new Error('Não foi possível extrair texto do PDF. O arquivo pode ser uma imagem escaneada.')
   }
@@ -372,46 +384,51 @@ async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
-      // 1 página por chamada — evita truncamento (cada página tem ~15 transações,
-      // que cabem facilmente em 8192 tokens de saída)
-      const chamarIA = (pagina: string) =>
+      // Cada página vira uma chamada independente: IA retorna CSV, não JSON
+      const paginaParaCSV = (pagina: string): Promise<string> =>
         fetchOpenAI(openaiKey, {
           model: 'gpt-4o-mini',
-          max_tokens: 8192,
+          max_tokens: 4096,
           temperature: 0,
           messages: [{
             role: 'user',
-            content: `${PROMPT_BASE}\n\nTexto desta página do PDF — extraia TODAS as transações visíveis:\n\`\`\`\n${pagina.slice(0, 8000)}\n\`\`\``,
+            content: `${PROMPT_PDF_PAGINA}\n\nTexto da página:\n\`\`\`\n${pagina.slice(0, 8000)}\n\`\`\``,
           }],
         })
         .then(async res => {
           const data = await res.json()
-          if (!res.ok) return { transacoes: [] }
-          try { return parseIAResponse(data.choices?.[0]?.message?.content || '') }
-          catch { return { transacoes: [] } }
+          if (!res.ok) return ''
+          return data.choices?.[0]?.message?.content?.replace(/```[a-z]*/gi, '').replace(/```/g, '').trim() ?? ''
         })
-        .catch(() => ({ transacoes: [] }))
+        .catch(() => '')
 
-      // Processa em lotes de 8 páginas em paralelo para não sobrecarregar rate limit
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const respostas: any[] = []
+      // Lotes de 8 páginas em paralelo
+      const csvPaginas: string[] = []
       const BATCH = 8
       for (let i = 0; i < paginasValidas.length; i += BATCH) {
-        const lote = await Promise.all(paginasValidas.slice(i, i + BATCH).map(chamarIA))
-        respostas.push(...lote)
+        const lote = await Promise.all(paginasValidas.slice(i, i + BATCH).map(paginaParaCSV))
+        csvPaginas.push(...lote)
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const todasTransacoes = respostas.flatMap((r: any) => r.transacoes || [])
-      if (todasTransacoes.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const primeiro = respostas.find((r: any) => r.tipo_documento) || respostas[0] || {}
+      // Junta todos os CSVs: mantém só o primeiro cabeçalho
+      const linhas: string[] = ['Data;Historico;Credito;Debito']
+      for (const csv of csvPaginas) {
+        for (const linha of csv.split('\n')) {
+          const l = linha.trim()
+          if (!l || l.toLowerCase().startsWith('data;')) continue
+          linhas.push(l)
+        }
+      }
+
+      const csvUnido = linhas.join('\n')
+      const transacoes = processarCSV(csvUnido)
+
+      if (transacoes.length > 0) {
         return {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          transacoes: todasTransacoes as any,
-          tipo_documento: (primeiro as { tipo_documento?: string }).tipo_documento || 'extrato_bancario',
-          banco_nome: (primeiro as { banco_nome?: string }).banco_nome || null as string | null,
-          resumo: `${todasTransacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
+          transacoes,
+          tipo_documento: 'extrato_bancario',
+          banco_nome: null as string | null,
+          resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
         }
       }
     } catch {
