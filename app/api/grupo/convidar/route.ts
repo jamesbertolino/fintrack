@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         if (invData.inviteCode) {
           whatsappLink = `https://chat.whatsapp.com/${invData.inviteCode}`
         }
-      } catch (err) {
+      } catch {
       }
     }
 
@@ -140,12 +140,12 @@ export async function POST(request: NextRequest) {
     const texto = `👋 *${adminProfile.nome}* te convidou para o *${grupo.nome}* no PoupaUp!\n\n🎯 O PoupaUp é um app de controle financeiro familiar com IA.\n\n*Passo 1* — Crie sua conta no PoupaUp:\n👉 ${appUrl}/convite/${token}${passoGrupo}\n\n_Válido por 7 dias_`
 
     try {
-      const evoRes = await fetch(`${EVO_URL()}/message/sendText/${adminProfile.evolution_instancia}`, {
+      await fetch(`${EVO_URL()}/message/sendText/${adminProfile.evolution_instancia}`, {
         method:  'POST',
         headers: evoHeaders(),
         body:    JSON.stringify({ number: numeroFormatado, text: texto }),
       })
-    } catch (err) {
+    } catch {
     }
   }
 

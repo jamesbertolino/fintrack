@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json', 'x-n8n-secret': secret },
       body: JSON.stringify({ numero, mensagem }),
     })
-    const parseData = await parseRes.json()
-  } catch (err) {
+    await parseRes.json()
+  } catch {
   }
 
   return NextResponse.json({ ok: true })

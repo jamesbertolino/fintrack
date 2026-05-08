@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       }),
     })
     dadosIA = await respostaIA.json() as Record<string, unknown>
-  } catch (err) {
+  } catch {
   }
 
   if (!dadosIA.ok) {

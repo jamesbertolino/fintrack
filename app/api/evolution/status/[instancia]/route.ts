@@ -34,7 +34,7 @@ export async function GET(
 
   const supabase = getSupabase()
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id, nome, whatsapp')
     .eq('id', userId)

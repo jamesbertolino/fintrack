@@ -175,11 +175,18 @@ export default function PerfilPage() {
     setLoading(false)
   }, [supabase, router])
 
+  const carregarMfa = useCallback(async () => {
+    const { data } = await supabase.auth.mfa.listFactors()
+    const totp = data?.totp?.find(f => f.status === 'verified')
+    if (totp) { setMfaAtivo(true); setMfaFactorId(totp.id) }
+    else { setMfaAtivo(false); setMfaFactorId('') }
+  }, [supabase])
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregar()
     carregarMfa()
-  }, [carregar])
+  }, [carregar, carregarMfa])
 
   async function salvarPerfil(e: React.FormEvent) {
     e.preventDefault()
@@ -203,13 +210,6 @@ export default function PerfilPage() {
     setSucesso('Perfil atualizado com sucesso!')
     carregar()
     setTimeout(() => setSucesso(''), 3000)
-  }
-
-  async function carregarMfa() {
-    const { data } = await supabase.auth.mfa.listFactors()
-    const totp = data?.totp?.find(f => f.status === 'verified')
-    if (totp) { setMfaAtivo(true); setMfaFactorId(totp.id) }
-    else { setMfaAtivo(false); setMfaFactorId('') }
   }
 
   async function iniciarMfa() {

@@ -27,7 +27,7 @@ async function configurarWebhook(instancia: string) {
       events:   ['MESSAGES_UPSERT'],
     },
   }
-  const res = await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
+  await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
     method:  'POST',
     headers: evoHeaders(),
     body:    JSON.stringify(body),

@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
 
   // 1. Bot sai do grupo
   if (grupoJid) {
-    const leaveRes = await fetch(
+    await fetch(
       `${process.env.EVOLUTION_URL}/group/leaveGroup/${instancia}?groupJid=${grupoJid}`,
       {
         method: 'DELETE',
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       headers: { 'apikey': process.env.EVOLUTION_API_KEY! },
     }
   )
-  const deleteText = await deleteRes.text()
+  await deleteRes.text()
 
   return NextResponse.json({ ok: true })
 }
