@@ -425,13 +425,12 @@ async function processarPDF(bytes: ArrayBuffer) {
       const csvUnido = linhas.join('\n')
       const transacoes = processarCSV(csvUnido)
 
-      if (transacoes.length > 0) {
-        return {
-          transacoes,
-          tipo_documento: 'extrato_bancario',
-          banco_nome: null as string | null,
-          resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
-        }
+      return {
+        transacoes,
+        tipo_documento: 'extrato_bancario',
+        banco_nome: null as string | null,
+        resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
+        _csv_debug: csvUnido,  // removido após validação
       }
     } catch {
       // IA falhou — usa parser local abaixo

@@ -195,6 +195,7 @@ export default function LancamentoPage() {
   const [confirmando, setConfirman] = useState(false)
   const [transacoesDetectadas, setTransacoesDetectadas] = useState<TransacaoDetectada[]>([])
   const [resumoDetectado, setResumo] = useState('')
+  const [csvDebug, setCsvDebug]       = useState('')
   const [tipoDocumento, setTipoDocumento] = useState('')
   const [bancoDetectado, setBancoDetectado] = useState<{ id: string; nome_curto: string; cor: string | null } | null>(null)
   const [contaUpload, setContaUpload] = useState('')
@@ -365,6 +366,7 @@ useEffect(() => {
     const comDuplicatas = detectarDuplicatas(data.transacoes, historico)
     setTransacoesDetectadas(comDuplicatas)
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
+    setCsvDebug(data._csv_debug || '')
     setTipoDocumento(data.tipo_documento || '')
 
     if (data.conta_vinculada) {
@@ -802,6 +804,20 @@ useEffect(() => {
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>Revise, edite categorias e confirme a conta destino antes de lançar</div>
                   </div>
                 </div>
+
+                {csvDebug && (
+                  <details style={{ marginBottom: 14 }}>
+                    <summary style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', cursor: 'pointer', userSelect: 'none', marginBottom: 6 }}>
+                      🔍 CSV bruto gerado pela IA ({csvDebug.split('\n').length - 1} linhas)
+                    </summary>
+                    <pre style={{
+                      fontSize: 10, color: 'rgba(255,255,255,.55)', background: 'rgba(0,0,0,.3)',
+                      border: '1px solid rgba(255,255,255,.08)', borderRadius: 6,
+                      padding: '8px 10px', overflowX: 'auto', maxHeight: 300,
+                      overflowY: 'auto', whiteSpace: 'pre', lineHeight: 1.6,
+                    }}>{csvDebug}</pre>
+                  </details>
+                )}
 
                 {/* Banco detectado + tipo de documento */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
