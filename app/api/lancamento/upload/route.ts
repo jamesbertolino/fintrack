@@ -249,67 +249,68 @@ function parseIAResponse(texto: string): any {
   }
 }
 
-// ─── Converte texto bruto do PDF em CSV estruturado (sem IA) ─────────────────
-// Suporta o padrão brasileiro: data (uma vez por bloco) → linhas de descrição
-// → linha de código + valor + saldo (ex: "0000705 710,70 36.751,41")
-
-// ─── Fallback local para PDF: regex busca datas + padrão valor+saldo ──────────
+// ─── Fallback local para PDF: parser para texto contínuo (sem quebras de linha)
+// Formato Bradesco/BB: "...descrição NNNNNN valor saldo [data?] descrição..."
 function pdfParserLocal(text: string): TransacaoDetectada[] {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-  // Detecta linha com dois valores monetários no final: valor + saldo corrente
-  const reValorSaldo = /(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s*$/
-  const reData       = /\b(\d{2}\/\d{2}\/\d{4})\b/
-  const reSoNum      = /^[\d\s.,]+$/
+  // Texto extraído pelo unpdf é uma linha contínua — normaliza espaços
+  const flat = text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+
+  // Pula cabeçalho até "Saldo (R$)" ou "Saldo(R$)" (header da tabela)
+  const hIdx = flat.search(/Saldo\s*\(R\$\)/i)
+  const content = hIdx !== -1 ? flat.slice(hIdx + 20) : flat
+
+  // Padrão de fim de transação: código 6-7 dígitos + valor + saldo
+  const reTrans  = /\b(\d{6,7})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
+  const reData4  = /\b(\d{2}\/\d{2}\/\d{4})\b/g   // data completa DD/MM/YYYY
+  const reData2  = /\b\d{2}\/\d{2}\b/g              // data parcial MM/DD ou DD/MM
+
+  // Saldo inicial: linha COD. LANC. tem o saldo anterior ao primeiro lançamento
+  let saldoAnt = 0
+  const mSaldo = content.match(/COD\.?\s*LANC\.[^0-9]*\d*[,\s.]*\d*,\d{2}\s+([\d.]+,\d{2})/)
+  if (mSaldo) saldoAnt = parseFloat(mSaldo[1].replace(/\./g, '').replace(',', '.')) || 0
 
   const resultado: TransacaoDetectada[] = []
-  let dataAtual  = ''
-  let saldoAnt   = 0
-  const descAcum: string[] = []
+  let dataAtual = ''
+  let lastIndex = 0
+  let match: RegExpExecArray | null
 
-  const flush = (valor: string, saldoAtuStr: string) => {
-    const desc = descAcum
-      .filter(l => !l.match(reData) && !l.match(/^COD\.?\s*LANC/i) && l.length > 2 && !l.match(reSoNum))
-      .join(' ').replace(/[;]/g, ' ').replace(/\s{2,}/g, ' ').trim()
-    descAcum.length = 0
-    if (!dataAtual || !desc || !valor) return
+  while ((match = reTrans.exec(content)) !== null) {
+    const segmento = content.slice(lastIndex, match.index).trim()
+    lastIndex = match.index + match[0].length
 
-    const saldoAtu = parseFloat(saldoAtuStr.replace(/\./g, '').replace(',', '.')) || 0
-    const isCredito = saldoAtu > saldoAnt
+    // Última data completa no segmento = data da transação
+    const datas = [...segmento.matchAll(reData4)]
+    if (datas.length > 0) dataAtual = datas[datas.length - 1][1]
+
+    // Descrição: remove datas, COD. LANC., datas parciais, texto só numérico
+    const desc = segmento
+      .replace(reData4, '')
+      .replace(reData2, '')
+      .replace(/COD\.?\s*LANC\.[^A-Z]*/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+
+    if (!desc || desc.length < 3 || !dataAtual) continue
+    if (/^[\d\s.,]+$/.test(desc)) continue
+
+    const valor      = match[2]
+    const saldoAtuStr = match[3]
+    const saldoAtu   = parseFloat(saldoAtuStr.replace(/\./g, '').replace(',', '.')) || 0
+    const isCredito  = saldoAtu > saldoAnt
     saldoAnt = saldoAtu
 
     const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0
-    if (valorNum === 0) return
+    if (valorNum === 0) continue
 
-    const tipo = isCredito ? 'credito' : 'debito'
     const { categoria, nao_categorizado } = detectarCategoria(desc)
     resultado.push({
-      descricao: desc.toUpperCase(),
+      descricao: desc.replace(/[;]/g, ' ').toUpperCase(),
       valor: valorNum,
-      tipo,
+      tipo: isCredito ? 'credito' : 'debito',
       categoria,
       nao_categorizado,
       data_hora: parseData(dataAtual),
     })
-  }
-
-  for (const linha of lines) {
-    const mData = linha.match(reData)
-    if (mData) {
-      const resto = linha.replace(reData, '').trim()
-      if (!resto.match(reValorSaldo)) {
-        dataAtual = mData[1]
-        if (resto && !resto.match(/^COD\.?\s*LANC/i) && !resto.match(reSoNum)) descAcum.push(resto)
-        continue
-      }
-    }
-    const mVS = linha.match(reValorSaldo)
-    if (mVS) {
-      const prefixo = linha.replace(reValorSaldo, '').replace(/^\d{4,8}\s*/, '').trim()
-      if (prefixo && !prefixo.match(reSoNum)) descAcum.push(prefixo)
-      flush(mVS[1], mVS[2])
-      continue
-    }
-    descAcum.push(linha)
   }
 
   return resultado
