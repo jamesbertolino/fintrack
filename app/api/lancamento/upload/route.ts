@@ -369,37 +369,34 @@ async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
-      // Agrupa de 3 em 3 páginas e processa todos os chunks em paralelo
-      const CHUNK = 3
-      const chunks: string[] = []
-      for (let i = 0; i < paginasValidas.length; i += CHUNK) {
-        chunks.push(
-          paginasValidas.slice(i, i + CHUNK)
-            .join('\n\n--- PRÓXIMA PÁGINA ---\n\n')
-            .slice(0, 10000)
-        )
-      }
+      // 1 página por chamada — evita truncamento (cada página tem ~15 transações,
+      // que cabem facilmente em 8192 tokens de saída)
+      const chamarIA = (pagina: string) =>
+        fetchOpenAI(openaiKey, {
+          model: 'gpt-4o-mini',
+          max_tokens: 8192,
+          temperature: 0,
+          messages: [{
+            role: 'user',
+            content: `${PROMPT_BASE}\n\nTexto desta página do PDF — extraia TODAS as transações visíveis:\n\`\`\`\n${pagina.slice(0, 8000)}\n\`\`\``,
+          }],
+        })
+        .then(async res => {
+          const data = await res.json()
+          if (!res.ok) return { transacoes: [] }
+          try { return parseIAResponse(data.choices?.[0]?.message?.content || '') }
+          catch { return { transacoes: [] } }
+        })
+        .catch(() => ({ transacoes: [] }))
 
-      const respostas = await Promise.all(
-        chunks.map(conteudo =>
-          fetchOpenAI(openaiKey, {
-            model: 'gpt-4o-mini',
-            max_tokens: 4096,
-            temperature: 0,
-            messages: [{
-              role: 'user',
-              content: `${PROMPT_BASE}\n\nTexto do PDF (extrato, fatura, comprovante, nota fiscal ou holerite — identifique e extraia todas as transações):\n\`\`\`\n${conteudo}\n\`\`\``,
-            }],
-          })
-          .then(async res => {
-            const data = await res.json()
-            if (!res.ok) return { transacoes: [] }
-            try { return parseIAResponse(data.choices?.[0]?.message?.content || '') }
-            catch { return { transacoes: [] } }
-          })
-          .catch(() => ({ transacoes: [] }))
-        )
-      )
+      // Processa em lotes de 8 páginas em paralelo para não sobrecarregar rate limit
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const respostas: any[] = []
+      const BATCH = 8
+      for (let i = 0; i < paginasValidas.length; i += BATCH) {
+        const lote = await Promise.all(paginasValidas.slice(i, i + BATCH).map(chamarIA))
+        respostas.push(...lote)
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const todasTransacoes = respostas.flatMap((r: any) => r.transacoes || [])
