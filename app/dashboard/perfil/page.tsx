@@ -737,7 +737,7 @@ export default function PerfilPage() {
               </div>
               {notificacoesCelular && form.whatsapp && (
                 <div style={{ marginTop: 10, padding: '8px 12px', background: `${cores.accent}0d`, border: `1px solid ${cores.accent}25`, borderRadius: 8, fontSize: 11, color: cores.accent }}>
-                  ✅ Ativo — você receberá até 2 notificações por dia no {form.whatsapp}
+                  ✅ Ativo — você receberá até 2 notificações por dia no {form.whatsapp.replace(/(\d{2})(\d{2})\d+(\d{4})/, '$1$2•••••$3')}
                 </div>
               )}
             </div>

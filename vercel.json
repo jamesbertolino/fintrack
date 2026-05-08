@@ -13,6 +13,12 @@
       ]
     }
   ],
+  "crons": [
+    {
+      "path": "/api/cron/retencao",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "functions": {
     "src/app/api/webhook/[userid]/route.ts": {
       "maxDuration": 10

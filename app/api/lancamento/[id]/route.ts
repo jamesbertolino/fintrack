@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
+import { logAudit } from '@/lib/auditLog'
 
 function getServiceClient() {
   return createClient(
@@ -37,6 +38,8 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  logAudit({ user_id: user.id, action: 'transaction.update', resource_id: id, metadata: campos })
+
   return NextResponse.json({ ok: true })
 }
 
@@ -67,6 +70,8 @@ export async function DELETE(
   const { error } = await service.from('transactions').delete().eq('id', id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  logAudit({ user_id: user.id, action: 'transaction.delete', resource_id: id })
 
   return NextResponse.json({ ok: true })
 }

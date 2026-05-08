@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { logAudit } from '@/lib/auditLog'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.from('transactions').insert(inserir).select('id')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
 
   return NextResponse.json({ ok: true, lançados: data.length })
 }

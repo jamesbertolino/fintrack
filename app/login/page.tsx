@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { useCores, useTema } from '@/components/ThemeProvider'
@@ -34,6 +35,7 @@ function LoginContent() {
 
   const [loginForm, setLoginForm] = useState({ email: '', senha: '' })
   const [cadForm, setCadForm] = useState({ nome: '', email: '', senha: '' })
+  const [lgpdAceito, setLgpdAceito] = useState(false)
   const [forca, setForca] = useState({ pct: 0, cor: '', label: '' })
 
   const erroParam = searchParams.get('erro')
@@ -71,6 +73,7 @@ function LoginContent() {
     e.preventDefault()
     setErro('')
     if (cadForm.senha.length < 8) { setErro('A senha precisa ter pelo menos 8 caracteres.'); return }
+    if (!lgpdAceito) { setErro('Você precisa aceitar a Política de Privacidade para criar uma conta.'); return }
     setLoading(true)
     const { data, error } = await supabase.auth.signUp({
       email: cadForm.email,
@@ -89,6 +92,7 @@ function LoginContent() {
         nome: cadForm.nome.split(' ')[0],
         sobrenome: cadForm.nome.split(' ').slice(1).join(' '),
         plano: 'free',
+        lgpd_aceito_em: new Date().toISOString(),
       })
     }
 
@@ -277,18 +281,27 @@ function LoginContent() {
               </>
             )}
           </div>
-          <button type="submit" disabled={loading} style={{
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={lgpdAceito}
+              onChange={e => setLgpdAceito(e.target.checked)}
+              style={{ marginTop: 2, accentColor: cores.accent, flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 11, color: cores.textMuted, lineHeight: 1.6 }}>
+              Li e concordo com a{' '}
+              <Link href="/privacidade" target="_blank" style={{ color: cores.accent }}>Política de Privacidade</Link>
+              {' '}e os{' '}
+              <Link href="/privacidade#termos" target="_blank" style={{ color: cores.accent }}>Termos de Uso</Link>
+            </span>
+          </label>
+          <button type="submit" disabled={loading || !lgpdAceito} style={{
             width: '100%', padding: 12, background: cores.accent, color: '#fff', border: 'none',
-            borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer',
-            opacity: loading ? 0.6 : 1,
+            borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: (loading || !lgpdAceito) ? 'default' : 'pointer',
+            opacity: (loading || !lgpdAceito) ? 0.6 : 1,
           }}>
             {loading ? 'Criando conta...' : 'Criar conta grátis'}
           </button>
-          <div style={{ fontSize: 10, color: cores.textFaint, textAlign: 'center', marginTop: '0.875rem', lineHeight: 1.6 }}>
-            Ao criar sua conta você concorda com os{' '}
-            <span style={{ color: cores.accent, cursor: 'pointer', opacity: 0.7 }}>Termos</span> e a{' '}
-            <span style={{ color: cores.accent, cursor: 'pointer', opacity: 0.7 }}>Privacidade</span>
-          </div>
         </form>
       )}
 
