@@ -531,34 +531,72 @@ export default function GastosPage() {
         </div>
 
         {/* ── Drill-down da categoria clicada ── */}
-        {catDrilldown && drilldownDados.length > 0 && (
-          <div style={{ background: '#111', border: `1px solid ${CORES[catDrilldown] || '#4ade80'}44`, borderRadius: 12, padding: '1rem', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: CORES[catDrilldown] || '#6b7280' }} />
-                <span style={{ fontSize: 13, fontWeight: 600 }}>{catDrilldown}</span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>— top estabelecimentos no período</span>
+        {catDrilldown && (() => {
+          const cor = CORES[catDrilldown] || '#6b7280'
+          const transacoesCat = filtradas.filter(t => t.tipo === 'debito' && t.categoria === catDrilldown)
+            .sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor))
+          const totalCat = transacoesCat.reduce((s, t) => s + Math.abs(t.valor), 0)
+          if (transacoesCat.length === 0) return null
+          return (
+            <div style={{ background: '#111', border: `1px solid ${cor}33`, borderRadius: 12, padding: '1rem', marginBottom: '1rem' }}>
+
+              {/* Cabeçalho */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: cor }} />
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>{catDrilldown}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
+                    {transacoesCat.length} transaç{transacoesCat.length === 1 ? 'ão' : 'ões'} · total {fmtBRL(totalCat)}
+                  </span>
+                </div>
+                <button onClick={() => setCatDrilldown(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 20, lineHeight: 1 }}>×</button>
               </div>
-              <button onClick={() => setCatDrilldown(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 18, lineHeight: 1 }}>×</button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
-              {drilldownDados.map(([desc, { total, count }]) => (
-                <div key={desc} style={{ background: 'rgba(255,255,255,.02)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'center' }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{desc}</div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{count} ocorrência{count > 1 ? 's' : ''} · média {fmtBRL(total / count)}</div>
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES[catDrilldown] || '#6b7280', flexShrink: 0, marginLeft: 8 }}>{fmtBRL(total)}</div>
-                  </div>
-                  <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(total / maxDrill) * 100}%`, background: CORES[catDrilldown] || '#6b7280', borderRadius: 2, transition: 'width .4s', opacity: .7 }} />
+
+              {/* Resumo por estabelecimento */}
+              {drilldownDados.length > 1 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Resumo por estabelecimento</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6 }}>
+                    {drilldownDados.map(([desc, { total, count }]) => (
+                      <div key={desc} style={{ background: 'rgba(255,255,255,.02)', borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{desc}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{count}× · média {fmtBRL(total / count)}</div>
+                          </div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: cor, flexShrink: 0, marginLeft: 8 }}>{fmtBRL(total)}</div>
+                        </div>
+                        <div style={{ height: 3, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${(total / maxDrill) * 100}%`, background: cor, borderRadius: 2, opacity: .6 }} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Lista detalhada de lançamentos */}
+              <div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Lançamentos detalhados</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 100px', gap: 0 }}>
+                  {/* header */}
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Descrição</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Data</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a', textAlign: 'right' }}>Valor</div>
+                  {/* rows */}
+                  {transacoesCat.map(t => (
+                    <>
+                      <div key={`d-${t.id}`} style={{ fontSize: 12, padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
+                        onClick={() => abrirEdicao(t)}>{t.descricao}</div>
+                      <div key={`dt-${t.id}`} style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)' }}>{fmtData(t.data_hora)}</div>
+                      <div key={`v-${t.id}`} style={{ fontSize: 12, fontWeight: 600, color: '#f87171', padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)', textAlign: 'right' }}>-{fmtBRL(Math.abs(t.valor))}</div>
+                    </>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {/* ── Top gastos + Grid 2 colunas ── */}
         {topGastos.length > 0 && (
