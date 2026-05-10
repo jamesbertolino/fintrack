@@ -5,6 +5,9 @@ type AuditAction =
   | 'transaction.update'
   | 'transaction.delete'
   | 'profile.update'
+  | 'desafio.aceito'
+  | 'desafio.concluido'
+  | 'desafio.abandonado'
 
 interface AuditEntry {
   user_id: string
