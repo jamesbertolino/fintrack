@@ -26,6 +26,8 @@ export async function PATCH(
   if ('descricao'  in body) campos.descricao  = body.descricao
   if ('categoria'  in body) campos.categoria  = body.categoria
   if ('data_hora'  in body) campos.data_hora  = body.data_hora
+  if ('valor'      in body) campos.valor      = body.valor
+  if ('tipo'       in body) campos.tipo       = body.tipo
 
   if (!Object.keys(campos).length)
     return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })

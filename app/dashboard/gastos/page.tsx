@@ -74,6 +74,8 @@ export default function GastosPage() {
   const [editCategoria, setEditCategoria]           = useState('')
   const [editContaId, setEditContaId]               = useState('')
   const [editDataHora, setEditDataHora]             = useState('')
+  const [editValor, setEditValor]                   = useState('')
+  const [editTipo, setEditTipo]                     = useState<'debito' | 'credito'>('debito')
   const [salvandoEdicao, setSalvandoEdicao]         = useState(false)
 
   const [transacoesAnt, setTransacoesAnt] = useState<Transacao[]>([])
@@ -253,6 +255,8 @@ export default function GastosPage() {
     setEditCategoria(t.categoria)
     setEditContaId(t.conta_id || '')
     setEditDataHora(t.data_hora ? new Date(t.data_hora).toISOString().slice(0, 16) : '')
+    setEditValor(Math.abs(t.valor).toFixed(2).replace('.', ','))
+    setEditTipo(t.tipo)
     setModalAberto(true)
   }
 
@@ -267,6 +271,8 @@ export default function GastosPage() {
         categoria: editCategoria,
         conta_id: editContaId || null,
         data_hora: editDataHora ? new Date(editDataHora).toISOString() : transacaoEditando.data_hora,
+        valor: editTipo === 'debito' ? -Math.abs(parseFloat(editValor.replace(',', '.'))) : Math.abs(parseFloat(editValor.replace(',', '.'))),
+        tipo: editTipo,
       }),
     })
     setSalvandoEdicao(false)
@@ -777,6 +783,34 @@ export default function GastosPage() {
               <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descrição</label>
               <input value={editDescricao} onChange={e => setEditDescricao(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
+            </div>
+
+            {/* Valor + Tipo */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Valor (R$)</label>
+                <input
+                  value={editValor}
+                  onChange={e => setEditValor(e.target.value.replace(/[^0-9,]/g, ''))}
+                  placeholder="0,00"
+                  style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Tipo</label>
+                <div style={{ display: 'flex', gap: 4, height: 38 }}>
+                  {(['debito', 'credito'] as const).map(tipo => (
+                    <button key={tipo} type="button" onClick={() => setEditTipo(tipo)} style={{
+                      padding: '0 14px', borderRadius: 8, border: `1px solid ${editTipo === tipo ? (tipo === 'credito' ? '#4ade80' : '#f87171') : '#1a3a1a'}`,
+                      background: editTipo === tipo ? (tipo === 'credito' ? 'rgba(74,222,128,.12)' : 'rgba(248,113,113,.12)') : 'transparent',
+                      color: editTipo === tipo ? (tipo === 'credito' ? '#4ade80' : '#f87171') : 'rgba(255,255,255,.35)',
+                      fontSize: 12, cursor: 'pointer', fontWeight: editTipo === tipo ? 600 : 400,
+                    }}>
+                      {tipo === 'credito' ? 'Receita' : 'Despesa'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <div>
