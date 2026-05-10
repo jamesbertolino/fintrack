@@ -81,7 +81,9 @@ interface TransacaoDetectada {
   data_hora: string
   nao_categorizado?: boolean
   potencial_duplicata?: boolean
-  duplicata_origem?: 'historico' | 'lote'   // onde foi encontrada a duplicata
+  duplicata_origem?: 'historico' | 'lote'
+  confirmada_duplicata?: boolean  // já existe no banco com mesma ref_externa
+  ref_externa?: string
 }
 
 const CATEGORIAS_DESPESA = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Outros']
@@ -429,15 +431,19 @@ useEffect(() => {
 
   function detectarDuplicatas(detectadas: TransacaoDetectada[], existentes: Transacao[]): TransacaoDetectada[] {
     return detectadas.map(t => {
-      // Checa duplicata no histórico existente
+      // Confirmada pelo servidor via ref_externa — não precisa checar mais nada
+      if (t.confirmada_duplicata) return t
+
       const valorAbs = Math.abs(t.valor)
       const dataT = new Date(t.data_hora)
+
+      // Potencial duplicata no histórico (fuzzy: mesmo valor+descrição±3 dias)
       const duplicataHistorico = existentes.some(e => {
         const diff = Math.abs(new Date(e.data_hora).getTime() - dataT.getTime())
         return Math.abs(e.valor) === valorAbs && diff < 3 * 24 * 60 * 60 * 1000 &&
           e.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim()
       })
-      // Checa duplicata dentro do próprio lote
+      // Potencial duplicata dentro do próprio lote
       const duplicataLote = detectadas.some((other) =>
         other !== t &&
         Math.abs(other.valor) === valorAbs &&
@@ -445,7 +451,7 @@ useEffect(() => {
         Math.abs(new Date(other.data_hora).getTime() - dataT.getTime()) < 60 * 1000
       )
       if (duplicataHistorico) return { ...t, potencial_duplicata: true, duplicata_origem: 'historico' as const }
-      if (duplicataLote) return { ...t, potencial_duplicata: true, duplicata_origem: 'lote' as const }
+      if (duplicataLote)      return { ...t, potencial_duplicata: true, duplicata_origem: 'lote' as const }
       return t
     })
   }
@@ -1036,7 +1042,49 @@ useEffect(() => {
                   </>
                 )}
 
-                {/* ── Possíveis duplicatas ────────────────────────────── */}
+                {/* ── Duplicatas confirmadas (já no banco via ref_externa) ── */}
+                {transacoesDetectadas.filter(t => t.confirmada_duplicata).length > 0 && (
+                  <div style={{ background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, color: '#f87171', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
+                        🚫 Já lançados — {transacoesDetectadas.filter(t => t.confirmada_duplicata).length} transaç{transacoesDetectadas.filter(t => t.confirmada_duplicata).length > 1 ? 'ões já existem' : 'ão já existe'} no sistema
+                      </div>
+                      <button
+                        onClick={() => setTransacoesDetectadas(prev => prev.filter(t => !t.confirmada_duplicata))}
+                        style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 6, color: '#f87171', cursor: 'pointer' }}
+                      >
+                        Remover todas
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
+                      {transacoesDetectadas.map((t, i) => !t.confirmada_duplicata ? null : (
+                        <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,.5)', fontSize: 13, flexShrink: 0, lineHeight: 1 }} title="Remover">✕</button>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.7)' }}>{t.descricao}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(239,68,68,.12)', color: '#f87171', border: '1px solid rgba(239,68,68,.25)' }}>
+                                já existe no sistema
+                              </span>
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171' }}>
+                              {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
+                            </div>
+                            <button onClick={() => setTransacoesDetectadas(prev => prev.map((x, idx) => idx === i ? { ...x, confirmada_duplicata: false } : x))}
+                              style={{ fontSize: 9, padding: '2px 7px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
+                              Lançar mesmo assim
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Possíveis duplicatas (fuzzy) ────────────────────────── */}
                 {transacoesDetectadas.filter(t => t.potencial_duplicata).length > 0 && (
                   <div style={{ background: 'rgba(249,115,22,.04)', border: '1px solid rgba(249,115,22,.25)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
                     <TipCard id="tip-duplicatas" icon="🔁" tips={tips} accent="#f97316"
@@ -1049,7 +1097,7 @@ useEffect(() => {
                         onClick={descartarDuplicatas}
                         style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(249,115,22,.12)', border: '1px solid rgba(249,115,22,.3)', borderRadius: 6, color: '#f97316', cursor: 'pointer' }}
                       >
-                        Descartar todas duplicatas
+                        Descartar todas
                       </button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
@@ -1060,7 +1108,7 @@ useEffect(() => {
                             <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)' }}>{t.descricao}</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                               <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(249,115,22,.12)', color: '#f97316', border: '1px solid rgba(249,115,22,.25)' }}>
-                                {t.duplicata_origem === 'historico' ? 'já lançado' : 'repete no lote'}
+                                {t.duplicata_origem === 'historico' ? 'possível duplicata' : 'repete no lote'}
                               </span>
                               <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
                             </div>

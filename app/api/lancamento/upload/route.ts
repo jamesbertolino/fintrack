@@ -12,6 +12,8 @@ export interface TransacaoDetectada {
   categoria: string
   data_hora: string
   nao_categorizado?: boolean
+  ref_externa?: string          // chave de deduplicação: data:documento ou data:valor:descricao
+  confirmada_duplicata?: boolean // true = encontrado no banco com mesma ref_externa
 }
 
 // ─── Detecta categoria por palavra-chave ─────────────────────────────────────
@@ -602,6 +604,12 @@ async function processarPDF(bytes: ArrayBuffer) {
         const descricao = (item.historico || '').trim() || hist
         const { categoria, nao_categorizado } = detectarCategoria(descricao)
 
+        // Chave de deduplicação: documento bancário é definitivo; fallback = data+valor+desc
+        const doc = (item.documento || '').trim()
+        const ref_externa = doc
+          ? `${item.data}:${doc}`
+          : `${item.data}:${valor}:${descricao.slice(0, 40).toUpperCase()}`
+
         transacoes.push({
           descricao: descricao.toUpperCase(),
           tipo_pagamento: tipo_pagamento || (item.historico ? item.tipo : undefined) || undefined,
@@ -610,6 +618,7 @@ async function processarPDF(bytes: ArrayBuffer) {
           categoria,
           nao_categorizado,
           data_hora: parseData(item.data || ''),
+          ref_externa,
         })
       }
 
@@ -799,6 +808,22 @@ export async function POST(request: NextRequest) {
         // 3. Se banco encontrado mas conta não: sugerir criação pré-preenchida
         if (!conta_id && (banco_id || banco_nome)) {
           conta_sugerida = { banco_id, banco_nome, agencia: agencia_detectada, numero: numero_detectado, titular: titular_detectado }
+        }
+      }
+
+      // Verifica quais ref_externa já existem no banco (duplicatas confirmadas)
+      const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
+      if (refs.length) {
+        const { data: existentes } = await supabase
+          .from('transactions')
+          .select('ref_externa')
+          .eq('user_id', user.id)
+          .in('ref_externa', refs)
+        if (existentes?.length) {
+          const refsExistentes = new Set(existentes.map(e => e.ref_externa))
+          transacoes.forEach(t => {
+            if (t.ref_externa && refsExistentes.has(t.ref_externa)) t.confirmada_duplicata = true
+          })
         }
       }
 
