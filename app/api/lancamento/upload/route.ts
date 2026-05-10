@@ -454,6 +454,37 @@ function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; 
   return { transacoes, lacunas }
 }
 
+// ─── Extrai metadados do cabeçalho do PDF (banco, agência, conta, titular) ─────
+async function extrairMetadadosPDF(textoPrimeiraPagina: string, openaiKey: string) {
+  try {
+    const res = await fetchOpenAI(openaiKey, {
+      model: 'gpt-4o-mini',
+      max_tokens: 256,
+      temperature: 0,
+      messages: [{
+        role: 'user',
+        content: `Do texto de extrato bancário abaixo, extraia APENAS os dados do cabeçalho.
+Retorne JSON com exatamente estes campos (null se não encontrar):
+{
+  "banco": "nome do banco",
+  "agencia": "número da agência sem dígito verificador",
+  "conta": "número da conta sem dígito verificador",
+  "titular": "nome do titular"
+}
+Retorne APENAS JSON válido, sem markdown.
+
+Texto:
+${textoPrimeiraPagina.slice(0, 2000)}`,
+      }],
+    })
+    const data = await res.json()
+    const texto = (data.choices?.[0]?.message?.content ?? '').replace(/```json|```/g, '').trim()
+    return JSON.parse(texto) as { banco: string | null; agencia: string | null; conta: string | null; titular: string | null }
+  } catch {
+    return { banco: null, agencia: null, conta: null, titular: null }
+  }
+}
+
 // ─── Processa PDF: texto cru → GPT → JSON estruturado → validação de saldo ────
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
@@ -470,6 +501,9 @@ async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
+      // Extrai banco/agência/conta do cabeçalho da primeira página em paralelo com as transações
+      const metadadosPromise = extrairMetadadosPDF(paginasValidas[0], openaiKey)
+
       // Overlap: inclui últimas 400 chars da página anterior para não perder transações no limite de página
       const paginasComContexto = paginasValidas.map((pagina, idx) => {
         if (idx === 0) return pagina
@@ -579,10 +613,15 @@ async function processarPDF(bytes: ArrayBuffer) {
         })
       }
 
+      const metadados = await metadadosPromise
+
       return {
         transacoes,
         tipo_documento: 'extrato_bancario',
-        banco_nome: null as string | null,
+        banco_nome: metadados.banco || null,
+        agencia_detectada: metadados.agencia || null,
+        numero_conta_detectada: metadados.conta || null,
+        titular_detectado: metadados.titular || null,
         resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
         lacunas,
         _csv_debug: JSON.stringify(itensFiltrados, null, 2),
@@ -715,10 +754,13 @@ export async function POST(request: NextRequest) {
       }))
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no PDF', _csv_debug: parsed._csv_debug }, { status: 400 })
 
-      const banco_nome = parsed.banco_nome || null
-      let banco_id: string | null = null
-      let banco_nao_encontrado = false
+      const banco_nome          = (parsed as { banco_nome?: string | null }).banco_nome || null
+      const agencia_detectada   = (parsed as { agencia_detectada?: string | null }).agencia_detectada || null
+      const numero_detectado    = (parsed as { numero_conta_detectada?: string | null }).numero_conta_detectada || null
+      const titular_detectado   = (parsed as { titular_detectado?: string | null }).titular_detectado || null
 
+      // Resolve banco_id a partir do nome extraído
+      let banco_id: string | null = null
       if (banco_nome) {
         const { data: bancos } = await supabase.from('bancos').select('id, nome, nome_curto')
         const match = bancos?.find(b =>
@@ -727,7 +769,37 @@ export async function POST(request: NextRequest) {
           banco_nome.toLowerCase().includes(b.nome_curto.toLowerCase())
         )
         if (match) banco_id = match.id
-        else banco_nao_encontrado = true
+      }
+
+      // Tenta encontrar a conta exata do usuário: número > banco+agência > banco
+      const { data: contasUsuario } = await supabase
+        .from('contas')
+        .select('id, nome, numero, agencia, banco_id, bancos(id, nome, nome_curto, cor)')
+        .eq('user_id', user.id)
+        .eq('ativo', true)
+
+      let conta_id: string | null = null
+      let conta_sugerida: { banco_id: string | null; banco_nome: string | null; agencia: string | null; numero: string | null; titular: string | null } | null = null
+
+      if (contasUsuario) {
+        const norm = (s: string | null | undefined) => (s || '').replace(/\D/g, '')
+
+        // 1. Match exato por número de conta
+        if (numero_detectado) {
+          const m = contasUsuario.find(c => norm(c.numero) === norm(numero_detectado) && norm(c.numero).length > 3)
+          if (m) conta_id = m.id
+        }
+
+        // 2. Match por banco + agência
+        if (!conta_id && banco_id && agencia_detectada) {
+          const m = contasUsuario.find(c => c.banco_id === banco_id && norm(c.agencia) === norm(agencia_detectada))
+          if (m) conta_id = m.id
+        }
+
+        // 3. Se banco encontrado mas conta não: sugerir criação pré-preenchida
+        if (!conta_id && (banco_id || banco_nome)) {
+          conta_sugerida = { banco_id, banco_nome, agencia: agencia_detectada, numero: numero_detectado, titular: titular_detectado }
+        }
       }
 
       const naoCat = transacoes.filter(t => t.nao_categorizado).length
@@ -735,9 +807,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ok: true, transacoes,
         resumo: `${transacoes.length} transações${naoCat ? ` (${naoCat} sem categoria)` : ''} — ${parsed.resumo || ''}`.trim(),
-        banco_nome, banco_id, banco_nao_encontrado,
+        banco_nome, banco_id,
+        conta_id,
+        conta_sugerida,
         tipo_documento: parsed.tipo_documento || 'extrato_bancario',
-        conta_vinculada: banco_nome,
         lacunas,
         _csv_debug: parsed._csv_debug,
       })

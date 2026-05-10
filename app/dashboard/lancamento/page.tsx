@@ -371,15 +371,35 @@ useEffect(() => {
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
     setTipoDocumento(data.tipo_documento || '')
 
-    if (data.conta_vinculada) {
-      const contaMatch = contas.find(c => c.bancos?.nome_curto === data.conta_vinculada || c.nome === data.conta_vinculada)
-      if (contaMatch) setContaUpload(contaMatch.id)
+    // Conta exata encontrada (match por número ou banco+agência)
+    if (data.conta_id) {
+      setContaUpload(data.conta_id)
+      const contaEncontrada = contas.find(c => c.id === data.conta_id)
+      if (contaEncontrada?.bancos) setBancoDetectado(contaEncontrada.bancos)
     }
-    if (data.banco_nao_encontrado) {
+    // Conta não encontrada, mas banco identificado → pré-preenche form de nova conta
+    else if (data.conta_sugerida) {
+      const sug = data.conta_sugerida
+      if (bancosLista.length === 0) {
+        const d = await (await fetch('/api/bancos')).json()
+        setBancosLista(d.bancos || [])
+      }
+      setFormNovaConta(prev => ({
+        ...prev,
+        banco_id: sug.banco_id || '',
+        agencia:  sug.agencia  || '',
+        numero:   sug.numero   || '',
+        nome:     sug.titular  || (sug.banco_nome ? `Conta ${sug.banco_nome}` : ''),
+      }))
+      setBancoNaoEncontrado(sug.banco_nome || 'Banco detectado')
+      setModalContaNaoEncontrada(true)
+    }
+    // Fallback legado (CSV sem conta_sugerida)
+    else if (data.banco_nao_encontrado) {
       setBancoNaoEncontrado(data.banco_nome || 'Desconhecido')
       setModalContaNaoEncontrada(true)
     }
-    if (data.banco_id) {
+    else if (data.banco_id && !data.conta_id) {
       const bancoDados = await (await fetch('/api/bancos')).json()
       const banco = bancoDados.bancos?.find((b: { id: string }) => b.id === data.banco_id)
       if (banco) {
