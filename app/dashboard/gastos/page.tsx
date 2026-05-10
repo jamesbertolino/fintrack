@@ -54,7 +54,8 @@ export default function GastosPage() {
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
   const [busca, setBusca]             = useState('')
   const [periodo, setPeriodo]         = useState('30')
-  const [abaGrafico, setAbaGrafico]   = useState<'categoria' | 'evolucao'>('categoria')
+  const [abaGrafico, setAbaGrafico]   = useState<'categoria' | 'evolucao' | 'comparativo'>('categoria')
+  const [catDrilldown, setCatDrilldown] = useState<string | null>(null)
   const [userId, setUserId]           = useState('')
   const [contas, setContas]           = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
 
@@ -75,14 +76,19 @@ export default function GastosPage() {
   const [editDataHora, setEditDataHora]             = useState('')
   const [salvandoEdicao, setSalvandoEdicao]         = useState(false)
 
+  const [transacoesAnt, setTransacoesAnt] = useState<Transacao[]>([])
+
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     setUserId(user.id)
 
     const dias = parseInt(periodo)
+    // Busca 2× o período para calcular comparativo com o período anterior
     const desde = new Date()
-    desde.setDate(desde.getDate() - dias)
+    desde.setDate(desde.getDate() - dias * 2)
+    const corte = new Date()
+    corte.setDate(corte.getDate() - dias)
 
     const { data } = await supabase
       .from('transactions')
@@ -91,7 +97,11 @@ export default function GastosPage() {
       .gte('data_hora', desde.toISOString())
       .order('data_hora', { ascending: false })
 
-    if (data) setTransacoes(data)
+    if (data) {
+      const corteISO = corte.toISOString()
+      setTransacoes(data.filter(t => t.data_hora >= corteISO))
+      setTransacoesAnt(data.filter(t => t.data_hora < corteISO))
+    }
     setLoading(false)
   }, [supabase, router, periodo])
 
@@ -156,6 +166,42 @@ export default function GastosPage() {
   }, [transacoes])
 
   const maxMes = Math.max(...porMes.flatMap(([, v]) => [v.receitas, v.despesas]), 1)
+
+  // Período anterior — mesmas categorias para comparativo
+  const porCategoriaAnt = useMemo(() => {
+    const acc: Record<string, number> = {}
+    transacoesAnt.filter(t => t.tipo === 'debito').forEach(t => {
+      acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor)
+    })
+    return acc
+  }, [transacoesAnt])
+
+  // Drill-down: top descrições dentro de uma categoria
+  const drilldownDados = useMemo(() => {
+    if (!catDrilldown) return []
+    const acc: Record<string, { total: number; count: number }> = {}
+    filtradas.filter(t => t.tipo === 'debito' && t.categoria === catDrilldown).forEach(t => {
+      const k = t.descricao.trim()
+      if (!acc[k]) acc[k] = { total: 0, count: 0 }
+      acc[k].total += Math.abs(t.valor)
+      acc[k].count++
+    })
+    return Object.entries(acc).sort((a, b) => b[1].total - a[1].total).slice(0, 10)
+  }, [filtradas, catDrilldown])
+
+  const maxDrill = drilldownDados[0]?.[1].total || 1
+
+  // Top gastos individuais do período
+  const topGastos = useMemo(() =>
+    [...filtradas].filter(t => t.tipo === 'debito').sort((a, b) => Math.abs(b.valor) - Math.abs(a.valor)).slice(0, 8)
+  , [filtradas])
+
+  // Todas as categorias presentes no comparativo
+  const catsComparativo = useMemo(() => {
+    const s = new Set([...porCategoria.map(([c]) => c), ...Object.keys(porCategoriaAnt)])
+    return [...s].sort((a, b) => ((porCategoriaAnt[b] || 0) + (porCategoria.find(([c]) => c === b)?.[1] || 0)) - ((porCategoriaAnt[a] || 0) + (porCategoria.find(([c]) => c === a)?.[1] || 0)))
+  }, [porCategoria, porCategoriaAnt])
+  const maxComp = Math.max(...catsComparativo.flatMap(c => [porCategoria.find(([k]) => k === c)?.[1] || 0, porCategoriaAnt[c] || 0]), 1)
 
   // ─── seleção ───
   function toggleSelecionado(id: string) {
@@ -297,18 +343,18 @@ export default function GastosPage() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, marginBottom: '1rem' }}>
 
           {/* Gráficos */}
           <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: '1rem' }}>
-              {(['categoria', 'evolucao'] as const).map(a => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: '1rem', flexWrap: 'wrap' }}>
+              {(['categoria', 'evolucao', 'comparativo'] as const).map(a => (
                 <button key={a} onClick={() => setAbaGrafico(a)} style={{
                   padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500,
                   background: abaGrafico === a ? '#16a34a' : 'rgba(255,255,255,.06)',
                   color: abaGrafico === a ? '#fff' : 'rgba(255,255,255,.4)',
                 }}>
-                  {a === 'categoria' ? 'Por categoria' : 'Evolução mensal'}
+                  {a === 'categoria' ? 'Por categoria' : a === 'evolucao' ? 'Evolução mensal' : 'Comparativo'}
                 </button>
               ))}
               {filtroAtivo && (
@@ -321,11 +367,13 @@ export default function GastosPage() {
                 {porCategoria.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>Sem despesas no período</div>
                 ) : porCategoria.map(([cat, val]) => (
-                  <div key={cat} style={{ marginBottom: 10 }}>
+                  <div key={cat} style={{ marginBottom: 10, cursor: 'pointer' }}
+                    onClick={() => setCatDrilldown(catDrilldown === cat ? null : cat)}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[cat] || '#6b7280' }} />
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>{cat}</span>
+                        <span style={{ fontSize: 12, color: catDrilldown === cat ? '#fff' : 'rgba(255,255,255,.7)', fontWeight: catDrilldown === cat ? 600 : 400 }}>{cat}</span>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,.25)' }}>▾ detalhar</span>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{fmtBRL(val)}</span>
                     </div>
@@ -367,6 +415,53 @@ export default function GastosPage() {
                     </div>
                   </>
                 )}
+              </div>
+            )}
+          </div>
+
+            {abaGrafico === 'comparativo' && (
+              <div>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,.5)' }}>
+                    <div style={{ width: 10, height: 4, background: '#4ade80', borderRadius: 2 }} /> Período atual
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'rgba(255,255,255,.5)' }}>
+                    <div style={{ width: 10, height: 4, background: 'rgba(255,255,255,.2)', borderRadius: 2 }} /> Período anterior
+                  </div>
+                </div>
+                {catsComparativo.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>Sem dados suficientes para comparar</div>
+                ) : catsComparativo.map(cat => {
+                  const atual = porCategoria.find(([c]) => c === cat)?.[1] || 0
+                  const ant   = porCategoriaAnt[cat] || 0
+                  const delta = atual - ant
+                  return (
+                    <div key={cat} style={{ marginBottom: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[cat] || '#6b7280' }} />
+                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>{cat}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {ant > 0 && (
+                            <span style={{ fontSize: 10, color: delta > 0 ? '#f87171' : '#4ade80', fontWeight: 600 }}>
+                              {delta > 0 ? '▲' : '▼'} {fmtBRL(Math.abs(delta))}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 12, fontWeight: 500 }}>{fmtBRL(atual)}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <div style={{ height: 6, background: 'rgba(255,255,255,.06)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${(atual / maxComp) * 100}%`, background: CORES[cat] || '#6b7280', borderRadius: 3, transition: 'width .5s' }} />
+                        </div>
+                        <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${(ant / maxComp) * 100}%`, background: 'rgba(255,255,255,.2)', borderRadius: 2, transition: 'width .5s' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -434,6 +529,58 @@ export default function GastosPage() {
             )}
           </div>
         </div>
+
+        {/* ── Drill-down da categoria clicada ── */}
+        {catDrilldown && drilldownDados.length > 0 && (
+          <div style={{ background: '#111', border: `1px solid ${CORES[catDrilldown] || '#4ade80'}44`, borderRadius: 12, padding: '1rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: CORES[catDrilldown] || '#6b7280' }} />
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{catDrilldown}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>— top estabelecimentos no período</span>
+              </div>
+              <button onClick={() => setCatDrilldown(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 18, lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
+              {drilldownDados.map(([desc, { total, count }]) => (
+                <div key={desc} style={{ background: 'rgba(255,255,255,.02)', borderRadius: 8, padding: '8px 10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, alignItems: 'center' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{desc}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{count} ocorrência{count > 1 ? 's' : ''} · média {fmtBRL(total / count)}</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: CORES[catDrilldown] || '#6b7280', flexShrink: 0, marginLeft: 8 }}>{fmtBRL(total)}</div>
+                  </div>
+                  <div style={{ height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${(total / maxDrill) * 100}%`, background: CORES[catDrilldown] || '#6b7280', borderRadius: 2, transition: 'width .4s', opacity: .7 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Top gastos + Grid 2 colunas ── */}
+        {topGastos.length > 0 && (
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', marginBottom: '1rem' }}>
+            <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 10 }}>
+              🏆 Maiores gastos do período
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6 }}>
+              {topGastos.map((t, i) => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,.02)' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.18)', fontWeight: 700, width: 18, textAlign: 'center', flexShrink: 0 }}>#{i + 1}</div>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#f87171', flexShrink: 0 }}>-{fmtBRL(Math.abs(t.valor))}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Filtros + tabela */}
         <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
@@ -580,7 +727,6 @@ export default function GastosPage() {
             </div>
           )}
         </div>
-      </div>
 
       {/* ─── Modal edição ─── */}
       {modalAberto && transacaoEditando && (
