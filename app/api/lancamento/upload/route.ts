@@ -353,20 +353,44 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   return resultado
 }
 
-// ─── Prompt: página PDF → CSV com saldo (crédito/débito determinado pelo app) ─
-const PROMPT_PDF_PAGINA = `Você é um extrator de extratos bancários. Analise o texto e retorne APENAS CSV sem markdown:
-Data;Historico;Valor;Saldo
+// ─── Prompt sistema: parser bancário → JSON estruturado ──────────────────────
+const PROMPT_PDF_JSON_SYSTEM = `Você é um parser especializado em extratos bancários brasileiros.
+Sua função é converter texto bruto de extrato em JSON estruturado.
 
-Regras:
-- Data: DD/MM/YYYY (se a data se repete para várias transações, use a mesma para todas)
-- Historico: nome do estabelecimento/beneficiário APENAS — sem PIX, Cartão, TED, DOC, Débito, etc.
-- Valor: número positivo da transação (sem sinal, sem R$), formato brasileiro: 1.234,56
-- Saldo: saldo da conta APÓS a transação, formato brasileiro: 36.751,41
-- Ignore cabeçalho, nome do banco, número de agência/conta, e totais do período
-- COD. LANC. é código interno do banco — ignore essas linhas
+REGRAS IMPORTANTES:
+- Uma transação pode ocupar múltiplas linhas — agrupe-as antes de interpretar
+- A data permanece válida para todas as transações até surgir uma nova data
+- O histórico pode estar dividido em várias linhas — una todas antes de interpretar
+- NÃO ignore linhas intermediárias
+- NÃO resuma informações
+- Preserve o tipo da operação no campo "tipo": PIX, TED, PAGTO, TRANSFERENCIA, CARTAO, SAQUE, TARIFA, etc.
 - RENDIMENTOS, JUROS POUPANÇA, RENDIMENTOS POUP FACIL, APLICACAO AUTOMATICA, RESGATE AUTOMATICO são transações válidas — EXTRAIA-OS
-- Se não houver transações na página, retorne só o cabeçalho
-- Se houver um bloco marcado como [CONTEXTO ANTERIOR], use-o apenas para referência de datas e saldos — NÃO extraia transações desse bloco`
+
+IGNORE COMPLETAMENTE:
+- Cabeçalhos, rodapés, nome do banco, agência, conta
+- "Folha:", "Total", "Saldo Anterior", "Saldo Final", "Saldo do Período"
+- Linhas com "COD. LANC." (são códigos internos, não transações)
+- Bloco marcado como [CONTEXTO ANTERIOR]
+
+RETORNE APENAS JSON VÁLIDO — sem markdown, sem explicações, sem comentários.
+
+Cada transação deve conter:
+{
+  "data": "DD/MM/YYYY",
+  "tipo": "tipo da operação",
+  "historico": "nome do estabelecimento ou beneficiário",
+  "documento": "número do documento se houver, senão vazio",
+  "credito": "valor se entrada, ex: 4.000,00 — senão vazio",
+  "debito": "valor se saída, ex: 710,70 — senão vazio",
+  "saldo": "saldo após a transação, ex: 36.751,41"
+}
+
+REGRAS DE VALORES:
+- "credito" e "debito" NUNCA preenchidos ao mesmo tempo
+- Use a evolução do saldo para determinar se é crédito ou débito: saldo subiu = crédito, saldo caiu = débito
+- Saldo sempre obrigatório
+- Preserve valores exatamente como aparecem (formato brasileiro: 1.234,56)
+- Não invente dados`
 
 // ─── Converte CSV com saldo em transações usando comparação de saldo ───────────
 function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; lacunas: string[] } {
@@ -430,7 +454,7 @@ function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; 
   return { transacoes, lacunas }
 }
 
-// ─── Processa PDF: cada página → IA (CSV+saldo) → saldo determina débito/crédito
+// ─── Processa PDF: texto cru → GPT → JSON estruturado → validação de saldo ────
 async function processarPDF(bytes: ArrayBuffer) {
   const { extractText } = await import('unpdf')
 
@@ -446,58 +470,114 @@ async function processarPDF(bytes: ArrayBuffer) {
   const openaiKey = process.env.OPENAI_API_KEY
   if (openaiKey) {
     try {
-      // Prepara páginas com sobreposição: inclui as últimas 400 chars da página anterior
-      // para não perder transações que ficam no limite entre páginas
+      // Overlap: inclui últimas 400 chars da página anterior para não perder transações no limite de página
       const paginasComContexto = paginasValidas.map((pagina, idx) => {
         if (idx === 0) return pagina
         const overlap = paginasValidas[idx - 1].slice(-400)
-        return `[CONTEXTO ANTERIOR — não extraia transações deste bloco, use apenas para referência]\n${overlap}\n[PÁGINA ATUAL — extraia todas as transações daqui]\n${pagina}`
+        return `[CONTEXTO ANTERIOR — não extraia transações deste bloco]\n${overlap}\n[PÁGINA ATUAL — extraia todas as transações daqui]\n${pagina}`
       })
 
-      const paginaParaCSV = (pagina: string): Promise<string> =>
+      type RawItem = { data?: string; tipo?: string; historico?: string; documento?: string; credito?: string; debito?: string; saldo?: string }
+
+      const paginaParaJSON = (pagina: string): Promise<RawItem[]> =>
         fetchOpenAI(openaiKey, {
           model: 'gpt-4o',
           max_tokens: 8192,
           temperature: 0,
-          messages: [{
-            role: 'user',
-            content: `${PROMPT_PDF_PAGINA}\n\nTexto da página:\n\`\`\`\n${pagina.slice(0, 8000)}\n\`\`\``,
-          }],
+          messages: [
+            { role: 'system', content: PROMPT_PDF_JSON_SYSTEM },
+            { role: 'user',   content: `Extraia TODAS as transações do texto abaixo. Agrupe linhas da mesma transação.\n\n${pagina.slice(0, 8000)}` },
+          ],
         })
         .then(async res => {
           const data = await res.json()
-          if (!res.ok) return ''
-          return data.choices?.[0]?.message?.content?.replace(/```[a-z]*/gi, '').replace(/```/g, '').trim() ?? ''
+          if (!res.ok) return []
+          const texto = (data.choices?.[0]?.message?.content ?? '').replace(/```json|```/g, '').trim()
+          try {
+            const parsed = JSON.parse(texto)
+            return Array.isArray(parsed) ? parsed : []
+          } catch {
+            const ultimo = texto.lastIndexOf('},')
+            if (ultimo === -1) return []
+            try { return JSON.parse(texto.slice(0, ultimo + 1) + ']') } catch { return [] }
+          }
         })
-        .catch(() => '')
+        .catch(() => [])
 
       // Lotes de 8 páginas em paralelo
-      const csvPaginas: string[] = []
+      const todosItens: RawItem[] = []
       const BATCH = 8
       for (let i = 0; i < paginasComContexto.length; i += BATCH) {
-        const lote = await Promise.all(paginasComContexto.slice(i, i + BATCH).map(paginaParaCSV))
-        csvPaginas.push(...lote)
+        const lote = await Promise.all(paginasComContexto.slice(i, i + BATCH).map(paginaParaJSON))
+        lote.forEach(items => todosItens.push(...items))
       }
 
-      // Concatena mantendo um único cabeçalho, deduplicando por Saldo+Valor (chave natural)
-      const linhas: string[] = ['Data;Historico;Valor;Saldo']
+      // Deduplicação por data+valor(credito|debito)+saldo — chave natural da transação
       const vistas = new Set<string>()
-      for (const csv of csvPaginas) {
-        for (const linha of csv.split('\n')) {
-          const l = linha.trim()
-          if (!l || l.toLowerCase().startsWith('data;')) continue
-          // Chave de deduplicação: data + valor + saldo (ignora variação na descrição)
-          const cols = l.split(';')
-          const chave = `${cols[0]?.trim()}|${cols[2]?.trim()}|${cols[3]?.trim()}`
-          if (vistas.has(chave)) continue
-          vistas.add(chave)
-          linhas.push(l)
-        }
-      }
+      const itensFiltrados = todosItens.filter(item => {
+        const valor = item.credito || item.debito || ''
+        const chave = `${item.data}|${valor}|${item.saldo}`
+        if (vistas.has(chave)) return false
+        vistas.add(chave)
+        return true
+      })
 
-      const csvUnido = linhas.join('\n')
-      // Usa saldo para determinar crédito/débito — não depende de interpretação da IA
-      const { transacoes, lacunas } = processarCSVComSaldo(csvUnido)
+      // Converte JSON → TransacaoDetectada com validação matemática de saldo
+      const transacoes: TransacaoDetectada[] = []
+      const lacunas: string[] = []
+      let saldoAnt = NaN
+
+      for (const item of itensFiltrados) {
+        const creditoNum = parseBRL(item.credito || '')
+        const debitoNum  = parseBRL(item.debito  || '')
+        const saldoAtu   = parseBRL(item.saldo   || '')
+        // Bug fix: usar item.tipo como fallback quando historico vem vazio (ex: RENDIMENTOS)
+        const hist = (item.historico || item.tipo || '').trim()
+        if (!hist) continue
+        // Bug fix: valor zero pode ser string "0" da IA — filtrar só se ambos são realmente zero
+        const valorBruto = Math.max(creditoNum, debitoNum)
+        if (valorBruto === 0) continue
+
+        // Determina tipo pelo campo IA, mas usa saldo como árbitro final (mais confiável)
+        let tipo: string
+        let valor: number
+        if (!isNaN(saldoAtu) && !isNaN(saldoAnt)) {
+          // Saldo é fonte de verdade: se subiu é crédito, se caiu é débito
+          tipo  = saldoAtu > saldoAnt ? 'credito' : 'debito'
+          valor = valorBruto
+        } else if (creditoNum > 0 && debitoNum === 0) {
+          tipo = 'credito'; valor = creditoNum
+        } else if (debitoNum > 0 && creditoNum === 0) {
+          tipo = 'debito'; valor = debitoNum
+        } else {
+          tipo = 'debito'; valor = valorBruto
+        }
+
+        // Validação matemática: detecta transações faltando entre este e o anterior
+        if (!isNaN(saldoAtu) && !isNaN(saldoAnt) && valor > 0) {
+          const diff     = Math.abs(saldoAtu - saldoAnt)
+          const faltando = Math.abs(diff - valor)
+          if (faltando > 5.0) {
+            lacunas.push(`⚠️ Lacuna em ${item.data} após "${hist}": saldo saltou R$ ${diff.toFixed(2)} mas valor é R$ ${valor.toFixed(2)} — possível R$ ${faltando.toFixed(2)} em transações não extraídas`)
+          }
+        }
+        if (!isNaN(saldoAtu)) saldoAnt = saldoAtu
+
+        const { tipo_pagamento } = extrairTipoPagamento(item.tipo || '')
+        // Bug fix: se historico estava vazio e usamos tipo como desc, não duplicar no tipo_pagamento
+        const descricao = (item.historico || '').trim() || hist
+        const { categoria, nao_categorizado } = detectarCategoria(descricao)
+
+        transacoes.push({
+          descricao: descricao.toUpperCase(),
+          tipo_pagamento: tipo_pagamento || (item.historico ? item.tipo : undefined) || undefined,
+          valor,
+          tipo,
+          categoria,
+          nao_categorizado,
+          data_hora: parseData(item.data || ''),
+        })
+      }
 
       return {
         transacoes,
@@ -505,7 +585,7 @@ async function processarPDF(bytes: ArrayBuffer) {
         banco_nome: null as string | null,
         resumo: `${transacoes.length} transações extraídas (${paginasValidas.length} páginas)`,
         lacunas,
-        _csv_debug: csvUnido,
+        _csv_debug: JSON.stringify(itensFiltrados, null, 2),
       }
     } catch {
       // IA falhou — usa parser local abaixo
@@ -520,6 +600,7 @@ async function processarPDF(bytes: ArrayBuffer) {
     tipo_documento: 'extrato_bancario',
     banco_nome: null as string | null,
     resumo: `${transacoes.length} transações extraídas do PDF (${paginasValidas.length} páginas)`,
+    lacunas: [] as string[],
     _csv_debug: `[FALLBACK LOCAL — IA indisponível]\n\nTexto extraído (primeiros 3000 chars):\n${textoUnido.slice(0, 3000)}`,
   }
 }
