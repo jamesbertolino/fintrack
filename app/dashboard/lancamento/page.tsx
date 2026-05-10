@@ -147,6 +147,11 @@ export default function LancamentoPage() {
   const [valor, setValor]           = useState('')
   const [descricao, setDescricao]   = useState('')
   const [categoria, setCategoria]   = useState('Alimentação')
+  const [categoriasCustom, setCategoriasCustom] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('categorias_custom') || '[]') } catch { return [] }
+  })
+  const [novaCategInput, setNovaCategInput] = useState('')
+  const [adicionandoCateg, setAdicionandoCateg] = useState(false)
   const [dataHora, setDataHora]     = useState('')
   const [timezone, setTimezone]     = useState('America/Sao_Paulo')
   const [recorrente, setRecorrente] = useState(false)
@@ -562,7 +567,19 @@ useEffect(() => {
     carregarHistorico()
   }
 
-  const categorias = tipo === 'debito' ? CATEGORIAS_DESPESA : CATEGORIAS_RECEITA
+  function salvarNovaCategoria() {
+    const nova = novaCategInput.trim()
+    if (!nova || nova.length < 2) return
+    const novas = categoriasCustom.includes(nova) ? categoriasCustom : [...categoriasCustom, nova]
+    setCategoriasCustom(novas)
+    localStorage.setItem('categorias_custom', JSON.stringify(novas))
+    setCategoria(nova)
+    setNovaCategInput('')
+    setAdicionandoCateg(false)
+  }
+
+  const categorias = [...(tipo === 'debito' ? CATEGORIAS_DESPESA : CATEGORIAS_RECEITA), ...categoriasCustom.filter(c => !TODAS_CATEGORIAS.includes(c))]
+  const todasCategorias = [...TODAS_CATEGORIAS, ...categoriasCustom.filter(c => !TODAS_CATEGORIAS.includes(c))]
   const tips = useTips()
 
   return (
@@ -634,7 +651,7 @@ useEffect(() => {
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Categoria</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 {categorias.map(c => (
                   <button key={c} type="button" onClick={() => setCategoria(c)} style={{
                     padding: '5px 12px', borderRadius: 20, border: `1px solid ${categoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
@@ -643,6 +660,25 @@ useEffect(() => {
                     fontSize: 11, cursor: 'pointer', transition: 'all .15s', fontWeight: categoria === c ? 500 : 400,
                   }}>{c}</button>
                 ))}
+                {adicionandoCateg ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <input
+                      autoFocus
+                      value={novaCategInput}
+                      onChange={e => setNovaCategInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); salvarNovaCategoria() } if (e.key === 'Escape') { setAdicionandoCateg(false); setNovaCategInput('') } }}
+                      placeholder="Nova categoria..."
+                      style={{ padding: '4px 10px', borderRadius: 20, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 11, outline: 'none', width: 130 }}
+                    />
+                    <button type="button" onClick={salvarNovaCategoria} style={{ padding: '4px 8px', borderRadius: 20, border: '1px solid #4ade80', background: 'rgba(74,222,128,.12)', color: '#4ade80', fontSize: 11, cursor: 'pointer' }}>✓</button>
+                    <button type="button" onClick={() => { setAdicionandoCateg(false); setNovaCategInput('') }} style={{ padding: '4px 8px', borderRadius: 20, border: '1px solid rgba(255,255,255,.1)', background: 'transparent', color: 'rgba(255,255,255,.3)', fontSize: 11, cursor: 'pointer' }}>✕</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setAdicionandoCateg(true)} style={{
+                    padding: '5px 12px', borderRadius: 20, border: '1px dashed rgba(255,255,255,.15)',
+                    background: 'transparent', color: 'rgba(255,255,255,.3)', fontSize: 11, cursor: 'pointer',
+                  }}>+ Nova</button>
+                )}
               </div>
             </div>
 
@@ -1022,7 +1058,7 @@ useEffect(() => {
                                   onChange={e => { editarTransacao(i, 'categoria', e.target.value); setEditandoCategoriaIdx(null) }}
                                   onBlur={() => setEditandoCategoriaIdx(null)}
                                   style={{ fontSize: 11, padding: '2px 6px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 6, color: '#fff', outline: 'none' }}>
-                                  {TODAS_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                  {todasCategorias.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               )}
                               {t.tipo_pagamento && (
@@ -1156,7 +1192,7 @@ useEffect(() => {
                                 value={t.categoria}
                                 onChange={e => editarTransacao(i, 'categoria', e.target.value)}
                                 style={{ fontSize: 11, padding: '2px 8px', background: '#0a0a0a', border: '1px solid rgba(251,191,36,.3)', borderRadius: 6, color: '#fbbf24', outline: 'none', cursor: 'pointer' }}>
-                                {TODAS_CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
+                                {todasCategorias.map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
                               {t.tipo_pagamento && (
                                 <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.35)', border: '1px solid rgba(255,255,255,.1)' }}>
@@ -1364,7 +1400,7 @@ useEffect(() => {
             <div>
               <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Categoria</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {TODAS_CATEGORIAS.map(c => (
+                {todasCategorias.map(c => (
                   <button key={c} type="button" onClick={() => setEditCategoria(c)} style={{
                     padding: '4px 10px', borderRadius: 20, border: `1px solid ${editCategoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
                     background: editCategoria === c ? `${CORES[c] || '#4ade80'}18` : 'transparent',
