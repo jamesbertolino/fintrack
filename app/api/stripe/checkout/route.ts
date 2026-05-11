@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' })
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' })
+}
 
 const PRICE_IDS: Record<string, string> = {
   pro:     process.env.STRIPE_PRICE_PRO     || '',
@@ -25,6 +27,8 @@ export async function POST(request: NextRequest) {
     .single()
 
   let customerId = profile?.stripe_customer_id as string | undefined
+
+  const stripe = getStripe()
 
   if (!customerId) {
     const customer = await stripe.customers.create({
