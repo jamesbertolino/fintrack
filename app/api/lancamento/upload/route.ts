@@ -687,7 +687,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
     // 10 uploads / 60 s por usuário
-    const rl = rateLimit({ key: `upload:${user.id}`, limit: 10, windowSec: 60 })
+    const rl = await rateLimit({ key: `upload:${user.id}`, limit: 10, windowSec: 60 })
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Muitas requisições. Aguarde alguns instantes.' },

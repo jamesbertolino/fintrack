@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 60 req / 60 s por IP — webhook pode ser chamado com frequência, mas não ilimitado
-  const rl = rateLimit({ key: `parse:${getClientIp(request)}`, limit: 60, windowSec: 60 })
+  const rl = await rateLimit({ key: `parse:${getClientIp(request)}`, limit: 60, windowSec: 60 })
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Rate limit excedido' },

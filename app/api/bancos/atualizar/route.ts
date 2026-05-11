@@ -379,7 +379,7 @@ function logoParaBanco(codigo: string, nome: string): string | null {
 }
 
 export async function POST(request: NextRequest) {
-  const rl = rateLimit({ key: `bancos-atualizar:${getClientIp(request)}`, limit: 3, windowSec: 3600 })
+  const rl = await rateLimit({ key: `bancos-atualizar:${getClientIp(request)}`, limit: 3, windowSec: 3600 })
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Rate limit excedido' }, { status: 429 })
   }

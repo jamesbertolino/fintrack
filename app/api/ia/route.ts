@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   // 20 req / 60 s por usuário — protege custo de IA
-  const rl = rateLimit({ key: `ia:${user.id}`, limit: 20, windowSec: 60 })
+  const rl = await rateLimit({ key: `ia:${user.id}`, limit: 20, windowSec: 60 })
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Muitas requisições. Aguarde alguns instantes.' },

@@ -15,7 +15,7 @@ const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KE
 
 export async function POST(request: NextRequest) {
   // 10 convites / 60 s por IP — evita spam de convites
-  const rl = rateLimit({ key: `convidar:${getClientIp(request)}`, limit: 10, windowSec: 60 })
+  const rl = await rateLimit({ key: `convidar:${getClientIp(request)}`, limit: 10, windowSec: 60 })
   if (!rl.allowed) {
     return NextResponse.json(
       { error: 'Muitas requisições. Aguarde alguns instantes.' },
