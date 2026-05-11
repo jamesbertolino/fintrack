@@ -231,6 +231,7 @@ useEffect(() => {
     { id: 'orcamento',    label: m ? 'Edito do Reino'   : 'Orçamento',       icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento',      tour: 'tour-nav-orcamento' },
     { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas',          tour: 'tour-nav-metas' },
     { id: 'desafios',     label: m ? 'Desafios do Reino': 'Desafios',        icon: '⚔️',              href: '/dashboard/desafios' },
+    { id: 'conquistas',   label: m ? 'Salão da Glória'  : 'Conquistas',       icon: '🏆',              href: '/dashboard/conquistas' },
     { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia',             tour: 'tour-nav-ia' },
     { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes',   tour: 'tour-nav-notificacoes' },
     { id: 'evolucao',     label: m ? 'Jornada do Herói' : 'Evolução',        icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },

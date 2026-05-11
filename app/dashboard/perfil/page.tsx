@@ -81,6 +81,7 @@ export default function PerfilPage() {
   const [mfaSecretKey, setMfaSecretKey] = useState('')
   const [mfaCodigo, setMfaCodigo]       = useState('')
   const [exportando, setExportando]     = useState(false)
+  const [assinando, setAssinando]       = useState<string | null>(null)
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [notificacoesCelular, setNotificacoesCelular] = useState(true)
@@ -88,6 +89,38 @@ export default function PerfilPage() {
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
   const { tema, alterarTema: alterarTemaCtx } = useTema()
   const cores = useCores()
+
+  async function assinarPlano(plano: string) {
+    setAssinando(plano)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plano }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else setErro(data.error || 'Erro ao iniciar checkout')
+    } catch {
+      setErro('Erro de conexão')
+    } finally {
+      setAssinando(null)
+    }
+  }
+
+  async function abrirPortal() {
+    setAssinando('portal')
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else setErro(data.error || 'Erro ao abrir portal')
+    } catch {
+      setErro('Erro de conexão')
+    } finally {
+      setAssinando(null)
+    }
+  }
 
   const carregar = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -1104,7 +1137,6 @@ export default function PerfilPage() {
 
               {/* Pro */}
               <div style={{ background: profile?.plano === 'pro' ? 'rgba(251,191,36,.06)' : '#111', border: `1px solid ${profile?.plano === 'pro' ? 'rgba(251,191,36,.3)' : '#1a3a1a'}`, borderRadius: 14, padding: '1.25rem', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: 12, right: 12, fontSize: 10, background: '#fbbf24', color: '#0a0a0a', padding: '2px 8px', borderRadius: 10, fontWeight: 700 }}>EM BREVE</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ fontSize: 16, fontWeight: 600 }}>Pro ⭐</div>
                   {profile?.plano === 'pro' && <span style={{ fontSize: 10, background: 'rgba(251,191,36,.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: 10 }}>Plano atual</span>}
@@ -1116,9 +1148,15 @@ export default function PerfilPage() {
                     {f}
                   </div>
                 ))}
-                <button disabled style={{ width: '100%', marginTop: 10, padding: '9px', background: 'rgba(251,191,36,.1)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, color: '#fbbf24', fontSize: 12, fontWeight: 500, cursor: 'not-allowed', opacity: 0.7 }}>
-                  Assinar Pro — em breve
-                </button>
+                {profile?.plano === 'pro' ? (
+                  <button onClick={abrirPortal} disabled={assinando === 'portal'} style={{ width: '100%', marginTop: 10, padding: '9px', background: 'rgba(251,191,36,.15)', border: '1px solid rgba(251,191,36,.3)', borderRadius: 8, color: '#fbbf24', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+                    {assinando === 'portal' ? 'Redirecionando...' : 'Gerenciar assinatura'}
+                  </button>
+                ) : (
+                  <button onClick={() => assinarPlano('pro')} disabled={!!assinando} style={{ width: '100%', marginTop: 10, padding: '9px', background: '#fbbf24', border: 'none', borderRadius: 8, color: '#0a0a0a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    {assinando === 'pro' ? 'Redirecionando...' : 'Assinar Pro — R$ 29/mês'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

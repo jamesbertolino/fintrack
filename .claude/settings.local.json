@@ -30,7 +30,12 @@
       "Bash(npm install *)",
       "Bash(node -e \"import\\('unpdf'\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")",
       "Bash(git commit -m 'fix: suprimir react-hooks/set-state-in-effect no banner LGPD *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(findstr /i \"confirmar\\\\|webhook\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\\\\app\\\\api\" -Recurse -Filter \"*.ts\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\\\\supabase\\\\migrations\" -Filter \"*missao*\")",
+      "Bash(node *)"
     ]
   }
 }
