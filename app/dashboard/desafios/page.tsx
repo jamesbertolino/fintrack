@@ -251,7 +251,10 @@ export default function DesafiosPage() {
     setLoading(false)
   }, [router])
 
-  useEffect(() => { carregar() }, [carregar])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    carregar()
+  }, [carregar])
 
   async function aceitar(desafio_id: string) {
     setAceitando(desafio_id)

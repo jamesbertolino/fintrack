@@ -395,6 +395,7 @@ REGRAS DE VALORES:
 - Não invente dados`
 
 // ─── Converte CSV com saldo em transações usando comparação de saldo ───────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function processarCSVComSaldo(csv: string): { transacoes: TransacaoDetectada[]; lacunas: string[] } {
   const linhas = csv.split('\n').map(l => l.trim()).filter(Boolean)
   const transacoes: TransacaoDetectada[] = []
