@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -87,6 +87,17 @@ function useIsMobile() {
   return isMobile
 }
 
+// Componente isolado para usar useSearchParams dentro de Suspense
+function UpgradeBanner({ onDetect }: { onDetect: (v: 'success' | 'cancelled' | null) => void }) {
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const v = searchParams.get('upgrade')
+    if (v === 'success' || v === 'cancelled') onDetect(v)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return null
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const supabase = createClient()
@@ -96,12 +107,7 @@ export default function Dashboard() {
   const { tema } = useTema()
   const m = tema === 'medieval'
 
-  const searchParams = useSearchParams()
-  const [upgradeBanner, setUpgradeBanner] = useState<'success' | 'cancelled' | null>(
-    searchParams.get('upgrade') === 'success' ? 'success'
-    : searchParams.get('upgrade') === 'cancelled' ? 'cancelled'
-    : null
-  )
+  const [upgradeBanner, setUpgradeBanner] = useState<'success' | 'cancelled' | null>(null)
 
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
@@ -505,6 +511,9 @@ useEffect(() => {
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
 
           {/* Banner upgrade Stripe */}
+          <Suspense>
+            <UpgradeBanner onDetect={setUpgradeBanner} />
+          </Suspense>
           {upgradeBanner && (
             <div style={{
               marginBottom: 16,
