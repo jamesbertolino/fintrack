@@ -51,7 +51,7 @@ export default function ConquistasPage() {
     setLoading(false)
   }, [router])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps,react-hooks/set-state-in-effect
   useEffect(() => { carregar() }, [])
 
   const pct = dados ? Math.round((dados.desbloqueadas / dados.total) * 100) : 0
