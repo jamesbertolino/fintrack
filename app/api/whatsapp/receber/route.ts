@@ -27,6 +27,15 @@ async function enviarMensagem(instancia: string, numero: string, texto: string) 
 }
 
 export async function POST(request: NextRequest) {
+  // Valida origem Evolution via secret compartilhado
+  const receivedSecret = request.headers.get('x-n8n-secret')
+    || request.headers.get('x-webhook-secret')
+    || request.headers.get('apikey')
+  const expectedSecret = process.env.N8N_WEBHOOK_SECRET
+  if (!expectedSecret || receivedSecret !== expectedSecret) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await request.json()

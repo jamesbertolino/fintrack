@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
@@ -95,6 +95,13 @@ export default function Dashboard() {
   const cores = useCores()
   const { tema } = useTema()
   const m = tema === 'medieval'
+
+  const searchParams = useSearchParams()
+  const [upgradeBanner, setUpgradeBanner] = useState<'success' | 'cancelled' | null>(
+    searchParams.get('upgrade') === 'success' ? 'success'
+    : searchParams.get('upgrade') === 'cancelled' ? 'cancelled'
+    : null
+  )
 
   const [profile, setProfile]       = useState<Profile | null>(null)
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
@@ -496,6 +503,28 @@ useEffect(() => {
 
         {/* Conteúdo das páginas */}
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
+
+          {/* Banner upgrade Stripe */}
+          {upgradeBanner && (
+            <div style={{
+              marginBottom: 16,
+              padding: '12px 16px',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              background: upgradeBanner === 'success' ? 'rgba(251,191,36,.12)' : 'rgba(239,68,68,.08)',
+              border: `1px solid ${upgradeBanner === 'success' ? 'rgba(251,191,36,.35)' : 'rgba(239,68,68,.25)'}`,
+            }}>
+              <span style={{ fontSize: 13, color: upgradeBanner === 'success' ? '#fbbf24' : '#f87171' }}>
+                {upgradeBanner === 'success'
+                  ? '⭐ Upgrade realizado com sucesso! Bem-vindo ao plano Pro.'
+                  : '❌ Upgrade cancelado. Seu plano não foi alterado.'}
+              </span>
+              <button onClick={() => setUpgradeBanner(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+            </div>
+          )}
 
           {/* INÍCIO */}
           {paginaAtiva === 'inicio' && (

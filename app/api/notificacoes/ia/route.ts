@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { logIAUsage } from '@/lib/iaUsage'
+import { logIAUsage, verificarLimiteTokens } from '@/lib/iaUsage'
 
 const MAX_POR_DIA = 2
 
@@ -62,6 +62,18 @@ export async function POST() {
   const openaiKey    = process.env.OPENAI_API_KEY
   if (!anthropicKey && !openaiKey)
     return NextResponse.json({ ok: false, error: 'Nenhuma API de IA configurada.' })
+
+  // Verifica limite mensal de tokens
+  const { data: profilePlano } = await supabase.from('profiles').select('plano').eq('id', user.id).single()
+  const plano = profilePlano?.plano || 'free'
+  const limite = await verificarLimiteTokens(user.id, plano)
+  if (!limite.permitido) {
+    return NextResponse.json({
+      ok: false,
+      error: `Limite mensal de tokens atingido (${limite.usados.toLocaleString('pt-BR')} / ${limite.limite.toLocaleString('pt-BR')}).`,
+      limite_atingido: true,
+    })
+  }
 
   // Verifica limite diário
   const hoje = new Date().toISOString().slice(0, 10)

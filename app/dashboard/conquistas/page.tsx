@@ -37,7 +37,8 @@ export default function ConquistasPage() {
 
   const carregar = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/conquistas')
+    // POST verifica condições e desbloqueia novas; GET apenas lista
+    const res = await fetch('/api/conquistas', { method: 'POST' })
     if (res.status === 401) { router.push('/login'); return }
     if (res.ok) {
       const d = await res.json()
