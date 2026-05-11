@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { rateLimit } from '@/lib/rateLimit'
+import { logIAUsage, verificarLimiteTokens } from '@/lib/iaUsage'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -26,6 +27,18 @@ export async function POST(request: NextRequest) {
     supabase.from('profiles').select('nome,plano,data_nascimento,genero,prioridades').eq('id', user.id).single(),
   ])
 
+  // Verifica limite mensal de tokens
+  const plano = profile?.plano || 'free'
+  const limite = await verificarLimiteTokens(user.id, plano)
+  if (!limite.permitido) {
+    return NextResponse.json({
+      error: `Limite mensal de tokens atingido (${limite.usados.toLocaleString('pt-BR')} / ${limite.limite.toLocaleString('pt-BR')}). Renova no início do próximo mês ou faça upgrade do plano.`,
+      limite_atingido: true,
+      usados: limite.usados,
+      limite: limite.limite,
+    }, { status: 429 })
+  }
+
   const receitas = transacoes?.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0) ?? 0
   const despesas = transacoes?.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0) ?? 0
   const saldo    = receitas - despesas
@@ -47,7 +60,7 @@ export async function POST(request: NextRequest) {
   const contexto = `
 Você é o PoupaBot, assistente financeiro pessoal do PoupaUp.
 Usuário: ${profile?.nome || 'usuário'}
-Plano: ${profile?.plano || 'free'}
+Plano: ${plano}
 ${idade ? `Idade: ${idade} anos` : ''}
 ${profile?.genero ? `Gênero: ${profile.genero}` : ''}
 
@@ -108,6 +121,12 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
       const data = await res.json()
 
       if (res.ok && data.content?.[0]?.text) {
+        logIAUsage({
+          user_id: user.id, endpoint: '/api/ia', provider: 'anthropic',
+          modelo: 'claude-sonnet-4-5',
+          prompt_tokens:     data.usage?.input_tokens  || 0,
+          completion_tokens: data.usage?.output_tokens || 0,
+        })
         return NextResponse.json({ resposta: data.content[0].text, via: 'anthropic' })
       }
 
@@ -140,6 +159,12 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
       const data = await res.json()
 
       if (res.ok && data.choices?.[0]?.message?.content) {
+        logIAUsage({
+          user_id: user.id, endpoint: '/api/ia', provider: 'openai',
+          modelo: 'gpt-4o-mini',
+          prompt_tokens:     data.usage?.prompt_tokens     || 0,
+          completion_tokens: data.usage?.completion_tokens || 0,
+        })
         return NextResponse.json({ resposta: data.choices[0].message.content, via: 'openai' })
       }
 
@@ -152,7 +177,6 @@ ${transacoes?.slice(0, 10).map(t => `- ${t.descricao}: ${t.tipo === 'credito' ? 
     }
   }
 
-  // ── Nenhuma API configurada ───────────────────────────────────────────────
   return NextResponse.json({
     resposta: 'Nenhuma API de IA configurada. Adicione ANTHROPIC_API_KEY ou OPENAI_API_KEY nas variáveis de ambiente da Vercel.'
   })

@@ -39,6 +39,7 @@ interface Profile {
   setup_completo?: boolean
   prioridades?: PrioridadeComMetrica[]
   xp_bonus?: number
+  is_admin?: boolean
 }
 
 interface Conta {
@@ -159,7 +160,7 @@ useEffect(() => {
     if (!user) { router.push('/login'); return }
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
-      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus').eq('id', user.id).single(),
+      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus, is_admin').eq('id', user.id).single(),
       supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
@@ -234,6 +235,7 @@ useEffect(() => {
     { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes',   tour: 'tour-nav-notificacoes' },
     { id: 'evolucao',     label: m ? 'Jornada do Herói' : 'Evolução',        icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },
     { id: 'contas',       label: m ? 'Cofres do Reino'  : 'Contas',          icon: m ? '💰' : '🏦', href: '/dashboard/contas' },
+    ...(profile?.is_admin ? [{ id: 'admin', label: 'Painel Admin', icon: '🛠️', href: '/dashboard/admin' }] : []),
   ]
 
   // largura do sidebar — em mobile sempre 200 quando aberto (drawer), em desktop colapsa para 56

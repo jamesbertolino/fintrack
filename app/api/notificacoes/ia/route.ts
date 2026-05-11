@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { logIAUsage } from '@/lib/iaUsage'
 
 const MAX_POR_DIA = 2
 
-async function chamarAnthropic(prompt: string, key: string) {
+async function chamarAnthropic(prompt: string, key: string, userId: string) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
@@ -11,10 +12,11 @@ async function chamarAnthropic(prompt: string, key: string) {
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`)
+  logIAUsage({ user_id: userId, endpoint: '/api/notificacoes/ia', provider: 'anthropic', modelo: 'claude-haiku-4-5-20251001', prompt_tokens: data.usage?.input_tokens || 0, completion_tokens: data.usage?.output_tokens || 0 })
   return data.content?.[0]?.text as string | undefined
 }
 
-async function chamarOpenAI(prompt: string, key: string) {
+async function chamarOpenAI(prompt: string, key: string, userId: string) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
@@ -22,6 +24,7 @@ async function chamarOpenAI(prompt: string, key: string) {
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`)
+  logIAUsage({ user_id: userId, endpoint: '/api/notificacoes/ia', provider: 'openai', modelo: 'gpt-4o-mini', prompt_tokens: data.usage?.prompt_tokens || 0, completion_tokens: data.usage?.completion_tokens || 0 })
   return data.choices?.[0]?.message?.content as string | undefined
 }
 
@@ -167,11 +170,11 @@ Responda APENAS com JSON:
   let erroMsg = ''
 
   if (anthropicKey) {
-    try { texto = await chamarAnthropic(prompt, anthropicKey) }
+    try { texto = await chamarAnthropic(prompt, anthropicKey, user.id) }
     catch (e) { erroMsg = e instanceof Error ? e.message : String(e) }
   }
   if (!texto && openaiKey) {
-    try { texto = await chamarOpenAI(prompt, openaiKey) }
+    try { texto = await chamarOpenAI(prompt, openaiKey, user.id) }
     catch (e) { erroMsg = e instanceof Error ? e.message : String(e) }
   }
 
