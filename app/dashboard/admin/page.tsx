@@ -70,8 +70,10 @@ const LABEL_ENDPOINT: Record<string, string> = {
 export default function AdminPage() {
   const router = useRouter()
   const [stats, setStats]     = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [erro, setErro]       = useState('')
+  const [loading, setLoading]         = useState(true)
+  const [erro, setErro]               = useState('')
+  const [reconfigurando, setReconf]   = useState(false)
+  const [reconfMsg, setReconfMsg]     = useState('')
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -125,9 +127,25 @@ export default function AdminPage() {
           <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
           <span style={{ fontSize: 15, fontWeight: 500 }}>🛠️ Painel Admin</span>
         </div>
-        <button onClick={carregar} style={{ padding: '5px 12px', background: 'rgba(99,102,241,.15)', border: '1px solid rgba(99,102,241,.3)', borderRadius: 7, color: '#818cf8', fontSize: 11, cursor: 'pointer' }}>
-          ↻ Atualizar
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {reconfMsg && <span style={{ fontSize: 11, color: '#4ade80' }}>{reconfMsg}</span>}
+          <button
+            onClick={async () => {
+              setReconf(true); setReconfMsg('')
+              const r = await fetch('/api/admin/reconfigurar-webhooks', { method: 'POST' })
+              const d = await r.json()
+              setReconfMsg(r.ok ? `✓ ${d.sucesso}/${d.total} instâncias atualizadas` : `✗ ${d.error}`)
+              setReconf(false)
+            }}
+            disabled={reconfigurando}
+            style={{ padding: '5px 12px', background: 'rgba(251,191,36,.1)', border: '1px solid rgba(251,191,36,.3)', borderRadius: 7, color: '#fbbf24', fontSize: 11, cursor: 'pointer' }}
+          >
+            {reconfigurando ? 'Atualizando...' : '🔧 Reconfigurar webhooks'}
+          </button>
+          <button onClick={carregar} style={{ padding: '5px 12px', background: 'rgba(99,102,241,.15)', border: '1px solid rgba(99,102,241,.3)', borderRadius: 7, color: '#818cf8', fontSize: 11, cursor: 'pointer' }}>
+            ↻ Atualizar
+          </button>
+        </div>
       </div>
 
       <div style={{ padding: '1.5rem', maxWidth: 1100, margin: '0 auto' }}>

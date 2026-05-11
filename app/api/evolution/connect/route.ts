@@ -18,6 +18,7 @@ const EVO_KEY    = () => process.env.EVOLUTION_API_KEY!
 const evoHeaders = () => ({ 'Content-Type': 'application/json', 'apikey': EVO_KEY() })
 
 async function configurarWebhook(instancia: string) {
+  const webhookSecret = process.env.N8N_WEBHOOK_SECRET || ''
   const body = {
     webhook: {
       url:      `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/receber`,
@@ -25,6 +26,8 @@ async function configurarWebhook(instancia: string) {
       byEvents: false,
       base64:   false,
       events:   ['MESSAGES_UPSERT'],
+      // Headers enviados pela Evolution a cada disparo — usados para validar origem
+      headers:  webhookSecret ? { 'x-webhook-secret': webhookSecret } : undefined,
     },
   }
   await fetch(`${EVO_URL()}/webhook/set/${instancia}`, {
