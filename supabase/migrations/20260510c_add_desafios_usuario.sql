@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS desafios_usuario (
                CHECK (status IN ('ativo', 'concluido', 'falhou', 'abandonado')),
   created_at   timestamptz DEFAULT now(),
   updated_at   timestamptz DEFAULT now(),
-  UNIQUE (user_id, desafio_id, DATE(iniciado_em))
+  UNIQUE (user_id, desafio_id, iniciado_em)
 );
 
 CREATE INDEX IF NOT EXISTS idx_desafios_usuario_user_status
