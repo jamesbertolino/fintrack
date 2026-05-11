@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
-import MissoesWidget from '@/components/MissoesWidget'
+import TarefasWidget from '@/components/TarefasWidget'
 import TourGuiado from '@/components/TourGuiado'
 import ExtratoXP from '@/components/ExtratoXP'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
@@ -243,8 +243,7 @@ useEffect(() => {
     { id: 'gastos',       label: m ? 'Batalhas'         : 'Gastos',          icon: m ? '⚔️' : '💸', href: '/dashboard/gastos',         tour: 'tour-nav-gastos' },
     { id: 'orcamento',    label: m ? 'Edito do Reino'   : 'Orçamento',       icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento',      tour: 'tour-nav-orcamento' },
     { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas',          tour: 'tour-nav-metas' },
-    { id: 'desafios',     label: m ? 'Desafios do Reino': 'Desafios',        icon: '⚔️',              href: '/dashboard/desafios' },
-    { id: 'conquistas',   label: m ? 'Salão da Glória'  : 'Conquistas',       icon: '🏆',              href: '/dashboard/conquistas' },
+    { id: 'tarefas',      label: m ? 'Missões & Desafios': 'Tarefas',         icon: '📋',              href: '/dashboard/tarefas' },
     { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia',             tour: 'tour-nav-ia' },
     { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes',   tour: 'tour-nav-notificacoes' },
     { id: 'evolucao',     label: m ? 'Jornada do Herói' : 'Evolução',        icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },
@@ -650,25 +649,9 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Missões */}
+              {/* Tarefas — missões, desafios e conquistas unificados */}
               <div style={{ marginBottom: 10 }}>
-                <MissoesWidget />
-              </div>
-
-              {/* Acesso rápido — Desafios */}
-              <div style={{ marginBottom: 10 }}>
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: cores.cardShadow }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 20 }}>⚔️</span>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600 }}>{m ? 'Desafios do Reino' : 'Desafios'}</div>
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Aceite um desafio e ganhe XP extra</div>
-                    </div>
-                  </div>
-                  <button onClick={() => router.push('/dashboard/desafios')} style={{ padding: '6px 14px', background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.25)', borderRadius: 8, color: tx.accentColor, fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    Ver desafios
-                  </button>
-                </div>
+                <TarefasWidget />
               </div>
 
               {/* Últimas transações + Metas — coluna única em mobile */}
