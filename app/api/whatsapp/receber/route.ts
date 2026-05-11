@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
 
   // Chamar IA para interpretar
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-  const secret = process.env.N8N_WEBHOOK_SECRET  || 'granaup-secret-2026'
+  const secret = process.env.N8N_WEBHOOK_SECRET || ''
 
   let dadosIA: Record<string, unknown> = {}
   try {

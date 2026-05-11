@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
+  // Valida o mesmo secret usado pelo /api/whatsapp/receber e /api/whatsapp/parse
+  const secret = request.headers.get('x-n8n-secret')
+    || request.headers.get('x-webhook-secret')
+  const expected = process.env.N8N_WEBHOOK_SECRET
+  if (!expected || secret !== expected) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await request.json()
@@ -37,13 +45,13 @@ export async function POST(request: NextRequest) {
   }
 
   // Repassa para o endpoint de parse
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || ''
-  const secret = process.env.N8N_WEBHOOK_SECRET  || 'granaup-secret-2026'
+  const appUrl      = process.env.NEXT_PUBLIC_APP_URL || ''
+  const parseSecret = process.env.N8N_WEBHOOK_SECRET || ''
 
   try {
     const parseRes = await fetch(`${appUrl}/api/whatsapp/parse`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-n8n-secret': secret },
+      headers: { 'Content-Type': 'application/json', 'x-n8n-secret': parseSecret },
       body: JSON.stringify({ numero, mensagem }),
     })
     await parseRes.json()

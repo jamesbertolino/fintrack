@@ -10,11 +10,11 @@ function getSupabase() {
 }
 
 const CATEGORIAS = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Salário','Freelance','Investimento','Outros']
-const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET || 'granaup-secret-2026'
+const N8N_SECRET = process.env.N8N_WEBHOOK_SECRET
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-n8n-secret')
-  if (secret !== N8N_SECRET) {
+  if (!N8N_SECRET || secret !== N8N_SECRET) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
