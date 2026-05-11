@@ -127,7 +127,7 @@ export default function TarefasPage() {
     setLoading(false)
   }, [router])
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps,react-hooks/set-state-in-effect
   useEffect(() => { carregar() }, [])
 
   async function aceitar(desafio_id: string) {
