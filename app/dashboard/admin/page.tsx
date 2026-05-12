@@ -468,38 +468,61 @@ function AbaUsers() {
 }
 
 function AbaAudit() {
-  const [logs, setLogs]       = useState<AuditLog[]>([])
-  const [total, setTotal]     = useState(0)
-  const [page, setPage]       = useState(0)
-  const [actionFiltro, setAF] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [erro, setErro]       = useState('')
+  const [logs, setLogs]         = useState<AuditLog[]>([])
+  const [total, setTotal]       = useState(0)
+  const [page, setPage]         = useState(0)
+  const [actionFiltro, setAF]   = useState('')
+  const [userQ, setUserQ]       = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo]     = useState('')
+  const [size, setSize]         = useState(50)
+  const [loading, setLoading]   = useState(false)
+  const [erro, setErro]         = useState('')
 
-  const carregar = useCallback(async (pg = 0, action = '') => {
+  const carregar = useCallback(async (opts: { pg?: number; action?: string; uq?: string; from?: string; to?: string; sz?: number } = {}) => {
+    const pg     = opts.pg     ?? 0
+    const action = opts.action ?? actionFiltro
+    const uq     = opts.uq     ?? userQ
+    const from   = opts.from   ?? dateFrom
+    const to     = opts.to     ?? dateTo
+    const sz     = opts.sz     ?? size
+
     setLoading(true)
     setErro('')
-    const params = new URLSearchParams({ page: String(pg) })
+    const params = new URLSearchParams({ page: String(pg), size: String(sz) })
     if (action) params.set('action', action)
+    if (uq)     params.set('user_q', uq)
+    if (from)   params.set('date_from', from)
+    if (to)     params.set('date_to', to)
     const r = await fetch(`/api/admin/audit?${params}`)
     const d = await r.json()
     if (d.error) { setErro(d.error); setLoading(false); return }
     setLogs(d.logs || [])
     setTotal(d.total || 0)
     setLoading(false)
-  }, [])
+  }, [actionFiltro, userQ, dateFrom, dateTo, size])
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { carregar() }, [carregar])
 
-  const size = 50
   const totalPages = Math.ceil(total / size)
+
+  function buscar() { setPage(0); carregar({ pg: 0 }) }
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+      {/* Filtros linha 1 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input
+          value={userQ}
+          onChange={e => setUserQ(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && buscar()}
+          placeholder="Buscar usuário…"
+          style={{ width: 180, padding: '7px 12px', background: '#111', border: '1px solid #1a1a3a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }}
+        />
         <select
           value={actionFiltro}
-          onChange={e => { setAF(e.target.value); setPage(0); carregar(0, e.target.value) }}
+          onChange={e => { setAF(e.target.value); setPage(0); carregar({ pg: 0, action: e.target.value }) }}
           style={{ padding: '7px 10px', background: '#111', border: '1px solid #1a1a3a', borderRadius: 8, color: '#fff', fontSize: 12 }}
         >
           <option value="">Todas as ações</option>
@@ -507,13 +530,45 @@ function AbaAudit() {
             <option key={a} value={a}>{LABEL_ACTION[a]}</option>
           ))}
         </select>
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={e => setDateFrom(e.target.value)}
+          style={{ padding: '7px 10px', background: '#111', border: '1px solid #1a1a3a', borderRadius: 8, color: dateFrom ? '#fff' : 'rgba(255,255,255,.35)', fontSize: 12, colorScheme: 'dark' }}
+        />
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>até</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={e => setDateTo(e.target.value)}
+          style={{ padding: '7px 10px', background: '#111', border: '1px solid #1a1a3a', borderRadius: 8, color: dateTo ? '#fff' : 'rgba(255,255,255,.35)', fontSize: 12, colorScheme: 'dark' }}
+        />
         <button
-          onClick={() => { setPage(0); carregar(0, actionFiltro) }}
+          onClick={buscar}
           style={{ padding: '7px 14px', background: 'rgba(99,102,241,.15)', border: '1px solid rgba(99,102,241,.3)', borderRadius: 8, color: '#818cf8', fontSize: 12, cursor: 'pointer' }}
         >
-          ↻ Atualizar
+          Buscar
         </button>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{total} registros</span>
+        {(userQ || actionFiltro || dateFrom || dateTo) && (
+          <button
+            onClick={() => { setUserQ(''); setAF(''); setDateFrom(''); setDateTo(''); setPage(0); carregar({ pg: 0, action: '', uq: '', from: '', to: '' }) }}
+            style={{ padding: '7px 12px', background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.25)', borderRadius: 8, color: '#f87171', fontSize: 12, cursor: 'pointer' }}
+          >
+            ✕ Limpar
+          </button>
+        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{total} registros · por página:</span>
+          {[25, 50, 100, 500].map(s => (
+            <button
+              key={s}
+              onClick={() => { setSize(s); setPage(0); carregar({ pg: 0, sz: s }) }}
+              style={{ padding: '4px 10px', background: size === s ? 'rgba(99,102,241,.25)' : 'rgba(255,255,255,.05)', border: `1px solid ${size === s ? 'rgba(99,102,241,.5)' : '#1a1a3a'}`, borderRadius: 6, color: size === s ? '#818cf8' : 'rgba(255,255,255,.5)', fontSize: 11, cursor: 'pointer', fontWeight: size === s ? 700 : 400 }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       </div>
 
       {erro && <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.3)', borderRadius: 8, color: '#f87171', fontSize: 12 }}>{erro}</div>}
@@ -548,13 +603,13 @@ function AbaAudit() {
         <div style={{ display: 'flex', gap: 6, marginTop: 12, justifyContent: 'center', alignItems: 'center' }}>
           <button
             disabled={page === 0}
-            onClick={() => { const p = page - 1; setPage(p); carregar(p, actionFiltro) }}
+            onClick={() => { const p = page - 1; setPage(p); carregar({ pg: p }) }}
             style={{ padding: '5px 12px', background: 'rgba(255,255,255,.06)', border: '1px solid #1a1a3a', borderRadius: 6, color: '#fff', fontSize: 11, cursor: page === 0 ? 'not-allowed' : 'pointer', opacity: page === 0 ? .4 : 1 }}
           >← Anterior</button>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>pág. {page + 1} / {totalPages}</span>
           <button
             disabled={page >= totalPages - 1}
-            onClick={() => { const p = page + 1; setPage(p); carregar(p, actionFiltro) }}
+            onClick={() => { const p = page + 1; setPage(p); carregar({ pg: p }) }}
             style={{ padding: '5px 12px', background: 'rgba(255,255,255,.06)', border: '1px solid #1a1a3a', borderRadius: 6, color: '#fff', fontSize: 11, cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer', opacity: page >= totalPages - 1 ? .4 : 1 }}
           >Próxima →</button>
         </div>
