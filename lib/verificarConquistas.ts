@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { CONQUISTAS, Conquista } from './conquistas'
+import { notificarConquista } from './pushEventos'
 
 export interface ConquistaDesbloqueada {
   conquista: Conquista
@@ -143,6 +144,11 @@ export async function verificarConquistas(
         .from('profiles')
         .update({ xp: novoXP, nivel: novoNivel })
         .eq('id', user_id)
+    }
+
+    // Push para cada conquista desbloqueada (não-bloqueante)
+    for (const conquista of novas) {
+      notificarConquista(user_id, conquista)
     }
   }
 

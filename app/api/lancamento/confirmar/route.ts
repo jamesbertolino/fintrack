@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { logAudit } from '@/lib/auditLog'
 import { verificarConquistas } from '@/lib/verificarConquistas'
+import { verificarEventosPosLancamento } from '@/lib/pushEventos'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -31,8 +32,9 @@ export async function POST(request: NextRequest) {
 
   logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
 
-  // Verifica conquistas de forma não-bloqueante
+  // Verifica conquistas e eventos (metas/orçamentos) de forma não-bloqueante
   verificarConquistas(supabase, user.id).catch(() => null)
+  verificarEventosPosLancamento(supabase, user.id, transacoes)
 
   return NextResponse.json({ ok: true, lançados: data.length })
 }
