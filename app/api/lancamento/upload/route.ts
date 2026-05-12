@@ -685,7 +685,7 @@ function processarOFX(texto: string): TransacaoDetectada[] {
   const resultado: TransacaoDetectada[] = []
 
   // Extrai blocos <STMTTRN>...</STMTTRN>
-  const blocos = texto.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) || []
+  const blocos: string[] = Array.from(texto.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) || [])
 
   // Fallback para OFX 1.x sem tags de fechamento (SGML puro)
   if (blocos.length === 0) {
