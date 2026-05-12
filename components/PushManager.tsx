@@ -25,9 +25,8 @@ export default function PushManager({ inline = false }: Props) {
   const [inscrevendo, setInscrevendo] = useState(false)
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setEstado('unsupported'); return
-    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setEstado('unsupported'); return }
     setEstado(Notification.permission as Estado)
 
     // Registra o SW silenciosamente
