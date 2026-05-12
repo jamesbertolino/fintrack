@@ -12,7 +12,7 @@ export default function ConvidarAmigos({ userId, nomeUsuario }: Props) {
   const cores = useCores()
   const [copiado, setCopiado] = useState(false)
 
-  const appUrl  = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')
+  const appUrl  = typeof window !== 'undefined' ? window.location.origin : 'https://poupaup.com.br'
   const link    = `${appUrl}/ref/${userId}`
   const texto   = `🎯 Controle suas finanças com IA no PoupaUp!\n\nUse meu link e comece de graça:\n${link}`
 
