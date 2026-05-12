@@ -53,11 +53,45 @@ export default function RelatorioPage() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          .print-page { background: #fff !important; color: #000 !important; padding: 0 !important; }
-          .print-card { border: 1px solid #ddd !important; background: #fff !important; box-shadow: none !important; break-inside: avoid; }
-          .print-header { background: #16a34a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body, html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           @page { margin: 1.5cm; size: A4; }
+
+          .print-page {
+            background: #fff !important;
+            color: #111 !important;
+            padding: 0 !important;
+          }
+
+          /* Todos os textos ficam pretos/escuros na impressão */
+          .print-page * { color: #111 !important; }
+
+          /* Exceções: valores coloridos semânticos */
+          .print-valor-positivo { color: #15803d !important; }
+          .print-valor-negativo { color: #b91c1c !important; }
+
+          .print-card {
+            border: 1px solid #ccc !important;
+            background: #fff !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+          }
+
+          /* Cabeçalho verde mantém fundo e texto branco */
+          .print-header {
+            background: #16a34a !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .print-header * { color: #fff !important; }
+
+          /* Barras de progresso: fundo cinza claro, preenchimento verde/vermelho */
+          .print-bar-bg { background: #e5e7eb !important; }
+          .print-bar-fill-green  { background: #16a34a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-bar-fill-red    { background: #b91c1c !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-bar-fill-accent { background: #16a34a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+          /* Linha separadora */
+          .print-divider { border-color: #ddd !important; }
         }
       `}</style>
 
@@ -125,7 +159,7 @@ export default function RelatorioPage() {
                   <div style={{ fontSize: 11, color: cores.textMuted, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{ color: c.cor, fontWeight: 700 }}>{c.icon}</span> {c.label}
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: c.cor }}>{fmt(c.valor)}</div>
+                  <div className={c.cor === '#4ade80' ? 'print-valor-positivo' : c.cor === '#f87171' ? 'print-valor-negativo' : (dados.resumo.saldo >= 0 ? 'print-valor-positivo' : 'print-valor-negativo')} style={{ fontSize: 22, fontWeight: 700, color: c.cor }}>{fmt(c.valor)}</div>
                 </div>
               ))}
             </div>
@@ -148,8 +182,8 @@ export default function RelatorioPage() {
                           <span style={{ fontSize: 12, fontWeight: 600, color: cat.pct && cat.pct > 100 ? '#f87171' : cores.text }}>{fmt(cat.valor)}</span>
                         </div>
                       </div>
-                      <div style={{ height: 5, background: cores.border, borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{
+                      <div className="print-bar-bg" style={{ height: 5, background: cores.border, borderRadius: 3, overflow: 'hidden' }}>
+                        <div className={cat.pct && cat.pct > 100 ? 'print-bar-fill-red' : 'print-bar-fill-accent'} style={{
                           height: '100%', borderRadius: 3,
                           width: `${Math.min(100, (cat.valor / maxCat) * 100)}%`,
                           background: cat.pct && cat.pct > 100 ? '#f87171' : cores.accent,
@@ -175,8 +209,8 @@ export default function RelatorioPage() {
                           <span style={{ fontSize: 12, fontWeight: 600 }}>{meta.nome}</span>
                           <span style={{ fontSize: 11, color: cores.textMuted }}>{fmt(meta.valor_atual)} / {fmt(meta.valor_total)} · {pct}%</span>
                         </div>
-                        <div style={{ height: 5, background: cores.border, borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#4ade80' : cores.accent, borderRadius: 3 }} />
+                        <div className="print-bar-bg" style={{ height: 5, background: cores.border, borderRadius: 3, overflow: 'hidden' }}>
+                          <div className="print-bar-fill-green" style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#4ade80' : cores.accent, borderRadius: 3 }} />
                         </div>
                         {meta.contribuicao_mensal > 0 && (
                           <div style={{ fontSize: 10, color: cores.textFaint, marginTop: 3 }}>
@@ -206,7 +240,7 @@ export default function RelatorioPage() {
                       <div key={`d${i}`} style={{ fontSize: 12, color: cores.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao || '—'}</div>
                       <div key={`c${i}`} style={{ fontSize: 11, color: cores.textMuted }}>{t.categoria || '—'}</div>
                       <div key={`dt${i}`} style={{ fontSize: 11, color: cores.textMuted, whiteSpace: 'nowrap' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</div>
-                      <div key={`v${i}`} style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <div key={`v${i}`} className={t.tipo === 'credito' ? 'print-valor-positivo' : 'print-valor-negativo'} style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {t.tipo === 'credito' ? '+' : '-'}{fmt(Math.abs(t.valor))}
                       </div>
                     </>
@@ -216,7 +250,7 @@ export default function RelatorioPage() {
             )}
 
             {/* ── Rodapé ── */}
-            <div style={{ textAlign: 'center', fontSize: 11, color: cores.textFaint, marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${cores.border}` }}>
+            <div className="print-divider" style={{ textAlign: 'center', fontSize: 11, color: cores.textFaint, marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${cores.border}` }}>
               Gerado em {new Date().toLocaleDateString('pt-BR', { dateStyle: 'long' })} · PoupaUp · poupaup.com.br
             </div>
 
