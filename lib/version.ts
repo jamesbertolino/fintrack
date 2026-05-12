@@ -1,8 +1,9 @@
-export const APP_VERSION = '2.3.0'
+export const APP_VERSION = '2.3.2'
 export const APP_BUILD   = '2026.05.12'
 
 /**
- * Histórico de versões — incrementar MINOR a cada novo recurso essencial
+ * Histórico de versões
+ * MAJOR.MINOR.PATCH — MINOR sobe em novos recursos essenciais, PATCH em melhorias/fixes
  *
  * 1.0.0 · 2026.05.07 — MVP: dashboard, transações, metas, WhatsApp, IA básica
  * 1.1.0 · 2026.05.08 — Conquistas, sistema de XP e níveis medievais
@@ -18,4 +19,6 @@ export const APP_BUILD   = '2026.05.12'
  * 2.1.0 · 2026.05.12 — Sistema de indicação: link /ref/[userId], +500 XP por indicação, card "Convidar amigos"
  * 2.2.0 · 2026.05.12 — Importação OFX: parser nativo SGML, deduplicação por FITID, mapeamento de bancos por ISPB
  * 2.3.0 · 2026.05.12 — Multicontas: OFX lê agência/conta, match automático, criação rápida com 1 clique no import
+ * 2.3.1 · 2026.05.12 — Dashboard admin: abas Users, Audit Log, Referral stats, gestão de planos
+ * 2.3.2 · 2026.05.12 — Fix: audit_log join, xp_bonus, Invalid Date em created_at
  */

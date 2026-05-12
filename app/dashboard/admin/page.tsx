@@ -59,7 +59,9 @@ function fmtNum(n: number) {
 }
 
 function fmtData(d: string) {
-  return new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  // d pode ser data pura "YYYY-MM-DD" ou timestamp completo — normaliza para evitar Invalid Date
+  const iso = d.includes('T') ? d : d + 'T12:00:00'
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
 function fmtDataHora(d: string) {
