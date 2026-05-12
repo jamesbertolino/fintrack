@@ -358,11 +358,13 @@ useEffect(() => {
     setEditandoCategoriaIdx(null)
     setErro('')
 
-    const isPDF = arquivo.name.toLowerCase().endsWith('.pdf')
+    const nomeArq = arquivo.name.toLowerCase()
+    const isPDF = nomeArq.endsWith('.pdf')
+    const isOFX = nomeArq.endsWith('.ofx') || nomeArq.endsWith('.ofc')
     const uploadForm = new FormData()
     uploadForm.append('arquivo', arquivo)
 
-    setEtapa(isPDF ? '📄 Enviando PDF para a IA...' : '🤖 Analisando com IA...')
+    setEtapa(isPDF ? '📄 Enviando PDF para a IA...' : isOFX ? '🏦 Lendo arquivo OFX...' : '🤖 Analisando com IA...')
     const res  = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm })
     const data = await res.json()
     setProcessan(false)
@@ -746,7 +748,7 @@ useEffect(() => {
 
             {/* Tip principal do upload — mostrada apenas antes do primeiro uso */}
             <TipCard id="tip-upload-intro" icon="✨" tips={tips} accent="#a78bfa"
-              text="<strong>Dica de primeiro uso:</strong> Vá ao app do seu banco → Extrato → Baixar PDF, depois arraste o arquivo aqui. A IA detecta banco, datas, valores e categorias automaticamente." />
+              text="<strong>Dica de primeiro uso:</strong> Vá ao app do seu banco → Extrato → Baixar OFX ou PDF, depois arraste o arquivo aqui. OFX é nativo (sem IA), PDF usa IA para detectar banco, datas e categorias." />
 
             {/* 4 passos — só aparece quando não há transações detectadas e não está processando */}
             {transacoesDetectadas.length === 0 && !processando && (
@@ -804,7 +806,7 @@ useEffect(() => {
                 {dragOver ? 'Solte para enviar' : 'Clique ou arraste o arquivo aqui'}
               </div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginBottom: 10 }}>
-                PDF · JPG · PNG · WEBP · CSV — máx 15MB
+                PDF · OFX · CSV · JPG · PNG — máx 15MB
               </div>
               {/* Tipos de documento */}
               <div style={{ display: 'flex', gap: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -827,7 +829,7 @@ useEffect(() => {
                   </span>
                 ))}
               </div>
-              <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.csv" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { handleUpload(e.target.files[0]); e.target.value = '' } }} />
+              <input ref={inputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.csv,.ofx,.ofc" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) { handleUpload(e.target.files[0]); e.target.value = '' } }} />
             </div>
 
             {/* Processando */}

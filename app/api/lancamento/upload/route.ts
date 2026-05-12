@@ -679,6 +679,71 @@ async function processarImagem(bytes: ArrayBuffer, mimeType: string) {
   return parseIAResponse(texto)
 }
 
+// ─── Parser OFX/QIF (padrão SGML dos bancos brasileiros) ─────────────────────
+function processarOFX(texto: string): TransacaoDetectada[] {
+  // Normaliza: OFX 1.x é SGML, não XML — extrai tags com regex
+  const resultado: TransacaoDetectada[] = []
+
+  // Extrai blocos <STMTTRN>...</STMTTRN>
+  const blocos = texto.match(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi) || []
+
+  // Fallback para OFX 1.x sem tags de fechamento (SGML puro)
+  if (blocos.length === 0) {
+    const linhas = texto.split('\n').map(l => l.trim())
+    let dentro   = false
+    let bloco    = ''
+    for (const linha of linhas) {
+      if (linha === '<STMTTRN>') { dentro = true; bloco = ''; continue }
+      if (linha === '</STMTTRN>') { dentro = false; blocos.push(bloco); bloco = ''; continue }
+      if (dentro) bloco += linha + '\n'
+    }
+  }
+
+  function tag(bloco: string, nome: string): string {
+    const m = bloco.match(new RegExp(`<${nome}>([^<\\n\\r]*)`, 'i'))
+    return m ? m[1].trim() : ''
+  }
+
+  function parseOFXData(s: string): string {
+    // YYYYMMDDHHMMSS ou YYYYMMDD[offset]
+    const m = s.match(/^(\d{4})(\d{2})(\d{2})/)
+    if (!m) return new Date().toISOString()
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toISOString()
+  }
+
+  for (const bloco of blocos) {
+    const bStr = typeof bloco === 'string' ? bloco : bloco
+
+    const tipo_ofx = tag(bStr, 'TRNTYPE').toUpperCase()
+    const dtpost   = tag(bStr, 'DTPOSTED')
+    const valorStr = tag(bStr, 'TRNAMT')
+    const fitid    = tag(bStr, 'FITID')
+    const memo     = tag(bStr, 'MEMO') || tag(bStr, 'NAME') || 'Transação'
+
+    const valorRaw = parseFloat(valorStr.replace(',', '.'))
+    if (isNaN(valorRaw) || valorRaw === 0) continue
+
+    // Sinal negativo = débito; positivo = crédito
+    const tipo  = valorRaw < 0 ? 'debito' : 'credito'
+    const valor = Math.abs(valorRaw)
+
+    const { categoria, nao_categorizado } = detectarCategoria(memo)
+
+    resultado.push({
+      descricao:      memo.toUpperCase(),
+      tipo_pagamento: tipo_ofx || undefined,
+      valor,
+      tipo,
+      categoria,
+      nao_categorizado,
+      data_hora:   parseOFXData(dtpost),
+      ref_externa: fitid ? `ofx:${fitid}` : undefined,
+    })
+  }
+
+  return resultado
+}
+
 // ─── Handler principal ───────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
@@ -701,6 +766,53 @@ export async function POST(request: NextRequest) {
 
     const nome = arquivo.name.toLowerCase()
     const bytes = await arquivo.arrayBuffer()
+
+    // ── OFX ──────────────────────────────────────────────────────────────────
+    if (nome.endsWith('.ofx') || nome.endsWith('.ofc')) {
+      const texto = new TextDecoder('latin1').decode(bytes) // bancos BR usam ISO-8859-1
+      const transacoes = processarOFX(texto)
+      if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no arquivo OFX' }, { status: 400 })
+
+      // Detecta banco pelo BANKID no cabeçalho OFX
+      const bankIdMatch = texto.match(/<BANKID>(\d+)/i)
+      const bankId      = bankIdMatch?.[1] || null
+      const BANCOS_ISPB: Record<string, string> = {
+        '237': 'Bradesco', '341': 'Itaú', '001': 'Banco do Brasil',
+        '033': 'Santander', '104': 'Caixa Econômica Federal',
+        '260': 'Nubank', '077': 'Inter', '290': 'PagBank',
+        '336': 'C6 Bank', '380': 'PicPay', '623': 'Pan', '422': 'Safra',
+      }
+      const banco_nome = bankId ? (BANCOS_ISPB[bankId] || `Banco ${bankId}`) : null
+
+      let banco_id: string | null = null
+      if (banco_nome) {
+        const { data: bancos } = await supabase.from('bancos').select('id, nome, nome_curto')
+        const match = bancos?.find(b =>
+          b.nome.toLowerCase().includes(banco_nome.toLowerCase()) ||
+          banco_nome.toLowerCase().includes(b.nome_curto.toLowerCase())
+        )
+        if (match) banco_id = match.id
+      }
+
+      // Verifica duplicatas por ref_externa (FITID)
+      const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
+      if (refs.length) {
+        const { data: existentes } = await supabase
+          .from('transactions').select('ref_externa')
+          .eq('user_id', user.id).in('ref_externa', refs)
+        if (existentes?.length) {
+          const refsExistentes = new Set(existentes.map(e => e.ref_externa))
+          transacoes.forEach(t => { if (t.ref_externa && refsExistentes.has(t.ref_externa)) t.confirmada_duplicata = true })
+        }
+      }
+
+      const naoCat = transacoes.filter(t => t.nao_categorizado).length
+      return NextResponse.json({
+        ok: true, transacoes, banco_nome, banco_id,
+        resumo: `${transacoes.length} transações do OFX${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        tipo_documento: 'extrato_bancario',
+      })
+    }
 
     // ── CSV ──────────────────────────────────────────────────────────────────
     if (nome.endsWith('.csv')) {
