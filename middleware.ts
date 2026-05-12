@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createMiddlewareClient } from '@/lib/supabase-middleware'
 
-const ROTAS_PUBLICAS = ['/login', '/cadastro', '/', '/sobre', '/precos', '/convite', '/setup', '/aceite-lgpd', '/privacidade', '/auth']
+const ROTAS_PUBLICAS = ['/login', '/cadastro', '/', '/sobre', '/precos', '/convite', '/setup', '/onboarding', '/aceite-lgpd', '/privacidade', '/auth']
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request })
@@ -16,14 +16,15 @@ export async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname
-  const isPublic = ROTAS_PUBLICAS.some(r =>
+  const isPublic     = ROTAS_PUBLICAS.some(r =>
     r === '/' ? pathname === '/' : pathname.startsWith(r)
   )
-  const isApi    = pathname.startsWith('/api')
-  const isSetup  = pathname.startsWith('/setup')
+  const isApi        = pathname.startsWith('/api')
+  const isSetup      = pathname.startsWith('/setup')
+  const isOnboarding = pathname.startsWith('/onboarding')
 
   // Usuário não autenticado → login
-  if (!user && !isPublic && !isApi && !isSetup) {
+  if (!user && !isPublic && !isApi && !isSetup && !isOnboarding) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('next', pathname)
@@ -45,17 +46,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Usuário autenticado em rota protegida → verificar setup_completo
-  if (user && !isSetup && !isPublic && !isApi) {
+  // Usuário autenticado em rota protegida → verificar onboarding e setup
+  if (user && !isSetup && !isOnboarding && !isPublic && !isApi) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('setup_completo')
+      .select('onboarding_completo, setup_completo')
       .eq('id', user.id)
       .single()
 
-    const precisaSetup = !profile?.setup_completo
+    if (!profile?.onboarding_completo) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/onboarding'
+      return NextResponse.redirect(url)
+    }
 
-    if (precisaSetup) {
+    if (!profile?.setup_completo) {
       const url = request.nextUrl.clone()
       url.pathname = '/setup'
       return NextResponse.redirect(url)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import { enviarEmailPagamentoConfirmado, enviarEmailFalhaCobranca } from '@/lib/email'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' })
@@ -47,7 +48,19 @@ export async function POST(request: NextRequest) {
         const sub = await stripe.subscriptions.retrieve(subId)
         const userId = sub.metadata?.supabase_user_id
         const plano  = sub.metadata?.plano
-        if (userId && plano) await atualizarPlano(userId, plano)
+        if (userId && plano) {
+          await atualizarPlano(userId, plano)
+          // E-mail de confirmação de pagamento
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('nome')
+            .eq('id', userId)
+            .maybeSingle()
+          const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+          const email = authUser?.user?.email || session.customer_details?.email || session.customer_email
+          const nome  = profile?.nome || 'usuário'
+          if (email) enviarEmailPagamentoConfirmado(email, nome, plano).catch(() => null)
+        }
       }
       break
     }
@@ -87,6 +100,10 @@ export async function POST(request: NextRequest) {
             tipo:    'aviso',
             lida:    false,
           })
+          const { data: profile } = await supabase.from('profiles').select('nome').eq('id', userId).maybeSingle()
+          const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+          const email = authUser?.user?.email
+          if (email) enviarEmailFalhaCobranca(email, profile?.nome || 'usuário').catch(() => null)
         }
       }
       break

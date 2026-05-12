@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 
@@ -41,6 +41,18 @@ export default function OnboardingPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  useEffect(() => {
+    async function check() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      const { data: profile } = await supabase.from('profiles').select('onboarding_completo, setup_completo').eq('id', user.id).maybeSingle()
+      if (profile?.onboarding_completo && profile?.setup_completo) { router.push('/dashboard'); return }
+      if (profile?.onboarding_completo) { router.push('/setup'); return }
+    }
+    check()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const [etapa, setEtapa]                   = useState(1)
   const [dataNasc, setDataNasc]             = useState('')
   const [genero, setGenero]                 = useState('')
@@ -78,10 +90,10 @@ export default function OnboardingPage() {
       data_nascimento: dataNasc || null,
       genero: genero || null,
       prioridades,
-      setup_completo: true,
+      onboarding_completo: true,
     }).eq('id', user.id)
 
-    router.push('/dashboard')
+    router.push('/setup')
   }
 
   const s = {

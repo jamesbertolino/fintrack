@@ -23,6 +23,12 @@ export async function GET(request: NextRequest) {
         const nome = (user.user_metadata?.full_name as string)?.split(' ')[0] || user.email?.split('@')[0] || 'Usuário'
         const sobrenome = (user.user_metadata?.full_name as string)?.split(' ').slice(1).join(' ') || ''
         await supabase.from('profiles').upsert({ id: user.id, nome, sobrenome, plano: 'free' })
+        // E-mail de boas-vindas (primeiro login OAuth)
+        if (user.email) {
+          const { enviarEmailBoasVindas } = await import('@/lib/email')
+          enviarEmailBoasVindas(user.email, nome).catch(() => null)
+          await supabase.from('profiles').update({ boas_vindas_enviado: true }).eq('id', user.id)
+        }
       }
 
       // Exige aceite LGPD se não aceitou ainda (fluxo OAuth)

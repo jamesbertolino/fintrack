@@ -94,6 +94,8 @@ function LoginContent() {
         plano: 'free',
         lgpd_aceito_em: new Date().toISOString(),
       })
+      // E-mail de boas-vindas (não-bloqueante)
+      fetch('/api/email/boas-vindas', { method: 'POST' }).catch(() => null)
     }
 
     if (data.user && !data.user.email_confirmed_at) {

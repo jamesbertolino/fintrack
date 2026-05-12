@@ -1,11 +1,22 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import Avatar from '@/components/Avatar'
 import ModalAvatar from '@/components/ModalAvatar'
 import { useTema, useCores } from '@/components/ThemeProvider'
+
+// Lê ?assinar=pro e dispara checkout automaticamente
+function AssinaturaAutoStart({ onAssinar }: { onAssinar: (plano: string) => void }) {
+  const params = useSearchParams()
+  useEffect(() => {
+    const plano = params.get('assinar')
+    if (plano) onAssinar(plano)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return null
+}
 
 interface Profile {
   id: string
@@ -548,6 +559,8 @@ export default function PerfilPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: cores.text }}>
+
+      <Suspense><AssinaturaAutoStart onAssinar={assinarPlano} /></Suspense>
 
       {/* Topbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '.875rem 1.5rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg }}>

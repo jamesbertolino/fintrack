@@ -265,19 +265,24 @@ export default function LandingPage() {
 
           {/* Pro */}
           <div className="fade-in" style={{ background: 'rgba(74,222,128,.04)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 16, padding: '1.75rem', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 16, right: 16, background: '#4ade80', color: '#0a0a0a', fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>Em breve</div>
+            <div style={{ position: 'absolute', top: 16, right: 16, background: '#4ade80', color: '#0a0a0a', fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>Mais popular</div>
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Pro ⭐</div>
             <div style={{ fontSize: 40, fontWeight: 800, color: '#4ade80', marginBottom: 4 }}>R$ 29<span style={{ fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,.3)' }}>/mês</span></div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 24 }}>Cobrado mensalmente</div>
-            {['Tudo do Free', 'Grupo familiar (membros ilimitados)', 'PoupaBot avançado', 'Relatórios em PDF', 'Suporte prioritário', 'Multibancos (em breve)'].map((f) => (
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 24 }}>Cobrado mensalmente · cancele quando quiser</div>
+            {['Tudo do Free', 'Grupo familiar (membros ilimitados)', 'PoupaBot avançado (IA sem limites)', 'Relatórios em PDF', 'Suporte prioritário', 'Multibancos (em breve)'].map((f) => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, fontSize: 13, color: 'rgba(255,255,255,.65)' }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="1.5,7 5,10.5 12.5,3" stroke="#4ade80" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {f}
               </div>
             ))}
-            <button disabled style={{ display: 'block', width: '100%', marginTop: 24, background: 'rgba(74,222,128,.1)', color: 'rgba(255,255,255,.3)', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, border: '1px solid rgba(74,222,128,.15)', cursor: 'not-allowed' }}>
-              Assinar Pro — em breve
-            </button>
+            <a href="/login?next=%2Fdashboard%2Fperfil%3Fassinar%3Dpro"
+               style={{ display: 'block', marginTop: 24, background: '#16a34a', color: '#fff', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, textDecoration: 'none', border: 'none', transition: 'background .15s', cursor: 'pointer' }}
+               className="hover-green">
+              Assinar Pro — R$ 29/mês →
+            </a>
+            <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: 'rgba(255,255,255,.25)' }}>
+              🔒 Pagamento seguro via Stripe
+            </div>
           </div>
 
         </div>
