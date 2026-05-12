@@ -364,6 +364,7 @@ function AbaUsers() {
     setLoading(false)
   }, [page, q, planoFiltro])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { carregar(0, q, planoFiltro) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function alterarPlano(userId: string, novoPlano: string) {
@@ -485,6 +486,7 @@ function AbaAudit() {
     setLoading(false)
   }, [])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { carregar() }, [carregar])
 
   const size = 50
