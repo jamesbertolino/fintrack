@@ -37,7 +37,8 @@
       "Bash(Get-ChildItem -Path \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\\\\supabase\\\\migrations\" -Filter \"*missao*\")",
       "Bash(node *)",
       "PowerShell(New-Item *)",
-      "Bash(npx jest *)"
+      "Bash(npx jest *)",
+      "Bash(npm list *)"
     ]
   }
 }

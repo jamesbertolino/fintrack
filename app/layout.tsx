@@ -18,6 +18,7 @@ const crimsonText = Crimson_Text({
 export const metadata: Metadata = {
   title: 'PoupaUp — Poupe. Evolua. Conquiste.',
   description: 'Controle financeiro familiar com IA e WhatsApp',
+  manifest: '/manifest.json',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',

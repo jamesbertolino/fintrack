@@ -1,11 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useState, Suspense } from 'react'
+import { useCallback, useEffect, useState, Suspense, lazy } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import Avatar from '@/components/Avatar'
 import ModalAvatar from '@/components/ModalAvatar'
 import { useTema, useCores } from '@/components/ThemeProvider'
+
+const PushManagerComponent = lazy(() => import('@/components/PushManager'))
+function PushManagerInline() {
+  return (
+    <Suspense fallback={null}>
+      <PushManagerComponent inline />
+    </Suspense>
+  )
+}
 
 // Lê ?assinar=pro e dispara checkout automaticamente
 function AssinaturaAutoStart({ onAssinar }: { onAssinar: (plano: string) => void }) {
@@ -841,6 +850,9 @@ export default function PerfilPage() {
                 </div>
               )}
             </div>
+
+            {/* Notificações push */}
+            <PushManagerInline />
 
             {/* Fuso horário */}
             <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>

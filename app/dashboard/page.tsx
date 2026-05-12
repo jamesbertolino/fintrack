@@ -8,6 +8,7 @@ import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import TarefasWidget from '@/components/TarefasWidget'
 import TourGuiado from '@/components/TourGuiado'
+import PushManager from '@/components/PushManager'
 import ExtratoXP from '@/components/ExtratoXP'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
@@ -288,6 +289,8 @@ useEffect(() => {
 
       {/* ── Tour guiado (primeira vez) ── */}
       <TourGuiado />
+      {/* ── Banner push (aparece após 5s se não ativado) ── */}
+      <PushManager />
 
       {/* ── Extrato de XP ── */}
       {extratoXPAberto && (

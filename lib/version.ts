@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.0'
+export const APP_VERSION = '1.8.0'
 export const APP_BUILD   = '2026.05.12'
 
 /**
@@ -12,4 +12,5 @@ export const APP_BUILD   = '2026.05.12'
  * 1.5.0 · 2026.05.11 — E-mail transacional (Resend) + onboarding no fluxo + landing checkout
  * 1.6.0 · 2026.05.12 — Testes automatizados (Jest, 24 testes) + versioning semântico da aside
  * 1.7.0 · 2026.05.12 — Tour guiado v2: foco em importação de extrato, WhatsApp e tema medieval
+ * 1.8.0 · 2026.05.12 — PWA: manifest, service worker, notificações push (VAPID + web-push)
  */
