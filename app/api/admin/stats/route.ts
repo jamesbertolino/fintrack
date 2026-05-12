@@ -29,6 +29,7 @@ export async function GET() {
     { data: transacoesPorDia },
     { data: cadastrosPorDia },
     { data: usuariosAtivos },
+    { data: referrals },
   ] = await Promise.all([
     // total usuários
     db.from('profiles').select('*', { count: 'exact', head: true }),
@@ -66,6 +67,11 @@ export async function GET() {
     db.from('transactions')
       .select('user_id')
       .gte('data_hora', new Date(Date.now() - 7 * 86400_000).toISOString()),
+
+    // quem indicou quem (referral)
+    db.from('profiles')
+      .select('referido_por, id, nome')
+      .not('referido_por', 'is', null),
   ])
 
   // Distribuição por plano
@@ -121,6 +127,29 @@ export async function GET() {
   // Usuários únicos ativos nos últimos 7 dias
   const ativosSet = new Set((usuariosAtivos || []).map(r => r.user_id))
 
+  // Referral: top indicadores
+  const referralPorIndicador: Record<string, number> = {}
+  for (const r of referrals || []) {
+    const ind = r.referido_por as string
+    referralPorIndicador[ind] = (referralPorIndicador[ind] || 0) + 1
+  }
+
+  // Busca nomes dos top indicadores
+  const topIndicadoresIds = Object.entries(referralPorIndicador)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([id]) => id)
+
+  const { data: indicadoresProfiles } = await db
+    .from('profiles')
+    .select('id, nome, plano')
+    .in('id', topIndicadoresIds.length > 0 ? topIndicadoresIds : ['00000000-0000-0000-0000-000000000000'])
+
+  const topIndicadores = topIndicadoresIds.map(id => {
+    const p = (indicadoresProfiles || []).find(x => x.id === id)
+    return { user_id: id, nome: p?.nome || id.slice(0, 8), plano: p?.plano || 'free', total: referralPorIndicador[id] }
+  })
+
   return NextResponse.json({
     resumo: {
       total_usuarios:   totalUsuarios || 0,
@@ -135,5 +164,9 @@ export async function GET() {
     top_users_ia:   topUsersLista,
     tx_por_dia:     txPorDia,
     cad_por_dia:    cadPorDia,
+    referral: {
+      total_indicacoes: referrals?.length ?? 0,
+      top_indicadores:  topIndicadores,
+    },
   })
 }
