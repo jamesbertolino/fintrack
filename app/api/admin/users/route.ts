@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   const db = service()
   let query = db
     .from('profiles')
-    .select('id, nome, plano, created_at, xp_total, referido_por, stripe_customer_id, stripe_subscription_id', { count: 'exact' })
+    .select('id, nome, plano, created_at, xp_bonus, referido_por, stripe_customer_id, stripe_subscription_id', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(page * size, page * size + size - 1)
 

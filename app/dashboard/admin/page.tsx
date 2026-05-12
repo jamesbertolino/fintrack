@@ -32,7 +32,7 @@ interface Usuario {
   nome: string
   plano: string
   created_at: string
-  xp_total: number
+  xp_bonus: number
   referido_por: string | null
   stripe_customer_id: string | null
   stripe_subscription_id: string | null
@@ -45,7 +45,7 @@ interface AuditLog {
   resource_id: string | null
   metadata: Record<string, unknown> | null
   created_at: string
-  profiles: { nome: string } | { nome: string }[] | null
+  nome_usuario: string
 }
 
 type Aba = 'overview' | 'users' | 'audit'
@@ -427,7 +427,7 @@ function AbaUsers() {
             <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px 120px 60px 90px', gap: 8, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,.04)', alignItems: 'center' }}>
               <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.nome || '—'}</div>
               <div style={{ fontSize: 11, color: COR_PLANO[u.plano] || '#6b7280', fontWeight: 600, textTransform: 'capitalize' }}>{u.plano}</div>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)' }}>{fmtNum(u.xp_total || 0)}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.6)' }}>{fmtNum(u.xp_bonus || 0)}</div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>{fmtData(u.created_at)}</div>
               <div style={{ fontSize: 11, color: u.referido_por ? '#f97316' : 'rgba(255,255,255,.2)' }}>{u.referido_por ? '✓' : '—'}</div>
               <select
@@ -492,12 +492,6 @@ function AbaAudit() {
   const size = 50
   const totalPages = Math.ceil(total / size)
 
-  function nomeUsuario(log: AuditLog) {
-    if (!log.profiles) return log.user_id.slice(0, 8)
-    const p = Array.isArray(log.profiles) ? log.profiles[0] : log.profiles
-    return p?.nome || log.user_id.slice(0, 8)
-  }
-
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
@@ -536,7 +530,7 @@ function AbaAudit() {
           logs.map(log => (
             <div key={log.id} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr', gap: 8, padding: '9px 14px', borderBottom: '1px solid rgba(255,255,255,.04)', alignItems: 'center' }}>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', fontVariantNumeric: 'tabular-nums' }}>{fmtDataHora(log.created_at)}</div>
-              <div style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nomeUsuario(log)}</div>
+              <div style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.nome_usuario}</div>
               <div style={{ fontSize: 11, color: COR_ACTION[log.action] || 'rgba(255,255,255,.6)', fontWeight: 500 }}>
                 {LABEL_ACTION[log.action] || log.action}
               </div>
