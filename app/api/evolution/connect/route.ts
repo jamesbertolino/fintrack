@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Variáveis de ambiente necessárias na Vercel:
-// EVOLUTION_API_KEY=069A835EF36F-42A0-943E-5F44E898BFB1
-// EVOLUTION_URL=https://evo.mycomp.com.br
-// NEXT_PUBLIC_APP_URL=https://fintrack-zeta-wine.vercel.app
+// Variáveis de ambiente necessárias:
+// EVOLUTION_API_KEY, EVOLUTION_URL, NEXT_PUBLIC_APP_URL=https://poupaup.com.br
 
 function getSupabase() {
   return createClient(
