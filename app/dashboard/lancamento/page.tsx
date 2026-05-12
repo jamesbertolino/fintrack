@@ -300,6 +300,25 @@ useEffect(() => {
     setModalNovaConta(true)
   }
 
+  async function criarContaRapida() {
+    if (!formNovaConta.banco_id) return
+    setSalvandoConta(true)
+    const nome = formNovaConta.nome || (bancoNaoEncontrado ? `Conta ${bancoNaoEncontrado}` : 'Minha Conta')
+    const res = await fetch('/api/contas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formNovaConta, nome }),
+    })
+    const data = await res.json()
+    setSalvandoConta(false)
+    if (!data.ok) { setErroNovaConta(data.error || 'Erro ao salvar'); return }
+    const contasRes = await fetch('/api/contas')
+    const contasDados = await contasRes.json()
+    setContas(contasDados.contas || [])
+    setContaUpload(data.conta.id)
+    setModalContaNaoEncontrada(false)
+  }
+
   async function salvarNovaConta(e: React.FormEvent) {
     e.preventDefault()
     if (!formNovaConta.banco_id) { setErroNovaConta('Selecione um banco'); return }
@@ -1553,21 +1572,50 @@ useEffect(() => {
 
       {/* ─── Modal banco não encontrado ─── */}
       {modalContaNaoEncontrada && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 380, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Conta não encontrada</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>🏦 Conta não cadastrada</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.6 }}>
-              O banco <strong style={{ color: '#fff' }}>{bancoNaoEncontrado}</strong> foi detectado no extrato, mas você não tem nenhuma conta cadastrada com esse nome.
+              Detectamos <strong style={{ color: '#fff' }}>{bancoNaoEncontrado}</strong> no extrato, mas você não tem essa conta cadastrada ainda.
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>O que deseja fazer?</div>
+
+            {/* Criação rápida — só aparece quando temos banco_id pré-preenchido */}
+            {formNovaConta.banco_id && (
+              <div style={{ background: 'rgba(74,222,128,.06)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 12, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 600 }}>✨ Criar conta com 1 clique</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {formNovaConta.numero && (
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>
+                      Conta: <span style={{ color: '#fff' }}>{formNovaConta.numero}</span>
+                      {formNovaConta.agencia && <> · Ag: <span style={{ color: '#fff' }}>{formNovaConta.agencia}</span></>}
+                    </div>
+                  )}
+                  <input
+                    value={formNovaConta.nome || bancoNaoEncontrado}
+                    onChange={e => setFormNovaConta(p => ({ ...p, nome: e.target.value }))}
+                    placeholder="Nome da conta (ex: Conta Corrente Itaú)"
+                    style={{ fontSize: 12, padding: '7px 10px', borderRadius: 7, border: '1px solid rgba(74,222,128,.25)', background: 'rgba(0,0,0,.3)', color: '#fff', outline: 'none' }}
+                  />
+                </div>
+                {erroNovaConta && <div style={{ fontSize: 11, color: '#f87171' }}>{erroNovaConta}</div>}
+                <button
+                  onClick={criarContaRapida}
+                  disabled={salvandoConta}
+                  style={{ padding: '9px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {salvandoConta ? 'Criando...' : `Criar conta ${bancoNaoEncontrado}`}
+                </button>
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button onClick={() => setModalContaNaoEncontrada(false)}
-                style={{ padding: '10px', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, color: '#4ade80', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                Continuar sem conta específica e escolher depois
+                style={{ padding: '10px', background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, color: '#4ade80', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                Continuar sem conta e vincular depois
               </button>
               <button onClick={() => { setModalContaNaoEncontrada(false); abrirModalNovaConta() }}
-                style={{ padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.5)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
-                Cadastrar nova conta agora
+                style={{ padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}>
+                Preencher manualmente
               </button>
             </div>
           </div>

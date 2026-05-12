@@ -794,6 +794,34 @@ export async function POST(request: NextRequest) {
         if (match) banco_id = match.id
       }
 
+      // Extrai agência e conta do cabeçalho OFX
+      const agencia_detectada = texto.match(/<BRANCHID>([^<\n\r]*)/i)?.[1]?.trim() || null
+      const numero_detectado  = texto.match(/<ACCTID>([^<\n\r]*)/i)?.[1]?.trim() || null
+      const titular_detectado = texto.match(/<NAME>([^<\n\r]*)/i)?.[1]?.trim() || null
+
+      // Tenta vincular à conta existente do usuário
+      const { data: contasUsuario } = await supabase
+        .from('contas').select('id, nome, numero, agencia, banco_id')
+        .eq('user_id', user.id).eq('ativo', true)
+
+      const norm = (s: string | null | undefined) => (s || '').replace(/\D/g, '')
+      let conta_id: string | null = null
+      let conta_sugerida: { banco_id: string | null; banco_nome: string | null; agencia: string | null; numero: string | null; titular: string | null } | null = null
+
+      if (contasUsuario) {
+        if (numero_detectado) {
+          const m = contasUsuario.find(c => norm(c.numero) === norm(numero_detectado) && norm(c.numero).length > 3)
+          if (m) conta_id = m.id
+        }
+        if (!conta_id && banco_id && agencia_detectada) {
+          const m = contasUsuario.find(c => c.banco_id === banco_id && norm(c.agencia) === norm(agencia_detectada))
+          if (m) conta_id = m.id
+        }
+        if (!conta_id && (banco_id || banco_nome)) {
+          conta_sugerida = { banco_id, banco_nome, agencia: agencia_detectada, numero: numero_detectado, titular: titular_detectado }
+        }
+      }
+
       // Verifica duplicatas por ref_externa (FITID)
       const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
       if (refs.length) {
@@ -808,7 +836,7 @@ export async function POST(request: NextRequest) {
 
       const naoCat = transacoes.filter(t => t.nao_categorizado).length
       return NextResponse.json({
-        ok: true, transacoes, banco_nome, banco_id,
+        ok: true, transacoes, banco_nome, banco_id, conta_id, conta_sugerida,
         resumo: `${transacoes.length} transações do OFX${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
         tipo_documento: 'extrato_bancario',
       })

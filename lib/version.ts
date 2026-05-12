@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.2.0'
+export const APP_VERSION = '2.3.0'
 export const APP_BUILD   = '2026.05.12'
 
 /**
@@ -17,4 +17,5 @@ export const APP_BUILD   = '2026.05.12'
  * 2.0.0 · 2026.05.12 — Push integrado: conquistas, metas atingidas, orçamento estourado, missões diárias
  * 2.1.0 · 2026.05.12 — Sistema de indicação: link /ref/[userId], +500 XP por indicação, card "Convidar amigos"
  * 2.2.0 · 2026.05.12 — Importação OFX: parser nativo SGML, deduplicação por FITID, mapeamento de bancos por ISPB
+ * 2.3.0 · 2026.05.12 — Multicontas: OFX lê agência/conta, match automático, criação rápida com 1 clique no import
  */
