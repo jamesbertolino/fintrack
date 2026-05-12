@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCores } from '@/components/ThemeProvider'
 
@@ -33,9 +33,7 @@ export default function RelatorioPage() {
   const [loading, setLoading] = useState(false)
   const [erro, setErro]       = useState('')
 
-  useEffect(() => { buscar() }, [ano, mes]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function buscar() {
+  const buscar = useCallback(async () => {
     setLoading(true); setErro('')
     try {
       const res = await fetch(`/api/relatorio?ano=${ano}&mes=${mes}`)
@@ -43,7 +41,9 @@ export default function RelatorioPage() {
       setDados(await res.json())
     } catch { setErro('Erro de conexão') }
     finally { setLoading(false) }
-  }
+  }, [ano, mes])
+
+  useEffect(() => { buscar() }, [buscar]) // eslint-disable-line react-hooks/set-state-in-effect
 
   const maxCat = dados?.categorias[0]?.valor || 1
 
