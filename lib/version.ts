@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.0'
+export const APP_VERSION = '1.9.0'
 export const APP_BUILD   = '2026.05.12'
 
 /**
@@ -13,4 +13,5 @@ export const APP_BUILD   = '2026.05.12'
  * 1.6.0 · 2026.05.12 — Testes automatizados (Jest, 24 testes) + versioning semântico da aside
  * 1.7.0 · 2026.05.12 — Tour guiado v2: foco em importação de extrato, WhatsApp e tema medieval
  * 1.8.0 · 2026.05.12 — PWA: manifest, service worker, notificações push (VAPID + web-push)
+ * 1.9.0 · 2026.05.12 — Relatório mensal em PDF: extrato, categorias, metas, exportação nativa
  */
