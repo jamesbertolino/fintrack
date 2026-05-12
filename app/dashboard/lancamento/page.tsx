@@ -733,7 +733,7 @@ useEffect(() => {
           </form>
 
           {/* Upload */}
-          <div style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
+          <div data-tour="tour-importar" style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
 
             {/* Cabeçalho da seção */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>

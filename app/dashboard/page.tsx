@@ -328,6 +328,7 @@ useEffect(() => {
         {/* Perfil resumido */}
         {!collapsed && profile && (
           <div
+            data-tour="tour-perfil"
             onClick={() => router.push('/dashboard/perfil')}
             style={{ padding: '10px 1rem', borderBottom: `1px solid ${cores.sidebarBorder}`, display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
           >
