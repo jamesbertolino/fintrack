@@ -38,7 +38,8 @@ function LoginContent() {
   const [lgpdAceito, setLgpdAceito] = useState(false)
   const [forca, setForca] = useState({ pct: 0, cor: '', label: '' })
 
-  const erroParam = searchParams.get('erro')
+  const erroParam  = searchParams.get('erro')
+  const refParam   = searchParams.get('ref') || (typeof window !== 'undefined' ? sessionStorage.getItem('ref') : null) || ''
 
   function calcularForca(pw: string) {
     let score = 0
@@ -88,14 +89,24 @@ function LoginContent() {
 
     if (data.user) {
       await supabase.from('profiles').upsert({
-        id: data.user.id,
-        nome: cadForm.nome.split(' ')[0],
-        sobrenome: cadForm.nome.split(' ').slice(1).join(' '),
-        plano: 'free',
+        id:             data.user.id,
+        nome:           cadForm.nome.split(' ')[0],
+        sobrenome:      cadForm.nome.split(' ').slice(1).join(' '),
+        plano:          'free',
         lgpd_aceito_em: new Date().toISOString(),
+        ...(refParam ? { referido_por: refParam } : {}),
       })
       // E-mail de boas-vindas (não-bloqueante)
       fetch('/api/email/boas-vindas', { method: 'POST' }).catch(() => null)
+      // Bônus XP para quem indicou
+      if (refParam) {
+        fetch('/api/referral/bonus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referrer_id: refParam }),
+        }).catch(() => null)
+        sessionStorage.removeItem('ref')
+      }
     }
 
     if (data.user && !data.user.email_confirmed_at) {

@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.0.0'
+export const APP_VERSION = '2.1.0'
 export const APP_BUILD   = '2026.05.12'
 
 /**
@@ -15,4 +15,5 @@ export const APP_BUILD   = '2026.05.12'
  * 1.8.0 · 2026.05.12 — PWA: manifest, service worker, notificações push (VAPID + web-push)
  * 1.9.0 · 2026.05.12 — Relatório mensal em PDF: extrato, categorias, metas, exportação nativa
  * 2.0.0 · 2026.05.12 — Push integrado: conquistas, metas atingidas, orçamento estourado, missões diárias
+ * 2.1.0 · 2026.05.12 — Sistema de indicação: link /ref/[userId], +500 XP por indicação, card "Convidar amigos"
  */

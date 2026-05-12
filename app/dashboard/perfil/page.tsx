@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, Suspense, lazy } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import Avatar from '@/components/Avatar'
+import ConvidarAmigos from '@/components/ConvidarAmigos'
 import ModalAvatar from '@/components/ModalAvatar'
 import { useTema, useCores } from '@/components/ThemeProvider'
 
@@ -102,6 +103,7 @@ export default function PerfilPage() {
   const [mfaCodigo, setMfaCodigo]       = useState('')
   const [exportando, setExportando]     = useState(false)
   const [assinando, setAssinando]       = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState('')
 
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [notificacoesCelular, setNotificacoesCelular] = useState(true)
@@ -147,6 +149,7 @@ export default function PerfilPage() {
     if (!user) { router.push('/login'); return }
 
     setEmail(user.email || '')
+    setCurrentUserId(user.id)
 
     const [{ data: prof }, { data: wh }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -853,6 +856,11 @@ export default function PerfilPage() {
 
             {/* Notificações push */}
             <PushManagerInline />
+
+            {/* Indicar amigos */}
+            {currentUserId && (
+              <ConvidarAmigos userId={currentUserId} nomeUsuario={form.nome} />
+            )}
 
             {/* Fuso horário */}
             <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
