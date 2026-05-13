@@ -38,7 +38,10 @@
       "Bash(node *)",
       "PowerShell(New-Item *)",
       "Bash(npx jest *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(Get-ChildItem \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" -Filter \".env*\" -Force)",
+      "Bash(Select-Object Name)",
+      "Bash(vercel --prod)"
     ]
   }
 }
