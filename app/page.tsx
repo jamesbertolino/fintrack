@@ -27,11 +27,13 @@ function BotaoAssinar({ plano, label, estilo = 'primario' }: { plano: string; la
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plano }),
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data: { url?: string; error?: string } = {}
+      try { data = JSON.parse(text) } catch { /* resposta não-JSON */ }
       if (data.url) {
         window.location.href = data.url
       } else {
-        setErro(data.error || `Erro ${res.status} — tente novamente`)
+        setErro(data.error || `Erro ${res.status} — verifique as configurações do Stripe`)
       }
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro de conexão')
