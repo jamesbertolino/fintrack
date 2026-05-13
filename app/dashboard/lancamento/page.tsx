@@ -223,6 +223,26 @@ export default function LancamentoPage() {
   // ─── modal confirmação de potenciais duplicatas ───
   const [modalDuplicatas, setModalDuplicatas] = useState(false)
 
+  // ─── metadados do arquivo atual (para histórico de importações) ───
+  const [uploadMeta, setUploadMeta] = useState<{ arquivo_nome: string; formato: string } | null>(null)
+
+  // ─── histórico de importações ───
+  type Importacao = {
+    id: string; arquivo_nome: string | null; formato: string | null; banco_nome: string | null
+    total_detectadas: number; total_inseridas: number; total_duplicatas: number; created_at: string
+    contas?: { nome: string; bancos?: { nome_curto: string; cor: string | null } | null } | null
+  }
+  const [importacoes, setImportacoes] = useState<Importacao[]>([])
+  const [loadingImportacoes, setLoadingImportacoes] = useState(false)
+
+  const carregarImportacoes = useCallback(async () => {
+    setLoadingImportacoes(true)
+    const res = await fetch('/api/importacoes')
+    const d = await res.json()
+    setImportacoes(d.importacoes || [])
+    setLoadingImportacoes(false)
+  }, [])
+
   useEffect(() => {
     const client = createClient()
     client.auth.getUser().then(({ data: { user } }) => {
@@ -258,6 +278,9 @@ export default function LancamentoPage() {
 useEffect(() => {
   carregarHistorico(filtroContaId || undefined) // eslint-disable-line react-hooks/set-state-in-effect
 }, [carregarHistorico, filtroContaId])
+
+// eslint-disable-next-line react-hooks/exhaustive-deps
+useEffect(() => { carregarImportacoes() }, [])
 
   useEffect(() => {
     if (!userId) return
@@ -383,6 +406,8 @@ useEffect(() => {
     const nomeArq = arquivo.name.toLowerCase()
     const isPDF = nomeArq.endsWith('.pdf')
     const isOFX = nomeArq.endsWith('.ofx') || nomeArq.endsWith('.ofc')
+    const formato = isPDF ? 'pdf' : isOFX ? 'ofx' : nomeArq.endsWith('.csv') ? 'csv' : 'imagem'
+    setUploadMeta({ arquivo_nome: arquivo.name, formato })
     const uploadForm = new FormData()
     uploadForm.append('arquivo', arquivo)
 
@@ -505,7 +530,14 @@ useEffect(() => {
     const res = await fetch('/api/lancamento/confirmar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transacoes: transacoesDetectadas, conta_id: contaUpload || null }),
+      body: JSON.stringify({
+        transacoes: transacoesDetectadas,
+        conta_id: contaUpload || null,
+        arquivo_nome: uploadMeta?.arquivo_nome || null,
+        formato: uploadMeta?.formato || null,
+        banco_nome: bancoDetectado?.nome_curto || null,
+        total_detectadas: transacoesDetectadas.length,
+      }),
     })
     const data = await res.json()
     setConfirman(false)
@@ -514,10 +546,12 @@ useEffect(() => {
       setResumo('')
       setBancoDetectado(null)
       setContaUpload('')
+      setUploadMeta(null)
       setEtapaConfirmacao(false)
       setContaInlineAberta(false)
       setSucesso(true)
       carregarHistorico()
+      carregarImportacoes()
       setTimeout(() => setSucesso(false), 3000)
     } else {
       setErro(data.error || 'Erro ao confirmar')
@@ -1329,6 +1363,58 @@ useEffect(() => {
 
         {/* ─── Histórico ─── */}
         <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
+
+          {/* ── Histórico de importações ── */}
+          {(importacoes.length > 0 || loadingImportacoes) && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>Importações recentes</div>
+              {loadingImportacoes ? (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', padding: '12px 0' }}>Carregando...</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {importacoes.map(imp => {
+                    const formatoIcon: Record<string, string> = { csv: '📊', ofx: '🏦', pdf: '📄', imagem: '🖼️' }
+                    const icon = formatoIcon[imp.formato || ''] || '📁'
+                    const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
+                    const dataStr = new Date(imp.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+                    const taxaAproveitamento = imp.total_detectadas > 0
+                      ? Math.round((imp.total_inseridas / imp.total_detectadas) * 100)
+                      : 0
+                    return (
+                      <div key={imp.id} style={{ background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 10, padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{dataStr}</div>
+                            {/* Barra de progresso: inseridas vs duplicatas */}
+                            {imp.total_detectadas > 0 && (
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ display: 'flex', height: 4, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,.06)' }}>
+                                  <div style={{ width: `${taxaAproveitamento}%`, background: '#16a34a', transition: 'width .3s' }} />
+                                  {imp.total_duplicatas > 0 && (
+                                    <div style={{ width: `${Math.round((imp.total_duplicatas / imp.total_detectadas) * 100)}%`, background: 'rgba(239,68,68,.4)' }} />
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+                                  <span style={{ fontSize: 10, color: '#4ade80' }}>✓ {imp.total_inseridas} lançado{imp.total_inseridas !== 1 ? 's' : ''}</span>
+                                  {imp.total_duplicatas > 0 && (
+                                    <span style={{ fontSize: 10, color: 'rgba(239,68,68,.6)' }}>⊘ {imp.total_duplicatas} duplicata{imp.total_duplicatas !== 1 ? 's' : ''}</span>
+                                  )}
+                                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{imp.total_detectadas} detectados</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500 }}>Lançamentos recentes</div>
             <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>

@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  const { transacoes, conta_id } = await request.json()
+  const { transacoes, conta_id, arquivo_nome, formato, banco_nome, total_detectadas } = await request.json()
   if (!transacoes?.length) return NextResponse.json({ error: 'Nenhuma transação' }, { status: 400 })
 
   type TransacaoEntrada = {
@@ -35,6 +35,13 @@ export async function POST(request: NextRequest) {
   const duplas = paraInserir.filter(t => t.ref_externa && refsJaExistentes.has(t.ref_externa))
 
   if (!novas.length) {
+    // Registra importação mesmo que tudo fosse duplicata
+    supabase.from('importacoes').insert({
+      user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
+      banco_nome: banco_nome || null, conta_id: conta_id || null,
+      total_detectadas: total_detectadas ?? transacoes.length,
+      total_inseridas: 0, total_duplicatas: transacoes.length,
+    }).then(() => null)
     return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length, mensagem: `Todos os ${transacoes.length} lançamentos já existem no sistema.` })
   }
 
@@ -62,13 +69,23 @@ export async function POST(request: NextRequest) {
 
   logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
 
+  const totalDuplicatas = duplas.length + (transacoes.length - paraInserir.length)
+
+  // Registra histórico de importação (não-bloqueante)
+  supabase.from('importacoes').insert({
+    user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
+    banco_nome: banco_nome || null, conta_id: conta_id || null,
+    total_detectadas: total_detectadas ?? transacoes.length,
+    total_inseridas: data.length, total_duplicatas: totalDuplicatas,
+  }).then(() => null)
+
   verificarConquistas(supabase, user.id).catch(() => null)
   verificarEventosPosLancamento(supabase, user.id, novas)
 
   return NextResponse.json({
     ok: true,
     lançados: data.length,
-    duplicatas_ignoradas: duplas.length + (transacoes.length - paraInserir.length),
+    duplicatas_ignoradas: totalDuplicatas,
     ...(duplas.length > 0 && { mensagem: `${duplas.length} lançamento${duplas.length > 1 ? 's' : ''} ignorado${duplas.length > 1 ? 's' : ''} por já existirem no sistema.` }),
   })
 }
