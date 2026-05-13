@@ -81,6 +81,15 @@ export default function PerfilPage() {
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
   const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades'>('perfil')
+
+  // Família app
+  const [familiaGrupo, setFamiliaGrupo]       = useState<{ id: string } | null>(null)
+  const [familiaMembros, setFamiliaMembros]   = useState<{ id: string; permissao: string; created_at: string; membro_id: string; profiles: { nome: string; avatar_url?: string | null } | null }[]>([])
+  const [familiaConvites, setFamiliaConvites] = useState<{ id: string; email: string; permissao: string; expires_at: string }[]>([])
+  const [familiaEmail, setFamiliaEmail]       = useState('')
+  const [familiaPerm, setFamiliaPerm]         = useState<'leitura' | 'edicao'>('leitura')
+  const [familiaConvidando, setFamiliaConvid] = useState(false)
+  const [familiaRem, setFamiliaRem]           = useState<string | null>(null)
   const [prioridades, setPrioridades] = useState<Array<{ tipo: string; titulo: string; icon: string; ordem: number }>>([])
   const [editandoPrioridades, setEditandoPrioridades] = useState(false)
   const [prioridadesSelecionadas, setPrioridadesSelecionadas] = useState<string[]>([])
@@ -228,8 +237,46 @@ export default function PerfilPage() {
 
       setMembros(membrosCompletos as GrupoMembro[])
     }
+    // Família app
+    const famRes = await fetch('/api/familia')
+    if (famRes.ok) {
+      const famData = await famRes.json()
+      setFamiliaGrupo(famData.grupo || null)
+      setFamiliaMembros(famData.membros || [])
+      setFamiliaConvites(famData.convites || [])
+    }
+
     setLoading(false)
   }, [supabase, router])
+
+  async function familiaConvidar() {
+    if (!familiaEmail.trim()) return
+    setFamiliaConvid(true)
+    const res = await fetch('/api/familia/convite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: familiaEmail.trim(), permissao: familiaPerm }),
+    })
+    const d = await res.json()
+    setFamiliaConvid(false)
+    if (d.ok) {
+      setFamiliaEmail('')
+      setSucesso('Convite enviado por e-mail!')
+      setTimeout(() => setSucesso(''), 3000)
+      // Recarrega
+      const famRes = await fetch('/api/familia')
+      if (famRes.ok) { const fd = await famRes.json(); setFamiliaGrupo(fd.grupo); setFamiliaMembros(fd.membros || []); setFamiliaConvites(fd.convites || []) }
+    } else {
+      setErro(d.error || 'Erro ao enviar convite')
+    }
+  }
+
+  async function familiaRemoverMembro(id: string) {
+    setFamiliaRem(id)
+    await fetch(`/api/familia/membro/${id}`, { method: 'DELETE' })
+    setFamiliaMembros(prev => prev.filter(m => m.id !== id))
+    setFamiliaRem(null)
+  }
 
   const carregarMfa = useCallback(async () => {
     const { data } = await supabase.auth.mfa.listFactors()
@@ -615,7 +662,7 @@ export default function PerfilPage() {
             { id: 'prioridades',   label: '🎯 Prioridades' },
             { id: 'configuracoes', label: 'Configurações' },
             { id: 'webhook',       label: 'Webhook' },
-            { id: 'grupo',         label: 'Grupo' },
+            { id: 'grupo',         label: '👥 Pessoas' },
             { id: 'plano',         label: 'Plano' },
             { id: 'seguranca',     label: 'Segurança' },
           ] as const).map(a => (
@@ -1146,6 +1193,90 @@ export default function PerfilPage() {
                 </div>
               )
             })()}
+
+            {/* ── Acesso ao App (Família) ── */}
+            <div style={{ marginTop: 8, borderTop: `1px solid ${cores.borderMid}`, paddingTop: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: cores.text, marginBottom: 4 }}>👨‍👩‍👧 Acesso ao App — Família</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+                Convide pessoas por e-mail para acessar seu painel financeiro. Permissão de <strong style={{ color: cores.text }}>leitura</strong> permite apenas visualizar; <strong style={{ color: cores.text }}>edição</strong> permite lançar transações.
+              </div>
+
+              {/* Formulário de convite */}
+              <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10 }}>Convidar por e-mail</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <input
+                    type="email"
+                    value={familiaEmail}
+                    onChange={e => setFamiliaEmail(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && familiaConvidar()}
+                    placeholder="email@exemplo.com"
+                    style={{ ...inputStyle, flex: 1, minWidth: 180 }}
+                  />
+                  <select value={familiaPerm} onChange={e => setFamiliaPerm(e.target.value as 'leitura' | 'edicao')} style={{ ...inputStyle, width: 120 }}>
+                    <option value="leitura">Leitura</option>
+                    <option value="edicao">Edição</option>
+                  </select>
+                  <button onClick={familiaConvidar} disabled={familiaConvidando || !familiaEmail.trim()}
+                    style={{ padding: '9px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: familiaConvidando ? 'default' : 'pointer', opacity: familiaConvidando ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                    {familiaConvidando ? 'Enviando...' : 'Convidar'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Convites pendentes */}
+              {familiaConvites.length > 0 && (
+                <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem', marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10, color: cores.textMuted }}>Convites pendentes</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {familiaConvites.map(c => (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: 'rgba(251,191,36,.05)', border: '1px solid rgba(251,191,36,.15)', borderRadius: 8 }}>
+                        <div>
+                          <div style={{ fontSize: 12, color: cores.text }}>{c.email}</div>
+                          <div style={{ fontSize: 10, color: cores.textFaint }}>
+                            {c.permissao === 'edicao' ? 'Edição' : 'Leitura'} · expira {new Date(c.expires_at).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>Aguardando</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Membros com acesso */}
+              <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem' }}>
+                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10 }}>Membros com acesso ({familiaMembros.length})</div>
+                {familiaMembros.length === 0 ? (
+                  <div style={{ fontSize: 12, color: cores.textMuted }}>Nenhum membro ainda. Envie um convite acima.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {familiaMembros.map(m => {
+                      const prof = m.profiles
+                      return (
+                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: cores.surfaceAlt, borderRadius: 8, border: `1px solid ${cores.borderMid}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                              {(prof?.nome || '?')[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500 }}>{prof?.nome || 'Usuário'}</div>
+                              <div style={{ fontSize: 10, color: cores.textFaint }}>
+                                {m.permissao === 'edicao' ? '✏️ Edição' : '👁 Leitura'} · desde {new Date(m.created_at).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                          </div>
+                          <button onClick={() => familiaRemoverMembro(m.id)} disabled={familiaRem === m.id}
+                            style={{ padding: '4px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: familiaRem === m.id ? 'default' : 'pointer', opacity: familiaRem === m.id ? 0.5 : 1 }}>
+                            {familiaRem === m.id ? '...' : 'Remover'}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
