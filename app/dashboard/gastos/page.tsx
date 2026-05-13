@@ -53,6 +53,7 @@ export default function GastosPage() {
   const [catFiltro, setCatFiltro]     = useState('Todas')
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
   const [busca, setBusca]             = useState('')
+  const [contaFiltro, setContaFiltro] = useState('')
   const [periodo, setPeriodo]         = useState('30')
   const [abaGrafico, setAbaGrafico]   = useState<'categoria' | 'evolucao' | 'comparativo'>('categoria')
   const [catDrilldown, setCatDrilldown] = useState<string | null>(null)
@@ -136,10 +137,11 @@ export default function GastosPage() {
     if (catFiltro !== 'Todas' && t.categoria !== catFiltro) return false
     if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
     if (busca && !t.descricao.toLowerCase().includes(busca.toLowerCase())) return false
+    if (contaFiltro && t.conta_id !== contaFiltro) return false
     return true
-  }), [transacoes, catFiltro, tipoFiltro, busca])
+  }), [transacoes, catFiltro, tipoFiltro, busca, contaFiltro])
 
-  const filtroAtivo = catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca !== ''
+  const filtroAtivo = catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca !== '' || contaFiltro !== ''
 
   // métricas da seleção filtrada (para o rodapé da tabela)
   const totalReceitasFiltradas = filtradas.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
@@ -248,6 +250,26 @@ export default function GastosPage() {
     carregar()
   }
 
+  // ─── exportar CSV ───
+  function exportarCSV() {
+    const header = 'Data;Descrição;Categoria;Tipo;Valor;Conta'
+    const rows = filtradas.map(t => {
+      const conta = contas.find(c => c.id === t.conta_id)
+      const contaNome = conta ? `${conta.bancos?.nome_curto || ''} ${conta.nome}`.trim() : ''
+      const valor = Math.abs(t.valor).toFixed(2).replace('.', ',')
+      const data = new Date(t.data_hora).toLocaleDateString('pt-BR')
+      return `${data};"${t.descricao}";"${t.categoria}";${t.tipo === 'debito' ? 'Despesa' : 'Receita'};${t.tipo === 'debito' ? '-' : ''}${valor};"${contaNome}"`
+    })
+    const csv = [header, ...rows].join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `lancamentos_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // ─── modal edição ───
   function abrirEdicao(t: Transacao) {
     setTransacaoEditando(t)
@@ -341,10 +363,11 @@ export default function GastosPage() {
               {tipoFiltro !== 'todos' && <strong style={{ color: tipoFiltro === 'credito' ? '#4ade80' : '#f87171' }}>{tipoFiltro === 'credito' ? 'Receitas' : 'Despesas'}</strong>}
               {catFiltro !== 'Todas' && <>{tipoFiltro !== 'todos' ? ' · ' : ''}<strong style={{ color: '#fff' }}>{catFiltro}</strong></>}
              {busca && <>{(tipoFiltro !== 'todos' || catFiltro !== 'Todas') ? ' · ' : ''}{'"'}<strong style={{ color: '#fff' }}>{busca}</strong>{'"'}</>}
+              {contaFiltro && <>{' · '}<strong style={{ color: '#fbbf24' }}>{contas.find(c => c.id === contaFiltro)?.nome || 'Conta'}</strong></>}
               {' · '}<strong style={{ color: '#fff' }}>{filtradas.length}</strong> de <strong style={{ color: '#fff' }}>{transacoes.length}</strong> transações
               {' · '}<span>Os totais acima refletem o período completo</span>
             </span>
-            <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca('') }}
+            <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }}
               style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 18, lineHeight: 1 }}>×</button>
           </div>
         )}
@@ -657,8 +680,18 @@ export default function GastosPage() {
             }}>
               {CATEGORIAS.map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
             </select>
+            {contas.length > 0 && (
+              <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
+                padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
+                borderRadius: 8, color: contaFiltro ? '#fff' : 'rgba(255,255,255,.5)',
+                fontSize: 12, outline: 'none', cursor: 'pointer',
+              }}>
+                <option value="">Todas as contas</option>
+                {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+              </select>
+            )}
             {filtroAtivo && (
-              <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca('') }} style={{
+              <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }} style={{
                 padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
                 borderRadius: 8, color: '#f87171', fontSize: 11, cursor: 'pointer',
               }}>Limpar filtros</button>
@@ -666,6 +699,14 @@ export default function GastosPage() {
             <div style={{ marginLeft: 'auto', fontSize: 11, color: filtroAtivo ? '#818cf8' : 'rgba(255,255,255,.35)', fontWeight: filtroAtivo ? 500 : 400 }}>
               {filtradas.length} de {transacoes.length} transações
             </div>
+            <button onClick={exportarCSV} title="Exportar CSV" style={{
+              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+              background: 'rgba(129,140,248,.1)', border: '1px solid rgba(129,140,248,.25)',
+              borderRadius: 8, color: '#818cf8', fontSize: 11, cursor: 'pointer',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Exportar CSV
+            </button>
           </div>
 
           {/* Barra de ações em lote */}
