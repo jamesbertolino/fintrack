@@ -2,7 +2,52 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
+
+function BotaoAssinar({ plano, label }: { plano: string; label: string }) {
+  const router = useRouter()
+  const [carregando, setCarregando] = useState(false)
+
+  async function handleClick() {
+    setCarregando(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        // Não logado → vai pro login com next apontando pro setup (que detecta o plano)
+        router.push(`/login?next=%2Fsetup`)
+        return
+      }
+
+      // Já logado → inicia checkout direto
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plano }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        router.push(`/setup`)
+      }
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={carregando}
+      style={{ display: 'block', width: '100%', marginTop: 24, background: carregando ? '#15803d' : '#16a34a', color: '#fff', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, border: 'none', transition: 'background .15s', cursor: carregando ? 'default' : 'pointer', opacity: carregando ? 0.8 : 1 }}
+    >
+      {carregando ? 'Aguarde...' : label}
+    </button>
+  )
+}
 
 export default function LandingPage() {
   const router = useRouter()
@@ -275,11 +320,7 @@ export default function LandingPage() {
                 {f}
               </div>
             ))}
-            <a href="/login?next=%2Fdashboard%2Fperfil%3Fassinar%3Dpro"
-               style={{ display: 'block', marginTop: 24, background: '#16a34a', color: '#fff', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, textDecoration: 'none', border: 'none', transition: 'background .15s', cursor: 'pointer' }}
-               className="hover-green">
-              Assinar Pro — R$ 29/mês →
-            </a>
+            <BotaoAssinar plano="pro" label="Assinar Pro — R$ 29/mês →" />
             <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: 'rgba(255,255,255,.25)' }}>
               🔒 Pagamento seguro via Stripe
             </div>
