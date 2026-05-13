@@ -70,6 +70,7 @@ interface Transacao {
   data_hora: string
   origem: string
   conta_id?: string
+  importacao_id?: string | null
 }
 
 interface TransacaoDetectada {
@@ -149,7 +150,10 @@ type TransacaoLote = {
 }
 
 // ─── Componente: Histórico de importações expansível ────────────────────────
-function ImportacoesHistorico({ importacoes, loading }: { importacoes: ImportacaoItem[]; loading: boolean }) {
+function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: {
+  importacoes: ImportacaoItem[]; loading: boolean
+  filtroAtivo: string | null; onFiltrar: (id: string | null) => void
+}) {
   const [expandido, setExpandido] = useState<string | null>(null)
   const [lotes, setLotes] = useState<Record<string, TransacaoLote[]>>({})
   const [carregandoLote, setCarregandoLote] = useState<string | null>(null)
@@ -190,7 +194,7 @@ function ImportacoesHistorico({ importacoes, loading }: { importacoes: Importaca
             const transacoes = lotes[imp.id] || []
 
             return (
-              <div key={imp.id} style={{ background: '#0a1a0a', border: `1px solid ${aberto ? '#2a4a2a' : '#1a3a1a'}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color .2s' }}>
+              <div key={imp.id} style={{ background: '#0a1a0a', border: `1px solid ${filtroAtivo === imp.id ? '#818cf8' : aberto ? '#2a4a2a' : '#1a3a1a'}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color .2s' }}>
                 {/* Cabeçalho clicável */}
                 <button
                   onClick={() => toggleExpand(imp.id)}
@@ -201,6 +205,9 @@ function ImportacoesHistorico({ importacoes, loading }: { importacoes: Importaca
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{nome}</div>
+                        {filtroAtivo === imp.id && (
+                          <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 6, background: 'rgba(129,140,248,.15)', color: '#818cf8', border: '1px solid rgba(129,140,248,.3)', flexShrink: 0 }}>filtrado</span>
+                        )}
                         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform .2s', transform: aberto ? 'rotate(180deg)' : 'none' }}>
                           <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.3)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
@@ -233,22 +240,30 @@ function ImportacoesHistorico({ importacoes, loading }: { importacoes: Importaca
                         {imp.total_inseridas === 0 ? 'Nenhuma transação foi inserida neste lote.' : 'Transações importadas antes do vínculo por lote.'}
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
-                        {transacoes.map(t => (
-                          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: CATEGORIA_COR[t.categoria] || '#6b7280', flexShrink: 0 }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao}</div>
-                              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
-                                {t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}
+                      <>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
+                          {transacoes.map(t => (
+                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: CATEGORIA_COR[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao}</div>
+                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
+                                  {t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(t.valor)}
                               </div>
                             </div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(t.valor)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => onFiltrar(filtroAtivo === imp.id ? null : imp.id)}
+                          style={{ marginTop: 10, width: '100%', padding: '6px', background: filtroAtivo === imp.id ? 'rgba(129,140,248,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${filtroAtivo === imp.id ? 'rgba(129,140,248,.35)' : 'rgba(255,255,255,.1)'}`, borderRadius: 7, color: filtroAtivo === imp.id ? '#818cf8' : 'rgba(255,255,255,.4)', fontSize: 11, cursor: 'pointer' }}
+                        >
+                          {filtroAtivo === imp.id ? '✕ Remover filtro do histórico' : '↓ Filtrar histórico por este lote'}
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
@@ -292,6 +307,9 @@ export default function LancamentoPage() {
 
   // ─── filtro de conta no histórico ───
   const [filtroContaId, setFiltroContaId] = useState('')
+
+  // ─── filtro por importação ───
+  const [filtroImportacaoId, setFiltroImportacaoId] = useState<string | null>(null)
 
   // ─── seleção em lote ───
   const [selecionados, setSelecionados] = useState<string[]>([])
@@ -1526,13 +1544,32 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
             <ImportacoesHistorico
               importacoes={importacoes}
               loading={loadingImportacoes}
+              filtroAtivo={filtroImportacaoId}
+              onFiltrar={setFiltroImportacaoId}
             />
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: filtroImportacaoId ? 8 : '1rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500 }}>Lançamentos recentes</div>
             <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>
           </div>
+
+          {/* Banner: filtro por importação ativo */}
+          {filtroImportacaoId && (() => {
+            const imp = importacoes.find(i => i.id === filtroImportacaoId)
+            const nome = imp?.arquivo_nome || imp?.banco_nome || 'Importação'
+            const qtd = historico.filter(t => t.importacao_id === filtroImportacaoId).length
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1rem', padding: '7px 12px', background: 'rgba(129,140,248,.07)', border: '1px solid rgba(129,140,248,.25)', borderRadius: 8 }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 3h10M3 6h6M5 9h2" stroke="#818cf8" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.55)', flex: 1 }}>
+                  Filtrando por <strong style={{ color: '#fff' }}>{nome}</strong>
+                  {' · '}<strong style={{ color: '#818cf8' }}>{qtd}</strong> de {historico.length} lançamentos
+                </span>
+                <button onClick={() => setFiltroImportacaoId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 16, lineHeight: 1 }}>×</button>
+              </div>
+            )
+          })()}
 
           {/* Filtro por conta */}
           {contas.length > 0 && (
@@ -1596,7 +1633,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {historico.map(t => (
+                {(filtroImportacaoId ? historico.filter(t => t.importacao_id === filtroImportacaoId) : historico).map(t => (
                   <div key={t.id} style={{
                     background: selecionados.includes(t.id) ? '#0d2a0d' : '#111',
                     border: `1px solid ${selecionados.includes(t.id) ? '#1a5a1a' : '#1a3a1a'}`,
