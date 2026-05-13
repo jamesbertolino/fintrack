@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.5.1'
+export const APP_VERSION = '2.6.0'
 export const APP_BUILD   = '2026.05.13'
 
 /**
@@ -29,4 +29,5 @@ export const APP_BUILD   = '2026.05.13'
  * 2.4.4 · 2026.05.13 — Modal de edição completo: toggle débito/crédito, valor editável, badge de origem
  * 2.5.0 · 2026.05.13 — Gastos: filtro por conta + exportar CSV com BOM UTF-8
  * 2.5.1 · 2026.05.13 — Filtrar histórico por lote de importação: botão no card expansível + banner
+ * 2.6.0 · 2026.05.13 — Dashboard: gráfico de saldo dos últimos 30 dias (SVG inline, sem libs extras)
  */

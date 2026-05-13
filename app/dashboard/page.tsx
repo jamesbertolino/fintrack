@@ -25,6 +25,96 @@ interface Transacao {
   data_hora: string
 }
 
+function GraficoSaldo({ transacoes, accentColor, isMobile }: { transacoes: Transacao[]; accentColor: string; isMobile: boolean }) {
+  const dias = 30
+  const hoje = new Date()
+  hoje.setHours(23, 59, 59, 999)
+  const inicio = new Date(hoje)
+  inicio.setDate(inicio.getDate() - dias + 1)
+  inicio.setHours(0, 0, 0, 0)
+
+  // Saldo acumulado até antes do período (base)
+  const base = transacoes
+    .filter(t => new Date(t.data_hora) < inicio)
+    .reduce((s, t) => s + (t.tipo === 'credito' ? t.valor : -Math.abs(t.valor)), 0)
+
+  // Agrupar por dia
+  const porDia: Record<string, number> = {}
+  for (let d = 0; d < dias; d++) {
+    const dt = new Date(inicio)
+    dt.setDate(dt.getDate() + d)
+    porDia[dt.toISOString().slice(0, 10)] = 0
+  }
+  transacoes
+    .filter(t => { const dt = new Date(t.data_hora); return dt >= inicio && dt <= hoje })
+    .forEach(t => {
+      const key = new Date(t.data_hora).toISOString().slice(0, 10)
+      if (key in porDia) porDia[key] += t.tipo === 'credito' ? t.valor : -Math.abs(t.valor)
+    })
+
+  const keys = Object.keys(porDia).sort()
+  let acum = base
+  const pontos = keys.map(k => { acum += porDia[k]; return { data: k, saldo: acum } })
+
+  if (pontos.length < 2) return null
+
+  const W = isMobile ? 340 : 560
+  const H = 80
+  const pad = { l: 48, r: 8, t: 8, b: 20 }
+  const cw = W - pad.l - pad.r
+  const ch = H - pad.t - pad.b
+
+  const vals = pontos.map(p => p.saldo)
+  const minV = Math.min(...vals)
+  const maxV = Math.max(...vals)
+  const range = maxV - minV || 1
+
+  const px = (i: number) => pad.l + (i / (pontos.length - 1)) * cw
+  const py = (v: number) => pad.t + ch - ((v - minV) / range) * ch
+
+  const path = pontos.map((p, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(p.saldo).toFixed(1)}`).join(' ')
+  const area = `${path} L${px(pontos.length - 1).toFixed(1)},${(pad.t + ch).toFixed(1)} L${pad.l.toFixed(1)},${(pad.t + ch).toFixed(1)} Z`
+
+  // Labels: início, meio, fim
+  const labelIdxs = [0, Math.floor(pontos.length / 2), pontos.length - 1]
+  const fmtLbl = (iso: string) => { const d = new Date(iso + 'T12:00:00'); return `${d.getDate()}/${d.getMonth() + 1}` }
+
+  // Y ticks
+  const yTicks = [minV, (minV + maxV) / 2, maxV]
+
+  return (
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', display: 'block' }}>
+      <defs>
+        <linearGradient id="saldo-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={accentColor} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={accentColor} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {/* Y grid lines */}
+      {yTicks.map((v, i) => (
+        <g key={i}>
+          <line x1={pad.l} y1={py(v)} x2={W - pad.r} y2={py(v)} stroke="rgba(255,255,255,.06)" strokeWidth="1" />
+          <text x={pad.l - 4} y={py(v) + 3.5} textAnchor="end" fontSize="8" fill="rgba(255,255,255,.3)">
+            {Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v.toFixed(0)}
+          </text>
+        </g>
+      ))}
+      {/* Area fill */}
+      <path d={area} fill="url(#saldo-grad)" />
+      {/* Line */}
+      <path d={path} fill="none" stroke={accentColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Last point dot */}
+      <circle cx={px(pontos.length - 1)} cy={py(pontos[pontos.length - 1].saldo)} r="3" fill={accentColor} />
+      {/* X labels */}
+      {labelIdxs.map(i => (
+        <text key={i} x={px(i)} y={H - 4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,.3)">
+          {fmtLbl(pontos[i].data)}
+        </text>
+      ))}
+    </svg>
+  )
+}
+
 interface Meta {
   id: string
   nome: string
@@ -581,6 +671,21 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
+
+              {/* Gráfico saldo ao longo do tempo */}
+              {transacoes.length > 1 && (
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                      {m ? '📈 Tesouro — últimos 30 dias' : '📈 Saldo — últimos 30 dias'}
+                    </span>
+                    <span style={{ fontSize: 10, color: saldo >= 0 ? tx.accentColor : '#f87171', fontWeight: 600 }}>
+                      {formatBRL(saldo)}
+                    </span>
+                  </div>
+                  <GraficoSaldo transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
+                </div>
+              )}
 
               {/* Saldos por conta */}
               {contas.length > 0 && (
