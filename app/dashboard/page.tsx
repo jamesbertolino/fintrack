@@ -53,8 +53,11 @@ function GraficoSaldo({ transacoes, accentColor, isMobile }: { transacoes: Trans
     })
 
   const keys = Object.keys(porDia).sort()
-  let acum = base
-  const pontos = keys.map(k => { acum += porDia[k]; return { data: k, saldo: acum } })
+  const pontos = keys.reduce<{ data: string; saldo: number }[]>((acc, k) => {
+    const prev = acc.length > 0 ? acc[acc.length - 1].saldo : base
+    acc.push({ data: k, saldo: prev + porDia[k] })
+    return acc
+  }, [])
 
   if (pontos.length < 2) return null
 
