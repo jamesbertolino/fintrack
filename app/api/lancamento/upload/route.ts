@@ -856,9 +856,16 @@ export async function POST(request: NextRequest) {
       if (process.env.OPENAI_API_KEY) {
         try {
           const iaResult = await processarCSVComIA(texto)
-          parsed = (iaResult.transacoes || []).map((t: TransacaoDetectada) => ({
-            ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
-          }))
+          parsed = (iaResult.transacoes || []).map((t: TransacaoDetectada) => {
+            const nao_categorizado = t.nao_categorizado ?? (t.categoria === 'Outros')
+            // Gera ref_externa se a IA não forneceu — garante deduplicação em reimportações
+            const ref_externa = t.ref_externa || (() => {
+              const dt = t.data_hora ? new Date(t.data_hora).toLocaleDateString('pt-BR') : ''
+              const desc = (t.descricao || '').slice(0, 40).toUpperCase()
+              return dt ? `csv:${dt}:${Math.abs(t.valor)}:${desc}` : undefined
+            })()
+            return { ...t, nao_categorizado, ref_externa }
+          })
           tipoDoc = iaResult.tipo_documento || 'extrato_bancario'
           bancoNomeCSV = iaResult.banco_nome || null
         } catch (e) {
