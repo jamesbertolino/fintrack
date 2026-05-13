@@ -180,7 +180,7 @@ useEffect(() => {
     ])
 
     if (prof) {
-      if (prof.setup_completo === false) { router.push('/onboarding'); return }
+      if (prof.setup_completo === false) { router.push('/setup'); return }
       setProfile(prof)
     }
     if (tx)   setTransacoes(tx)
