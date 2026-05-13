@@ -249,9 +249,9 @@ export default function SetupPage() {
             </button>
             <button
               style={{ ...btnSecondary, marginTop: 10, fontSize: 12 }}
-              onClick={() => router.push('/dashboard/perfil?aba=plano')}
+              onClick={() => window.open('/#precos', '_blank')}
             >
-              Ver planos e fazer upgrade
+              Ver planos e fazer upgrade ↗
             </button>
           </div>
         )}
