@@ -12,9 +12,33 @@ export async function POST(request: NextRequest) {
   const { transacoes, conta_id } = await request.json()
   if (!transacoes?.length) return NextResponse.json({ error: 'Nenhuma transação' }, { status: 400 })
 
-  const inserir = transacoes.map((t: {
-    descricao: string; valor: number; tipo: string; categoria: string; data_hora: string; ref_externa?: string
-  }) => ({
+  type TransacaoEntrada = {
+    descricao: string; valor: number; tipo: string; categoria: string
+    data_hora: string; ref_externa?: string; confirmada_duplicata?: boolean
+  }
+
+  // Separa as que o usuário marcou para ignorar (confirmada_duplicata ainda true = já existe, não inserir)
+  const paraInserir = (transacoes as TransacaoEntrada[]).filter(t => !t.confirmada_duplicata)
+  if (!paraInserir.length) return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length })
+
+  // Antes de inserir, re-verifica ref_externa no banco para evitar race condition
+  const refs = paraInserir.map(t => t.ref_externa).filter(Boolean) as string[]
+  const refsJaExistentes = new Set<string>()
+  if (refs.length) {
+    const { data: existentes } = await supabase
+      .from('transactions').select('ref_externa')
+      .eq('user_id', user.id).in('ref_externa', refs)
+    existentes?.forEach(e => { if (e.ref_externa) refsJaExistentes.add(e.ref_externa) })
+  }
+
+  const novas  = paraInserir.filter(t => !t.ref_externa || !refsJaExistentes.has(t.ref_externa))
+  const duplas = paraInserir.filter(t => t.ref_externa && refsJaExistentes.has(t.ref_externa))
+
+  if (!novas.length) {
+    return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length, mensagem: `Todos os ${transacoes.length} lançamentos já existem no sistema.` })
+  }
+
+  const inserir = novas.map(t => ({
     user_id:      user.id,
     descricao:    t.descricao.toUpperCase(),
     valor:        t.tipo === 'debito' ? -Math.abs(t.valor) : Math.abs(t.valor),
@@ -28,13 +52,23 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase.from('transactions').insert(inserir).select('id')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Violação de unique constraint (23505) — algum chegou em paralelo
+    if (error.code === '23505') {
+      return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: inserir.length, mensagem: 'Lançamentos já existem no sistema (inserção simultânea).' })
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 
   logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
 
-  // Verifica conquistas e eventos (metas/orçamentos) de forma não-bloqueante
   verificarConquistas(supabase, user.id).catch(() => null)
-  verificarEventosPosLancamento(supabase, user.id, transacoes)
+  verificarEventosPosLancamento(supabase, user.id, novas)
 
-  return NextResponse.json({ ok: true, lançados: data.length })
+  return NextResponse.json({
+    ok: true,
+    lançados: data.length,
+    duplicatas_ignoradas: duplas.length + (transacoes.length - paraInserir.length),
+    ...(duplas.length > 0 && { mensagem: `${duplas.length} lançamento${duplas.length > 1 ? 's' : ''} ignorado${duplas.length > 1 ? 's' : ''} por já existirem no sistema.` }),
+  })
 }

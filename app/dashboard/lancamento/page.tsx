@@ -220,6 +220,9 @@ export default function LancamentoPage() {
   const [modalContaNaoEncontrada, setModalContaNaoEncontrada] = useState(false)
   const [bancoNaoEncontrado, setBancoNaoEncontrado] = useState('')
 
+  // ─── modal confirmação de potenciais duplicatas ───
+  const [modalDuplicatas, setModalDuplicatas] = useState(false)
+
   useEffect(() => {
     const client = createClient()
     client.auth.getUser().then(({ data: { user } }) => {
@@ -492,7 +495,12 @@ useEffect(() => {
     ))
   }
 
-  async function confirmarLancamentos() {
+  async function confirmarLancamentos(forcarDuplicatas = false) {
+    // Se ainda há potenciais duplicatas e o usuário não confirmou, abre modal
+    if (!forcarDuplicatas && transacoesDetectadas.some(t => t.potencial_duplicata)) {
+      setModalDuplicatas(true)
+      return
+    }
     setConfirman(true)
     const res = await fetch('/api/lancamento/confirmar', {
       method: 'POST',
@@ -605,6 +613,34 @@ useEffect(() => {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
+
+      {/* ─── Modal: confirmação de potenciais duplicatas ─── */}
+      {modalDuplicatas && (() => {
+        const qtd = transacoesDetectadas.filter(t => t.potencial_duplicata).length
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ background: '#0f1f0f', border: '1px solid rgba(249,115,22,.35)', borderRadius: 14, padding: 24, maxWidth: 420, width: '100%' }}>
+              <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>🔁 Possíveis duplicatas detectadas</div>
+              <p style={{ fontSize: 13, color: 'rgba(255,255,255,.6)', lineHeight: 1.6, marginBottom: 20 }}>
+                {qtd} lançamento{qtd > 1 ? 's têm' : ' tem'} o mesmo valor e data próxima de registros já existentes no histórico.
+                <br />Deseja lançar mesmo assim?
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { setModalDuplicatas(false); descartarDuplicatas() }}
+                  style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid rgba(249,115,22,.4)', borderRadius: 8, color: '#f97316', fontSize: 13, cursor: 'pointer' }}>
+                  Descartar {qtd} duplicata{qtd > 1 ? 's' : ''}
+                </button>
+                <button
+                  onClick={() => { setModalDuplicatas(false); confirmarLancamentos(true) }}
+                  style={{ flex: 1, padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  Lançar mesmo assim
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 12 }}>
@@ -1263,7 +1299,7 @@ useEffect(() => {
                         style={{ flex: 1, padding: '9px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer' }}>
                         ← Alterar conta
                       </button>
-                      <button onClick={confirmarLancamentos} disabled={confirmando}
+                      <button onClick={() => confirmarLancamentos()} disabled={confirmando}
                         style={{ flex: 2, padding: '9px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: confirmando ? 'default' : 'pointer', opacity: confirmando ? 0.7 : 1 }}>
                         {confirmando ? 'Lançando...' : `✓ Confirmar ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
                       </button>

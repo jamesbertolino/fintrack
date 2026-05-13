@@ -84,7 +84,9 @@ function processarCSV(texto: string): TransacaoDetectada[] {
     const tipo  = credito > 0 ? 'credito' : 'debito'
     const valor = credito > 0 ? credito : debito
     const { categoria, nao_categorizado } = detectarCategoria(hist)
-    resultado.push({ descricao: hist.trim().toUpperCase(), valor, tipo, categoria, data_hora: parseData(dataVal), nao_categorizado })
+    const desc = hist.trim().toUpperCase()
+    const ref_externa = `csv:${dataVal}:${valor}:${desc.slice(0, 40)}`
+    resultado.push({ descricao: desc, valor, tipo, categoria, data_hora: parseData(dataVal), nao_categorizado, ref_externa })
   }
   return resultado
 }
@@ -870,6 +872,18 @@ export async function POST(request: NextRequest) {
 
       if (!parsed.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no CSV' }, { status: 400 })
 
+      // Verifica duplicatas por ref_externa no banco
+      const refsCSV = parsed.map(t => t.ref_externa).filter(Boolean) as string[]
+      if (refsCSV.length) {
+        const { data: existentesCSV } = await supabase
+          .from('transactions').select('ref_externa')
+          .eq('user_id', user.id).in('ref_externa', refsCSV)
+        if (existentesCSV?.length) {
+          const refsExistentesCSV = new Set(existentesCSV.map(e => e.ref_externa))
+          parsed.forEach(t => { if (t.ref_externa && refsExistentesCSV.has(t.ref_externa)) t.confirmada_duplicata = true })
+        }
+      }
+
       const naoCat = parsed.filter(t => t.nao_categorizado).length
 
       let banco_id: string | null = null
@@ -993,10 +1007,24 @@ export async function POST(request: NextRequest) {
 
     if (mimeType) {
       const parsed = await processarImagem(bytes, mimeType)
-      const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => ({
-        ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'),
-      }))
+      const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => {
+        const dt = t.data_hora ? new Date(t.data_hora).toLocaleDateString('pt-BR') : ''
+        const ref_externa = t.ref_externa || (dt ? `img:${dt}:${t.valor}:${(t.descricao || '').slice(0, 40).toUpperCase()}` : undefined)
+        return { ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'), ref_externa }
+      })
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
+
+      // Verifica duplicatas por ref_externa
+      const refsImg = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
+      if (refsImg.length) {
+        const { data: existentesImg } = await supabase
+          .from('transactions').select('ref_externa')
+          .eq('user_id', user.id).in('ref_externa', refsImg)
+        if (existentesImg?.length) {
+          const refsExistentesImg = new Set(existentesImg.map(e => e.ref_externa))
+          transacoes.forEach(t => { if (t.ref_externa && refsExistentesImg.has(t.ref_externa)) t.confirmada_duplicata = true })
+        }
+      }
 
       const naoCat = transacoes.filter(t => t.nao_categorizado).length
       return NextResponse.json({
