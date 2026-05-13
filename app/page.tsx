@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 
-function BotaoAssinar({ plano, label }: { plano: string; label: string }) {
+function BotaoAssinar({ plano, label, estilo = 'primario' }: { plano: string; label: string; estilo?: 'primario' | 'secundario' }) {
   const router = useRouter()
   const [carregando, setCarregando] = useState(false)
   const [erro, setErro] = useState('')
@@ -45,7 +45,16 @@ function BotaoAssinar({ plano, label }: { plano: string; label: string }) {
       <button
         onClick={handleClick}
         disabled={carregando}
-        style={{ display: 'block', width: '100%', background: carregando ? '#15803d' : '#16a34a', color: '#fff', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, border: 'none', transition: 'background .15s', cursor: carregando ? 'default' : 'pointer', opacity: carregando ? 0.8 : 1 }}
+        style={{
+          display: 'block', width: '100%',
+          background: estilo === 'secundario' ? 'transparent' : (carregando ? '#15803d' : '#16a34a'),
+          color: estilo === 'secundario' ? 'rgba(255,255,255,.5)' : '#fff',
+          border: estilo === 'secundario' ? '1px solid rgba(255,255,255,.15)' : 'none',
+          padding: estilo === 'secundario' ? '10px' : '12px',
+          borderRadius: 10, textAlign: 'center', fontSize: estilo === 'secundario' ? 13 : 14,
+          fontWeight: 600, transition: 'background .15s', cursor: carregando ? 'default' : 'pointer',
+          opacity: carregando ? 0.8 : 1,
+        }}
       >
         {carregando ? 'Aguarde...' : label}
       </button>
@@ -321,15 +330,17 @@ export default function LandingPage() {
           <div className="fade-in" style={{ background: 'rgba(74,222,128,.04)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 16, padding: '1.75rem', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: 16, right: 16, background: '#4ade80', color: '#0a0a0a', fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>Mais popular</div>
             <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Pro ⭐</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#4ade80', marginBottom: 4 }}>R$ 29<span style={{ fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,.3)' }}>/mês</span></div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 24 }}>Cobrado mensalmente · cancele quando quiser</div>
+            <div style={{ fontSize: 40, fontWeight: 800, color: '#4ade80', marginBottom: 4 }}>R$ 27<span style={{ fontSize: 15, fontWeight: 400, color: 'rgba(255,255,255,.3)' }}>/mês</span></div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 4 }}>Cobrado mensalmente · cancele quando quiser</div>
+            <div style={{ fontSize: 11, color: '#4ade80', marginBottom: 20, opacity: .8 }}>ou R$ 197/ano <span style={{ color: 'rgba(255,255,255,.3)' }}>(economize R$ 127)</span></div>
             {['Tudo do Free', 'Grupo familiar (membros ilimitados)', 'PoupaBot avançado (IA sem limites)', 'Relatórios em PDF', 'Suporte prioritário', 'Multibancos (em breve)'].map((f) => (
               <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10, fontSize: 13, color: 'rgba(255,255,255,.65)' }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="1.5,7 5,10.5 12.5,3" stroke="#4ade80" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {f}
               </div>
             ))}
-            <BotaoAssinar plano="pro" label="Assinar Pro — R$ 29/mês →" />
+            <BotaoAssinar plano="pro_mensal" label="Assinar Pro — R$ 27/mês →" />
+            <BotaoAssinar plano="pro_anual" label="Assinar anual — R$ 197/ano →" estilo="secundario" />
             <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: 'rgba(255,255,255,.25)' }}>
               🔒 Pagamento seguro via Stripe
             </div>

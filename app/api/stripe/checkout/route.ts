@@ -7,8 +7,12 @@ function getStripe() {
 }
 
 const PRICE_IDS: Record<string, string> = {
-  pro:     process.env.STRIPE_PRICE_PRO     || '',
-  familia: process.env.STRIPE_PRICE_FAMILIA || '',
+  pro:            process.env.STRIPE_PRICE_PRO_MENSAL     || '',
+  pro_mensal:     process.env.STRIPE_PRICE_PRO_MENSAL     || '',
+  pro_anual:      process.env.STRIPE_PRICE_PRO_ANUAL      || '',
+  familia:        process.env.STRIPE_PRICE_FAMILIA_MENSAL || '',
+  familia_mensal: process.env.STRIPE_PRICE_FAMILIA_MENSAL || '',
+  familia_anual:  process.env.STRIPE_PRICE_FAMILIA_ANUAL  || '',
 }
 
 export async function POST(request: NextRequest) {
