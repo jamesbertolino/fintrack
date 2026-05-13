@@ -350,6 +350,9 @@ export default function LancamentoPage() {
   // ─── metadados do arquivo atual (para histórico de importações) ───
   const [uploadMeta, setUploadMeta] = useState<{ arquivo_nome: string; formato: string } | null>(null)
 
+  // ─── toast pós-importação ───
+  const [toastImport, setToastImport] = useState<{ lancados: number; duplicatas: number } | null>(null)
+
   // ─── histórico de importações ───
   const [importacoes, setImportacoes] = useState<ImportacaoItem[]>([])
   const [loadingImportacoes, setLoadingImportacoes] = useState(false)
@@ -667,10 +670,10 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
       setUploadMeta(null)
       setEtapaConfirmacao(false)
       setContaInlineAberta(false)
-      setSucesso(true)
       carregarHistorico()
       carregarImportacoes()
-      setTimeout(() => setSucesso(false), 3000)
+      setToastImport({ lancados: data.lançados ?? 0, duplicatas: data.duplicatas_ignoradas ?? 0 })
+      setTimeout(() => setToastImport(null), 5000)
     } else {
       setErro(data.error || 'Erro ao confirmar')
     }
@@ -793,6 +796,34 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
           </div>
         )
       })()}
+
+      {/* ─── Toast pós-importação ─── */}
+      {toastImport && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 1100,
+          background: '#0f1f0f', border: '1px solid rgba(74,222,128,.35)',
+          borderRadius: 12, padding: '14px 18px', minWidth: 260, maxWidth: 340,
+          boxShadow: '0 8px 32px rgba(0,0,0,.6)',
+          animation: 'toastIn .25s ease',
+        }}>
+          <style>{`@keyframes toastIn { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }`}</style>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(74,222,128,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="2,8 6,12 14,4" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#4ade80', marginBottom: 4 }}>Importação concluída</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>
+                <span style={{ color: '#fff', fontWeight: 500 }}>{toastImport.lancados}</span> lançamento{toastImport.lancados !== 1 ? 's' : ''} inserido{toastImport.lancados !== 1 ? 's' : ''}
+                {toastImport.duplicatas > 0 && (
+                  <> · <span style={{ color: 'rgba(239,68,68,.8)', fontWeight: 500 }}>{toastImport.duplicatas}</span> duplicata{toastImport.duplicatas !== 1 ? 's' : ''} ignorada{toastImport.duplicatas !== 1 ? 's' : ''}</>
+                )}
+              </div>
+            </div>
+            <button onClick={() => setToastImport(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 16, lineHeight: 1, flexShrink: 0, padding: 0 }}>×</button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 12 }}>
