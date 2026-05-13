@@ -1,25 +1,13 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-function makeSupabase() {
-  const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } }
-  )
-}
-
-// DELETE /api/familia/membro/[id]
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = makeSupabase()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const { id } = await params
 
-  // Verifica que o membro pertence ao grupo do usuário logado (dono)
   const { data: membro } = await supabase
     .from('familia_membros')
     .select('id, grupo_id')

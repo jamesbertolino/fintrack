@@ -61,9 +61,9 @@ export default function ConvitePage() {
         if (convite.aceito) { setErroMsg('Este convite já foi utilizado'); setEstado('invalido'); return }
         if (new Date(convite.expires_at) < new Date()) { setErroMsg('Convite expirado'); setEstado('invalido'); return }
 
-        const grupo = convite.familia_grupos as { dono_id: string; profiles: { nome: string } | { nome: string }[] } | null
-        const prof  = grupo ? (Array.isArray(grupo.profiles) ? grupo.profiles[0] : grupo.profiles) : null
-        const nomeDono = prof?.nome || 'Alguém'
+        const grupoRaw = convite.familia_grupos as unknown as { dono_id: string; profiles: { nome: string } | { nome: string }[] } | null
+        const profRaw  = grupoRaw ? (Array.isArray(grupoRaw.profiles) ? grupoRaw.profiles[0] : grupoRaw.profiles) : null
+        const nomeDono = profRaw?.nome || 'Alguém'
         setTitulo(`${nomeDono} te convidou!`)
         setSubtitulo(`Você terá acesso de <strong style="color:#fff">${convite.permissao === 'edicao' ? 'edição' : 'leitura'}</strong> ao painel financeiro compartilhado.`)
         setEstado('valido')

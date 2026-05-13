@@ -1,23 +1,11 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
-function makeSupabase() {
-  const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } }
-  )
-}
-
-// GET /api/familia — retorna grupo + membros + convites pendentes
 export async function GET() {
-  const supabase = makeSupabase()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
-  // Busca grupo onde o usuário é dono
   const { data: grupo } = await supabase
     .from('familia_grupos')
     .select('id, dono_id, created_at')
@@ -29,7 +17,7 @@ export async function GET() {
   const [{ data: membros }, { data: convites }] = await Promise.all([
     supabase
       .from('familia_membros')
-      .select('id, permissao, created_at, membro_id, profiles!familia_membros_membro_id_fkey(nome, avatar_url, email:id)')
+      .select('id, permissao, created_at, membro_id, profiles!familia_membros_membro_id_fkey(nome, avatar_url)')
       .eq('grupo_id', grupo.id),
     supabase
       .from('familia_convites')
@@ -42,9 +30,8 @@ export async function GET() {
   return NextResponse.json({ grupo, membros: membros || [], convites: convites || [] })
 }
 
-// POST /api/familia — cria o grupo (se não existir)
 export async function POST() {
-  const supabase = makeSupabase()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 

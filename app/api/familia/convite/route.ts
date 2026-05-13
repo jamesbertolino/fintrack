@@ -1,27 +1,15 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-function makeSupabase() {
-  const cookieStore = cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: (list) => list.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } }
-  )
-}
-
-// POST /api/familia/convite — cria convite e envia e-mail
 export async function POST(req: NextRequest) {
-  const supabase = makeSupabase()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const { email, permissao = 'leitura' } = await req.json()
   if (!email) return NextResponse.json({ error: 'E-mail obrigatório' }, { status: 400 })
 
-  // Garante que o grupo existe
   const { data: grupo } = await supabase
     .from('familia_grupos')
     .upsert({ dono_id: user.id }, { onConflict: 'dono_id' })
@@ -30,22 +18,22 @@ export async function POST(req: NextRequest) {
 
   if (!grupo) return NextResponse.json({ error: 'Erro ao criar grupo' }, { status: 500 })
 
-  // Cria convite (upsert: mesmo e-mail no mesmo grupo reusa)
   const { data: convite, error: convErr } = await supabase
     .from('familia_convites')
-    .upsert({ grupo_id: grupo.id, email, permissao, aceito: false, expires_at: new Date(Date.now() + 7 * 86400_000).toISOString() }, { onConflict: 'grupo_id,email' })
+    .upsert(
+      { grupo_id: grupo.id, email, permissao, aceito: false, expires_at: new Date(Date.now() + 7 * 86400_000).toISOString() },
+      { onConflict: 'grupo_id,email' }
+    )
     .select()
     .single()
 
   if (convErr) return NextResponse.json({ error: convErr.message }, { status: 500 })
 
-  // Busca nome do dono
   const { data: prof } = await supabase.from('profiles').select('nome').eq('id', user.id).single()
   const nomeDono = prof?.nome || 'Alguém'
   const baseUrl  = process.env.NEXT_PUBLIC_APP_URL || 'https://poupaup.com.br'
   const link     = `${baseUrl}/convite/${convite.token}?tipo=familia`
 
-  // Envia e-mail via Resend
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
@@ -69,7 +57,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (e) {
     console.error('[familia/convite] resend error:', e)
-    // Não falha a operação se o e-mail não for enviado
   }
 
   return NextResponse.json({ ok: true, token: convite.token })
