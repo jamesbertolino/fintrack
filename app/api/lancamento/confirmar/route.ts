@@ -19,7 +19,15 @@ export async function POST(request: NextRequest) {
 
   // Separa as que o usuário marcou para ignorar (confirmada_duplicata ainda true = já existe, não inserir)
   const paraInserir = (transacoes as TransacaoEntrada[]).filter(t => !t.confirmada_duplicata)
-  if (!paraInserir.length) return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length })
+  if (!paraInserir.length) {
+    supabase.from('importacoes').insert({
+      user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
+      banco_nome: banco_nome || null, conta_id: conta_id || null,
+      total_detectadas: total_detectadas ?? transacoes.length,
+      total_inseridas: 0, total_duplicatas: transacoes.length,
+    }).then(() => null)
+    return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length })
+  }
 
   // Antes de inserir, re-verifica ref_externa no banco para evitar race condition
   const refs = paraInserir.map(t => t.ref_externa).filter(Boolean) as string[]
@@ -32,29 +40,41 @@ export async function POST(request: NextRequest) {
   }
 
   const novas  = paraInserir.filter(t => !t.ref_externa || !refsJaExistentes.has(t.ref_externa))
-  const duplas = paraInserir.filter(t => t.ref_externa && refsJaExistentes.has(t.ref_externa))
+  const duplas = paraInserir.filter(t => t.ref_externa  &&  refsJaExistentes.has(t.ref_externa))
+  const totalDuplicatas = duplas.length + (transacoes.length - paraInserir.length)
 
   if (!novas.length) {
-    // Registra importação mesmo que tudo fosse duplicata
     supabase.from('importacoes').insert({
       user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
       banco_nome: banco_nome || null, conta_id: conta_id || null,
       total_detectadas: total_detectadas ?? transacoes.length,
-      total_inseridas: 0, total_duplicatas: transacoes.length,
+      total_inseridas: 0, total_duplicatas: totalDuplicatas,
     }).then(() => null)
-    return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length, mensagem: `Todos os ${transacoes.length} lançamentos já existem no sistema.` })
+    return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: totalDuplicatas, mensagem: `Todos os ${transacoes.length} lançamentos já existem no sistema.` })
   }
 
+  // Cria o registro de importação primeiro para obter o ID e vincular as transactions
+  const { data: impData } = await supabase.from('importacoes').insert({
+    user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
+    banco_nome: banco_nome || null, conta_id: conta_id || null,
+    total_detectadas: total_detectadas ?? transacoes.length,
+    total_inseridas: novas.length,   // atualizado abaixo após insert real
+    total_duplicatas: totalDuplicatas,
+  }).select('id').single()
+
+  const importacao_id = impData?.id || null
+
   const inserir = novas.map(t => ({
-    user_id:      user.id,
-    descricao:    t.descricao.toUpperCase(),
-    valor:        t.tipo === 'debito' ? -Math.abs(t.valor) : Math.abs(t.valor),
-    tipo:         t.tipo,
-    categoria:    t.categoria,
-    data_hora:    t.data_hora || new Date().toISOString(),
-    conta_id:     conta_id || null,
-    origem:       'upload',
-    ref_externa:  t.ref_externa || null,
+    user_id:        user.id,
+    descricao:      t.descricao.toUpperCase(),
+    valor:          t.tipo === 'debito' ? -Math.abs(t.valor) : Math.abs(t.valor),
+    tipo:           t.tipo,
+    categoria:      t.categoria,
+    data_hora:      t.data_hora || new Date().toISOString(),
+    conta_id:       conta_id || null,
+    origem:         'upload',
+    ref_externa:    t.ref_externa || null,
+    importacao_id,
   }))
 
   const { data, error } = await supabase.from('transactions').insert(inserir).select('id')
@@ -62,22 +82,20 @@ export async function POST(request: NextRequest) {
   if (error) {
     // Violação de unique constraint (23505) — algum chegou em paralelo
     if (error.code === '23505') {
+      if (importacao_id) {
+        supabase.from('importacoes').update({ total_inseridas: 0, total_duplicatas: inserir.length }).eq('id', importacao_id).then(() => null)
+      }
       return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: inserir.length, mensagem: 'Lançamentos já existem no sistema (inserção simultânea).' })
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Corrige contagem real inserida (pode diferir se houve erro parcial)
+  if (importacao_id && data.length !== novas.length) {
+    supabase.from('importacoes').update({ total_inseridas: data.length }).eq('id', importacao_id).then(() => null)
+  }
+
   logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
-
-  const totalDuplicatas = duplas.length + (transacoes.length - paraInserir.length)
-
-  // Registra histórico de importação (não-bloqueante)
-  supabase.from('importacoes').insert({
-    user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
-    banco_nome: banco_nome || null, conta_id: conta_id || null,
-    total_detectadas: total_detectadas ?? transacoes.length,
-    total_inseridas: data.length, total_duplicatas: totalDuplicatas,
-  }).then(() => null)
 
   verificarConquistas(supabase, user.id).catch(() => null)
   verificarEventosPosLancamento(supabase, user.id, novas)
@@ -86,6 +104,7 @@ export async function POST(request: NextRequest) {
     ok: true,
     lançados: data.length,
     duplicatas_ignoradas: totalDuplicatas,
+    importacao_id,
     ...(duplas.length > 0 && { mensagem: `${duplas.length} lançamento${duplas.length > 1 ? 's' : ''} ignorado${duplas.length > 1 ? 's' : ''} por já existirem no sistema.` }),
   })
 }

@@ -137,6 +137,130 @@ function inputParaUTC(dataLocal: string, timezone: string): string {
   return new Date(dataObj.getTime() - offsetMs).toISOString()
 }
 
+// ─── Tipos compartilhados ────────────────────────────────────────────────────
+type ImportacaoItem = {
+  id: string; arquivo_nome: string | null; formato: string | null; banco_nome: string | null
+  total_detectadas: number; total_inseridas: number; total_duplicatas: number; created_at: string
+  contas?: { nome: string; bancos?: { nome_curto: string; cor: string | null } | null } | null
+}
+
+type TransacaoLote = {
+  id: string; descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
+}
+
+// ─── Componente: Histórico de importações expansível ────────────────────────
+function ImportacoesHistorico({ importacoes, loading }: { importacoes: ImportacaoItem[]; loading: boolean }) {
+  const [expandido, setExpandido] = useState<string | null>(null)
+  const [lotes, setLotes] = useState<Record<string, TransacaoLote[]>>({})
+  const [carregandoLote, setCarregandoLote] = useState<string | null>(null)
+
+  async function toggleExpand(id: string) {
+    if (expandido === id) { setExpandido(null); return }
+    setExpandido(id)
+    if (lotes[id]) return
+    setCarregandoLote(id)
+    const res = await fetch(`/api/importacoes/${id}`)
+    const d = await res.json()
+    setLotes(prev => ({ ...prev, [id]: d.transacoes || [] }))
+    setCarregandoLote(null)
+  }
+
+  const FORMATO_ICON: Record<string, string> = { csv: '📊', ofx: '🏦', pdf: '📄', imagem: '🖼️' }
+  const CATEGORIA_COR: Record<string, string> = {
+    'Alimentação': '#4ade80', 'Transporte': '#22d3ee', 'Lazer': '#f97316',
+    'Saúde': '#a78bfa', 'Moradia': '#fbbf24', 'Educação': '#60a5fa',
+    'Salário': '#4ade80', 'Freelance': '#34d399', 'Investimento': '#818cf8',
+    'Presente': '#f472b6', 'Outros': '#6b7280',
+  }
+
+  return (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>Importações recentes</div>
+      {loading ? (
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', padding: '12px 0' }}>Carregando...</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {importacoes.map(imp => {
+            const icon = FORMATO_ICON[imp.formato || ''] || '📁'
+            const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
+            const dataStr = new Date(imp.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+            const pct = imp.total_detectadas > 0 ? Math.round((imp.total_inseridas / imp.total_detectadas) * 100) : 0
+            const pctDup = imp.total_detectadas > 0 ? Math.round((imp.total_duplicatas / imp.total_detectadas) * 100) : 0
+            const aberto = expandido === imp.id
+            const transacoes = lotes[imp.id] || []
+
+            return (
+              <div key={imp.id} style={{ background: '#0a1a0a', border: `1px solid ${aberto ? '#2a4a2a' : '#1a3a1a'}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color .2s' }}>
+                {/* Cabeçalho clicável */}
+                <button
+                  onClick={() => toggleExpand(imp.id)}
+                  style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 12px', textAlign: 'left' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{nome}</div>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform .2s', transform: aberto ? 'rotate(180deg)' : 'none' }}>
+                          <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.3)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{dataStr}</div>
+                      {imp.total_detectadas > 0 && (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ display: 'flex', height: 4, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,.06)' }}>
+                            <div style={{ width: `${pct}%`, background: '#16a34a', transition: 'width .3s' }} />
+                            {imp.total_duplicatas > 0 && <div style={{ width: `${pctDup}%`, background: 'rgba(239,68,68,.4)' }} />}
+                          </div>
+                          <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
+                            <span style={{ fontSize: 10, color: '#4ade80' }}>✓ {imp.total_inseridas} lançado{imp.total_inseridas !== 1 ? 's' : ''}</span>
+                            {imp.total_duplicatas > 0 && <span style={{ fontSize: 10, color: 'rgba(239,68,68,.6)' }}>⊘ {imp.total_duplicatas} duplicata{imp.total_duplicatas !== 1 ? 's' : ''}</span>}
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{imp.total_detectadas} detectados</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Lista de transações expandida */}
+                {aberto && (
+                  <div style={{ borderTop: '1px solid #1a3a1a', padding: '8px 12px 10px' }}>
+                    {carregandoLote === imp.id ? (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', padding: '6px 0' }}>Carregando transações...</div>
+                    ) : transacoes.length === 0 ? (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', padding: '6px 0' }}>
+                        {imp.total_inseridas === 0 ? 'Nenhuma transação foi inserida neste lote.' : 'Transações importadas antes do vínculo por lote.'}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
+                        {transacoes.map(t => (
+                          <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: CATEGORIA_COR[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao}</div>
+                              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
+                                {t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(t.valor)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LancamentoPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -227,12 +351,7 @@ export default function LancamentoPage() {
   const [uploadMeta, setUploadMeta] = useState<{ arquivo_nome: string; formato: string } | null>(null)
 
   // ─── histórico de importações ───
-  type Importacao = {
-    id: string; arquivo_nome: string | null; formato: string | null; banco_nome: string | null
-    total_detectadas: number; total_inseridas: number; total_duplicatas: number; created_at: string
-    contas?: { nome: string; bancos?: { nome_curto: string; cor: string | null } | null } | null
-  }
-  const [importacoes, setImportacoes] = useState<Importacao[]>([])
+  const [importacoes, setImportacoes] = useState<ImportacaoItem[]>([])
   const [loadingImportacoes, setLoadingImportacoes] = useState(false)
 
   const carregarImportacoes = useCallback(async () => {
@@ -1365,53 +1484,10 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
           {/* ── Histórico de importações ── */}
           {(importacoes.length > 0 || loadingImportacoes) && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>Importações recentes</div>
-              {loadingImportacoes ? (
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', padding: '12px 0' }}>Carregando...</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {importacoes.map(imp => {
-                    const formatoIcon: Record<string, string> = { csv: '📊', ofx: '🏦', pdf: '📄', imagem: '🖼️' }
-                    const icon = formatoIcon[imp.formato || ''] || '📁'
-                    const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
-                    const dataStr = new Date(imp.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                    const taxaAproveitamento = imp.total_detectadas > 0
-                      ? Math.round((imp.total_inseridas / imp.total_detectadas) * 100)
-                      : 0
-                    return (
-                      <div key={imp.id} style={{ background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 10, padding: '10px 12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</div>
-                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{dataStr}</div>
-                            {/* Barra de progresso: inseridas vs duplicatas */}
-                            {imp.total_detectadas > 0 && (
-                              <div style={{ marginTop: 8 }}>
-                                <div style={{ display: 'flex', height: 4, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,.06)' }}>
-                                  <div style={{ width: `${taxaAproveitamento}%`, background: '#16a34a', transition: 'width .3s' }} />
-                                  {imp.total_duplicatas > 0 && (
-                                    <div style={{ width: `${Math.round((imp.total_duplicatas / imp.total_detectadas) * 100)}%`, background: 'rgba(239,68,68,.4)' }} />
-                                  )}
-                                </div>
-                                <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
-                                  <span style={{ fontSize: 10, color: '#4ade80' }}>✓ {imp.total_inseridas} lançado{imp.total_inseridas !== 1 ? 's' : ''}</span>
-                                  {imp.total_duplicatas > 0 && (
-                                    <span style={{ fontSize: 10, color: 'rgba(239,68,68,.6)' }}>⊘ {imp.total_duplicatas} duplicata{imp.total_duplicatas !== 1 ? 's' : ''}</span>
-                                  )}
-                                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{imp.total_detectadas} detectados</span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+            <ImportacoesHistorico
+              importacoes={importacoes}
+              loading={loadingImportacoes}
+            />
           )}
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
