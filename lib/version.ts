@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.3.2'
-export const APP_BUILD   = '2026.05.12'
+export const APP_VERSION = '2.4.3'
+export const APP_BUILD   = '2026.05.13'
 
 /**
  * Histórico de versões
@@ -21,4 +21,9 @@ export const APP_BUILD   = '2026.05.12'
  * 2.3.0 · 2026.05.12 — Multicontas: OFX lê agência/conta, match automático, criação rápida com 1 clique no import
  * 2.3.1 · 2026.05.12 — Dashboard admin: abas Users, Audit Log, Referral stats, gestão de planos
  * 2.3.2 · 2026.05.12 — Fix: audit_log join, xp_bonus, Invalid Date em created_at
+ * 2.3.3 · 2026.05.13 — Fix: deduplicação em importações CSV/imagem (ref_externa) + /confirmar trata erro 23505
+ * 2.4.0 · 2026.05.13 — Dashboard de importações: tabela importacoes, API, cards com barra inseridas/duplicatas
+ * 2.4.1 · 2026.05.13 — Cards de importação expansíveis: lista transações do lote, importacao_id em transactions
+ * 2.4.2 · 2026.05.13 — Toast pós-importação: resumo de lançados e duplicatas ignoradas
+ * 2.4.3 · 2026.05.13 — Fix: CSV via IA agora gera ref_externa para deduplicação em reimportações
  */
