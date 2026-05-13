@@ -1042,241 +1042,185 @@ export default function PerfilPage() {
 
         {/* ── GRUPO ── */}
         {abaSel === 'grupo' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {!grupo ? (
-              <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.5rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
-                  Você ainda não tem um grupo configurado.
-                </div>
-                <button onClick={() => router.push('/setup')} style={{ padding: '9px 18px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
-                  Criar novo grupo
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Info do grupo */}
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>{grupo.nome}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>
-                    {membros.length} membro{membros.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                {/* Convidar */}
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>Convidar membro</div>
-                  {profile?.plano !== 'pro' ? (
-                    <div style={{ background: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#fbbf24' }}>
-                      ⭐ Convide membros com o plano Pro
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: 8 }}>
+            {/* ── Convidar novo membro ── */}
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: cores.text, marginBottom: 4 }}>Convidar pessoa</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 14, lineHeight: 1.6 }}>
+                Informe o e-mail (para acesso ao app) e/ou o WhatsApp (para notificações). Ambos são opcionais, mas ao menos um é necessário.
+              </div>
+
+              {profile?.plano !== 'pro' ? (
+                <div style={{ background: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
+                  ⭐ Convites disponíveis no plano Pro —{' '}
+                  <span style={{ textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setAbaSel('plano')}>ver planos</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: cores.textMuted, marginBottom: 4 }}>E-mail (acesso ao app)</div>
                       <input
+                        type="email"
+                        value={familiaEmail}
+                        onChange={e => setFamiliaEmail(e.target.value)}
+                        placeholder="email@exemplo.com"
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: cores.textMuted, marginBottom: 4 }}>WhatsApp (opcional)</div>
+                      <input
+                        type="tel"
                         value={novoNumero}
                         onChange={e => setNovoNum(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && convidarMembro()}
                         placeholder="5511999999999"
-                        style={{ ...inputStyle, flex: 1 }}
+                        style={inputStyle}
                       />
-                      <button onClick={convidarMembro} disabled={convidando || !novoNumero.trim()} style={{ padding: '9px 14px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: convidando ? 'default' : 'pointer', opacity: convidando ? 0.6 : 1, whiteSpace: 'nowrap' }}>
-                        {convidando ? 'Enviando...' : 'Convidar'}
-                      </button>
                     </div>
-                  )}
-                </div>
-
-                {/* Lista de membros */}
-                <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 12 }}>Membros</div>
-                  {membros.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>Nenhum membro ainda. Convide alguém!</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {membros.map(m => {
-                        const prof = Array.isArray(m.profiles) ? m.profiles[0] : (m.profiles as { nome: string; avatar_url?: string | null } | null)
-                        const nomeExibido = prof?.nome || 'Convidado'
-                        return (
-                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: '#0a1a0a', borderRadius: 8, border: '1px solid #1a3a1a' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Avatar url={prof?.avatar_url} nome={nomeExibido} size={36} />
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500 }}>{nomeExibido}</div>
-                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>{m.whatsapp}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, fontWeight: 500, background: m.status === 'ativo' ? 'rgba(74,222,128,.12)' : 'rgba(251,191,36,.12)', color: m.status === 'ativo' ? '#4ade80' : '#fbbf24' }}>
-                              {m.status === 'ativo' ? 'ativo' : 'pendente'}
-                            </span>
-                            {profile?.plano === 'pro' && (
-                              <button onClick={() => removerMembro(m.id, m.whatsapp)} disabled={salvando} style={{ padding: '3px 8px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.5 : 1 }}>
-                                Remover
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Conta padrão */}
-            {grupo && contasPerfil.length > 0 && (() => {
-              const contaAtual = contasPerfil.find(c => c.id === contaPadrao)
-              return (
-                <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Conta padrão para lançamentos do grupo</div>
-                  <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 12 }}>
-                    Lançamentos via WhatsApp sem conta especificada usarão esta conta.
                   </div>
-
-                  {/* Preview da conta selecionada */}
-                  {contaAtual ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'rgba(74,222,128,.08)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8, marginBottom: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                        {(contaAtual.bancos?.nome_curto || contaAtual.nome)[0]}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>{contaAtual.bancos?.nome_curto || '—'} — {contaAtual.nome}</div>
-                        <div style={{ fontSize: 10, color: cores.textMuted }}>Conta padrão ativa</div>
-                      </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: cores.textMuted, marginBottom: 4 }}>Permissão no app</div>
+                      <select value={familiaPerm} onChange={e => setFamiliaPerm(e.target.value as 'leitura' | 'edicao')} style={{ ...inputStyle, width: 140 }}>
+                        <option value="leitura">👁 Leitura</option>
+                        <option value="edicao">✏️ Edição</option>
+                      </select>
                     </div>
-                  ) : (
-                    <div style={{ padding: '8px 12px', background: cores.surfaceAlt, border: `1px solid ${cores.borderMid}`, borderRadius: 8, marginBottom: 10, fontSize: 12, color: cores.textMuted }}>
-                      Nenhuma conta padrão definida — lançamentos ficam sem vínculo.
-                    </div>
-                  )}
-
-                  <select
-                    value={contaPadrao}
-                    onChange={async e => {
-                      const val = e.target.value
-                      setContaPadrao(val)
-                      const { data: { user } } = await supabase.auth.getUser()
-                      if (!user) return
-                      await supabase.from('profiles').update({ conta_padrao_id: val || null }).eq('id', user.id)
-                      setSucesso('Conta padrão atualizada!')
-                      setTimeout(() => setSucesso(''), 2000)
-                    }}
-                    style={inputStyle}
-                  >
-                    <option value="">Sem conta padrão</option>
-                    {contasPerfil.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.bancos?.nome_curto || '—'} — {c.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )
-            })()}
-
-            {/* Sair / Encerrar grupo */}
-            {grupo && (() => {
-              const isAdmin = grupo.criado_por === profile?.id
-              return (
-                <div style={{ marginTop: 4, padding: '1rem', background: 'rgba(239,68,68,.04)', border: '1px solid rgba(239,68,68,.15)', borderRadius: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: '#f87171', marginBottom: 6 }}>
-                    {isAdmin ? 'Encerrar grupo' : 'Sair do grupo'}
+                    <button
+                      onClick={async () => {
+                        if (!familiaEmail.trim() && !novoNumero.trim()) { setErro('Informe e-mail ou WhatsApp'); return }
+                        setFamiliaConvid(true)
+                        const res = await fetch('/api/familia/convite', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: familiaEmail.trim() || undefined, whatsapp: novoNumero.trim() || undefined, permissao: familiaPerm }),
+                        })
+                        const d = await res.json()
+                        setFamiliaConvid(false)
+                        if (d.ok) {
+                          setFamiliaEmail(''); setNovoNum('')
+                          setSucesso(familiaEmail.trim() ? 'Convite enviado por e-mail!' : 'Membro adicionado via WhatsApp!')
+                          setTimeout(() => setSucesso(''), 3000)
+                          const fr = await fetch('/api/familia'); if (fr.ok) { const fd = await fr.json(); setFamiliaGrupo(fd.grupo); setFamiliaMembros(fd.membros || []); setFamiliaConvites(fd.convites || []) }
+                        } else { setErro(d.error || 'Erro ao convidar') }
+                      }}
+                      disabled={familiaConvidando}
+                      style={{ marginTop: 18, padding: '9px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: familiaConvidando ? 'default' : 'pointer', opacity: familiaConvidando ? 0.6 : 1, whiteSpace: 'nowrap' }}>
+                      {familiaConvidando ? 'Enviando...' : '+ Convidar'}
+                    </button>
                   </div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12 }}>
-                    {isAdmin
-                      ? 'Remove todos os membros e encerra o grupo PoupaUp.'
-                      : 'Você será removido do grupo e perderá acesso às metas compartilhadas.'}
-                  </div>
-                  <button onClick={sairDoGrupo} disabled={salvando} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, color: '#f87171', fontSize: 12, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
-                    {isAdmin ? 'Encerrar grupo' : 'Sair do grupo'}
-                  </button>
-                </div>
-              )
-            })()}
-
-            {/* ── Acesso ao App (Família) ── */}
-            <div style={{ marginTop: 8, borderTop: `1px solid ${cores.borderMid}`, paddingTop: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: cores.text, marginBottom: 4 }}>👨‍👩‍👧 Acesso ao App — Família</div>
-              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
-                Convide pessoas por e-mail para acessar seu painel financeiro. Permissão de <strong style={{ color: cores.text }}>leitura</strong> permite apenas visualizar; <strong style={{ color: cores.text }}>edição</strong> permite lançar transações.
-              </div>
-
-              {/* Formulário de convite */}
-              <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem', marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10 }}>Convidar por e-mail</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <input
-                    type="email"
-                    value={familiaEmail}
-                    onChange={e => setFamiliaEmail(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && familiaConvidar()}
-                    placeholder="email@exemplo.com"
-                    style={{ ...inputStyle, flex: 1, minWidth: 180 }}
-                  />
-                  <select value={familiaPerm} onChange={e => setFamiliaPerm(e.target.value as 'leitura' | 'edicao')} style={{ ...inputStyle, width: 120 }}>
-                    <option value="leitura">Leitura</option>
-                    <option value="edicao">Edição</option>
-                  </select>
-                  <button onClick={familiaConvidar} disabled={familiaConvidando || !familiaEmail.trim()}
-                    style={{ padding: '9px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: familiaConvidando ? 'default' : 'pointer', opacity: familiaConvidando ? 0.6 : 1, whiteSpace: 'nowrap' }}>
-                    {familiaConvidando ? 'Enviando...' : 'Convidar'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Convites pendentes */}
-              {familiaConvites.length > 0 && (
-                <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem', marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10, color: cores.textMuted }}>Convites pendentes</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {familiaConvites.map(c => (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', background: 'rgba(251,191,36,.05)', border: '1px solid rgba(251,191,36,.15)', borderRadius: 8 }}>
-                        <div>
-                          <div style={{ fontSize: 12, color: cores.text }}>{c.email}</div>
-                          <div style={{ fontSize: 10, color: cores.textFaint }}>
-                            {c.permissao === 'edicao' ? 'Edição' : 'Leitura'} · expira {new Date(c.expires_at).toLocaleDateString('pt-BR')}
-                          </div>
-                        </div>
-                        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(251,191,36,.12)', color: '#fbbf24' }}>Aguardando</span>
-                      </div>
-                    ))}
+                  <div style={{ fontSize: 11, color: cores.textFaint, lineHeight: 1.5 }}>
+                    📧 E-mail → recebe link de convite para criar conta e acessar o painel &nbsp;·&nbsp; 📱 WhatsApp → pode lançar gastos pelo bot
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Membros com acesso */}
+            {/* ── Convites pendentes ── */}
+            {familiaConvites.length > 0 && (
               <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem' }}>
-                <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 10 }}>Membros com acesso ({familiaMembros.length})</div>
-                {familiaMembros.length === 0 ? (
-                  <div style={{ fontSize: 12, color: cores.textMuted }}>Nenhum membro ainda. Envie um convite acima.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {familiaMembros.map(m => {
-                      const prof = m.profiles
-                      return (
-                        <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: cores.surfaceAlt, borderRadius: 8, border: `1px solid ${cores.borderMid}` }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                              {(prof?.nome || '?')[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 13, fontWeight: 500 }}>{prof?.nome || 'Usuário'}</div>
-                              <div style={{ fontSize: 10, color: cores.textFaint }}>
-                                {m.permissao === 'edicao' ? '✏️ Edição' : '👁 Leitura'} · desde {new Date(m.created_at).toLocaleDateString('pt-BR')}
-                              </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: cores.textMuted, marginBottom: 10, textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>Aguardando aceite</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {familiaConvites.map(c => (
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(251,191,36,.04)', border: '1px solid rgba(251,191,36,.12)', borderRadius: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: cores.text }}>{c.email}</div>
+                        <div style={{ fontSize: 10, color: cores.textFaint }}>
+                          {c.permissao === 'edicao' ? '✏️ Edição' : '👁 Leitura'} · expira {new Date(c.expires_at).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: 'rgba(251,191,36,.12)', color: '#fbbf24', flexShrink: 0 }}>Pendente</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Membros com acesso ao app ── */}
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.06em' }}>Membros com acesso ao app</div>
+                <span style={{ fontSize: 11, color: cores.textFaint }}>{familiaMembros.length} membro{familiaMembros.length !== 1 ? 's' : ''}</span>
+              </div>
+              {familiaMembros.length === 0 ? (
+                <div style={{ fontSize: 12, color: cores.textMuted, textAlign: 'center', padding: '1rem 0' }}>Nenhum membro ainda. Convide alguém acima.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {familiaMembros.map(m => {
+                    const prof = m.profiles
+                    return (
+                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: cores.surfaceAlt, borderRadius: 10, border: `1px solid ${cores.borderMid}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#16a34a22', border: '1px solid #16a34a44', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: '#4ade80', flexShrink: 0 }}>
+                            {(prof?.nome || '?')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 500 }}>{prof?.nome || 'Usuário'}</div>
+                            <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 10, padding: '1px 7px', borderRadius: 10, background: m.permissao === 'edicao' ? 'rgba(99,102,241,.15)' : 'rgba(74,222,128,.1)', color: m.permissao === 'edicao' ? '#a5b4fc' : '#4ade80' }}>
+                                {m.permissao === 'edicao' ? '✏️ Edição' : '👁 Leitura'}
+                              </span>
+                              <span style={{ fontSize: 10, color: cores.textFaint }}>desde {new Date(m.created_at).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>
-                          <button onClick={() => familiaRemoverMembro(m.id)} disabled={familiaRem === m.id}
-                            style={{ padding: '4px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: familiaRem === m.id ? 'default' : 'pointer', opacity: familiaRem === m.id ? 0.5 : 1 }}>
-                            {familiaRem === m.id ? '...' : 'Remover'}
+                        </div>
+                        <button onClick={() => familiaRemoverMembro(m.id)} disabled={familiaRem === m.id}
+                          style={{ padding: '4px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, color: '#f87171', fontSize: 11, cursor: familiaRem === m.id ? 'default' : 'pointer', opacity: familiaRem === m.id ? 0.5 : 1, flexShrink: 0 }}>
+                          {familiaRem === m.id ? '...' : 'Remover'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* ── Config WhatsApp (secundário, colapsável) ── */}
+            {grupo && contasPerfil.length > 0 && (() => {
+              const contaAtual = contasPerfil.find(c => c.id === contaPadrao)
+              return (
+                <details style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12 }}>
+                  <summary style={{ padding: '12px 16px', fontSize: 12, fontWeight: 500, color: cores.textMuted, cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>📱</span> Configurações WhatsApp
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: cores.textFaint }}>avançado ▾</span>
+                  </summary>
+                  <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Conta padrão para lançamentos do bot</div>
+                      <div style={{ fontSize: 11, color: cores.textMuted, marginBottom: 8 }}>Lançamentos via WhatsApp sem conta especificada usarão esta conta.</div>
+                      {contaAtual && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'rgba(74,222,128,.06)', border: '1px solid rgba(74,222,128,.15)', borderRadius: 8, marginBottom: 8, fontSize: 12, color: '#4ade80' }}>
+                          ✓ {contaAtual.bancos?.nome_curto || '—'} — {contaAtual.nome}
+                        </div>
+                      )}
+                      <select value={contaPadrao} onChange={async e => {
+                        const val = e.target.value; setContaPadrao(val)
+                        const { data: { user } } = await supabase.auth.getUser()
+                        if (!user) return
+                        await supabase.from('profiles').update({ conta_padrao_id: val || null }).eq('id', user.id)
+                        setSucesso('Conta padrão atualizada!'); setTimeout(() => setSucesso(''), 2000)
+                      }} style={inputStyle}>
+                        <option value="">Sem conta padrão</option>
+                        {contasPerfil.map(c => <option key={c.id} value={c.id}>{c.bancos?.nome_curto || '—'} — {c.nome}</option>)}
+                      </select>
+                    </div>
+                    {(() => {
+                      const isAdmin = grupo.criado_por === profile?.id
+                      return (
+                        <div style={{ borderTop: `1px solid ${cores.borderMid}`, paddingTop: 10 }}>
+                          <button onClick={sairDoGrupo} disabled={salvando} style={{ padding: '7px 14px', background: 'transparent', border: '1px solid rgba(239,68,68,.3)', borderRadius: 7, color: '#f87171', fontSize: 11, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
+                            {isAdmin ? 'Encerrar grupo WhatsApp' : 'Sair do grupo WhatsApp'}
                           </button>
                         </div>
                       )
-                    })}
+                    })()}
                   </div>
-                )}
-              </div>
-            </div>
+                </details>
+              )
+            })()}
+
           </div>
         )}
 
