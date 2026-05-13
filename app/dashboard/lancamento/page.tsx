@@ -279,8 +279,7 @@ useEffect(() => {
   carregarHistorico(filtroContaId || undefined) // eslint-disable-line react-hooks/set-state-in-effect
 }, [carregarHistorico, filtroContaId])
 
-// eslint-disable-next-line react-hooks/exhaustive-deps
-useEffect(() => { carregarImportacoes() }, [])
+useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userId) return

@@ -27,7 +27,7 @@ export default function SetupPage() {
 
   const [passo, setPasso]           = useState<Passo>('carregando')
   const [userId, setUserId]         = useState('')
-  const [plano, setPlano]           = useState('')
+  const [plano, setPlano]           = useState('') // eslint-disable-line @typescript-eslint/no-unused-vars
   const [whatsapp, setWhatsapp]     = useState('')
   const [nomeGrupo, setNomeGrupo]   = useState('')
   const [instancia, setInstancia]   = useState('')
