@@ -126,6 +126,12 @@ interface Meta {
   ativo?: boolean
 }
 
+interface OrcamentoItem {
+  id: string
+  categoria: string
+  valor_planejado: number
+}
+
 interface Profile {
   nome: string
   plano: string
@@ -207,6 +213,8 @@ export default function Dashboard() {
   const [transacoes, setTransacoes] = useState<Transacao[]>([])
   const [metas, setMetas]           = useState<Meta[]>([])
   const [contas, setContas]         = useState<Conta[]>([])
+  const [orcamentos, setOrcamentos] = useState<OrcamentoItem[]>([])
+  const [orcRealizado, setOrcReal]  = useState<Record<string, number>>({})
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
   const [iaAnalisando, setIaAnalisando]   = useState(false)
@@ -279,9 +287,16 @@ useEffect(() => {
     if (tx)   setTransacoes(tx)
     if (mt)   setMetas(mt)
 
-    const contasRes   = await fetch('/api/contas')
+    const mesAtual = new Date().toISOString().slice(0, 7)
+    const [contasRes, orcRes] = await Promise.all([
+      fetch('/api/contas'),
+      fetch(`/api/orcamento?mes=${mesAtual}`),
+    ])
     const contasDados = await contasRes.json()
+    const orcDados    = await orcRes.json()
     setContas(contasDados.contas || [])
+    setOrcamentos(orcDados.orcamentos || [])
+    setOrcReal(orcDados.realizado || {})
     setLoading(false)
 
     // Auto-trigger IA notification (máx 2x/dia, aleatório)
@@ -719,6 +734,58 @@ useEffect(() => {
                   </div>
                 </div>
               )}
+
+              {/* Widget orçamento por categoria */}
+              {orcamentos.length > 0 && (() => {
+                const excedidas = orcamentos.filter(o => (orcRealizado[o.categoria] || 0) > o.valor_planejado)
+                return (
+                  <div style={{ background: cores.cardBg, border: `1px solid ${excedidas.length > 0 ? 'rgba(248,113,113,.35)' : cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                        {m ? '⚖️ Edito do Reino' : '📊 Orçamento do mês'}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {excedidas.length > 0 && (
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: 'rgba(248,113,113,.15)', color: '#f87171' }}>
+                            {excedidas.length} excedida{excedidas.length !== 1 ? 's' : ''} ⚠️
+                          </span>
+                        )}
+                        <button onClick={() => router.push('/dashboard/orcamento')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>
+                          {m ? 'gerenciar →' : 'gerenciar →'}
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {orcamentos.slice(0, 5).map(o => {
+                        const real = orcRealizado[o.categoria] || 0
+                        const pct  = o.valor_planejado > 0 ? Math.min((real / o.valor_planejado) * 100, 100) : 0
+                        const over = real > o.valor_planejado
+                        const barColor = over ? '#f87171' : pct >= 80 ? '#fbbf24' : tx.accentColor
+                        return (
+                          <div key={o.id}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[o.categoria] || '#6b7280', flexShrink: 0 }} />
+                                <span style={{ fontSize: 12, color: over ? '#f87171' : 'rgba(255,255,255,.7)' }}>{o.categoria}</span>
+                                {over && <span style={{ fontSize: 9, color: '#f87171' }}>+{formatBRL(real - o.valor_planejado)}</span>}
+                              </div>
+                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontVariantNumeric: 'tabular-nums' }}>
+                                {formatBRL(real)} / {formatBRL(o.valor_planejado)}
+                              </span>
+                            </div>
+                            <div style={{ height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct.toFixed(1)}%`, background: barColor, borderRadius: 3, transition: 'width .4s' }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {orcamentos.length > 5 && (
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{orcamentos.length - 5} mais</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Insights + Por categoria — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
