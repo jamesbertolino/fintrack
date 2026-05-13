@@ -8,20 +8,20 @@ import PoupaUpLogo from '@/components/PoupaUpLogo'
 function BotaoAssinar({ plano, label }: { plano: string; label: string }) {
   const router = useRouter()
   const [carregando, setCarregando] = useState(false)
+  const [erro, setErro] = useState('')
 
   async function handleClick() {
     setCarregando(true)
+    setErro('')
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        // Não logado → vai pro login com next apontando pro setup (que detecta o plano)
         router.push(`/login?next=%2Fsetup`)
         return
       }
 
-      // Já logado → inicia checkout direto
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,21 +31,30 @@ function BotaoAssinar({ plano, label }: { plano: string; label: string }) {
       if (data.url) {
         window.location.href = data.url
       } else {
-        router.push(`/setup`)
+        setErro(data.error || `Erro ${res.status} — tente novamente`)
       }
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro de conexão')
     } finally {
       setCarregando(false)
     }
   }
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={carregando}
-      style={{ display: 'block', width: '100%', marginTop: 24, background: carregando ? '#15803d' : '#16a34a', color: '#fff', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, border: 'none', transition: 'background .15s', cursor: carregando ? 'default' : 'pointer', opacity: carregando ? 0.8 : 1 }}
-    >
-      {carregando ? 'Aguarde...' : label}
-    </button>
+    <div style={{ marginTop: 24 }}>
+      <button
+        onClick={handleClick}
+        disabled={carregando}
+        style={{ display: 'block', width: '100%', background: carregando ? '#15803d' : '#16a34a', color: '#fff', padding: '12px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 600, border: 'none', transition: 'background .15s', cursor: carregando ? 'default' : 'pointer', opacity: carregando ? 0.8 : 1 }}
+      >
+        {carregando ? 'Aguarde...' : label}
+      </button>
+      {erro && (
+        <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.3)', borderRadius: 8, fontSize: 12, color: '#f87171', textAlign: 'center' }}>
+          {erro}
+        </div>
+      )}
+    </div>
   )
 }
 
