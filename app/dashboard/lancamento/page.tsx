@@ -316,6 +316,8 @@ export default function LancamentoPage() {
   const [editCategoria, setEditCategoria]   = useState('')
   const [editContaId, setEditContaId]       = useState('')
   const [editDataHora, setEditDataHora]     = useState('')
+  const [editValor, setEditValor]           = useState('')
+  const [editTipo, setEditTipo]             = useState<'debito' | 'credito'>('debito')
   const [salvandoEdicao, setSalvandoEdicao] = useState(false)
 
   // ─── upload ───
@@ -729,6 +731,8 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     setEditCategoria(t.categoria)
     setEditContaId(t.conta_id || '')
     setEditDataHora(t.data_hora ? new Date(t.data_hora).toISOString().slice(0, 16) : '')
+    setEditValor(Math.abs(t.valor).toFixed(2).replace('.', ','))
+    setEditTipo(t.tipo as 'debito' | 'credito')
     setModalAberto(true)
   }
 
@@ -743,6 +747,10 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
         categoria: editCategoria,
         conta_id: editContaId || null,
         data_hora: editDataHora ? new Date(editDataHora).toISOString() : transacaoEditando.data_hora,
+        valor: editTipo === 'debito'
+          ? -Math.abs(parseFloat(editValor.replace(',', '.')) || 0)
+          : Math.abs(parseFloat(editValor.replace(',', '.')) || 0),
+        tipo: editTipo,
       }),
     })
     setSalvandoEdicao(false)
@@ -1637,8 +1645,39 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
       {modalAberto && transacaoEditando && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
           onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
+              {transacaoEditando?.origem && (
+                <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.35)', border: '1px solid rgba(255,255,255,.1)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                  {{ manual: 'manual', upload: 'importado', webhook: 'automático', saldo_inicial: 'saldo inicial' }[transacaoEditando.origem] || transacaoEditando.origem}
+                </span>
+              )}
+            </div>
+
+            {/* Tipo + Valor */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', background: 'rgba(0,0,0,.4)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, gap: 2 }}>
+                {(['debito', 'credito'] as const).map(t => (
+                  <button key={t} type="button" onClick={() => setEditTipo(t)} style={{
+                    padding: '6px 12px', borderRadius: 6, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all .15s',
+                    background: editTipo === t ? (t === 'debito' ? '#7f1d1d' : '#14532d') : 'transparent',
+                    color: editTipo === t ? (t === 'debito' ? '#f87171' : '#4ade80') : 'rgba(255,255,255,.35)',
+                  }}>
+                    {t === 'debito' ? '− Despesa' : '+ Receita'}
+                  </button>
+                ))}
+              </div>
+              <div style={{ flex: 1, position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'rgba(255,255,255,.35)' }}>R$</span>
+                <input
+                  value={editValor}
+                  onChange={e => setEditValor(e.target.value.replace(/[^0-9,]/g, ''))}
+                  style={{ width: '100%', padding: '9px 12px 9px 30px', background: '#0a0a0a', border: `1px solid ${editTipo === 'debito' ? 'rgba(239,68,68,.3)' : 'rgba(74,222,128,.3)'}`, borderRadius: 8, color: editTipo === 'debito' ? '#f87171' : '#4ade80', fontSize: 14, fontWeight: 600, outline: 'none' }}
+                  inputMode="decimal"
+                />
+              </div>
+            </div>
 
             <div>
               <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descrição</label>
