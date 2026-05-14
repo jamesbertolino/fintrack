@@ -117,6 +117,8 @@ export default function PerfilPage() {
   const [form, setForm] = useState({ nome: '', sobrenome: '', whatsapp: '', timezone: 'America/Sao_Paulo', idioma: 'pt-BR' })
   const [notificacoesCelular, setNotificacoesCelular] = useState(true)
   const [salvandoNotif, setSalvandoNotif] = useState(false)
+  const [pushPrefs, setPushPrefs] = useState({ resumo_semanal: true, aviso_meta: true, alerta_orcamento: true })
+  const [salvandoPushPrefs, setSalvandoPushPrefs] = useState(false)
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
   const { tema, alterarTema: alterarTemaCtx } = useTema()
   const cores = useCores()
@@ -175,6 +177,10 @@ export default function PerfilPage() {
       setPrioridadesSelecionadas(prios.map((p: { tipo: string }) => p.tipo))
     }
     if (wh) setWebhook(wh)
+
+    // Preferências de push
+    const { data: pp } = await supabase.from('push_preferencias').select('resumo_semanal,aviso_meta,alerta_orcamento').eq('user_id', user.id).single()
+    if (pp) setPushPrefs({ resumo_semanal: pp.resumo_semanal, aviso_meta: pp.aviso_meta, alerta_orcamento: pp.alerta_orcamento })
 
     const contasRes = await fetch('/api/contas')
     const contasDados = await contasRes.json()
@@ -591,6 +597,17 @@ export default function PerfilPage() {
     setSalvandoNotif(false)
   }
 
+  async function salvarPushPrefs(novas: typeof pushPrefs) {
+    setSalvandoPushPrefs(true)
+    await fetch('/api/push/preferencias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(novas),
+    })
+    setPushPrefs(novas)
+    setSalvandoPushPrefs(false)
+  }
+
   function copiarUrlWebhook() {
     const url = `${window.location.origin}/api/webhook/${profile?.id}`
     navigator.clipboard.writeText(url)
@@ -903,6 +920,38 @@ export default function PerfilPage() {
 
             {/* Notificações push */}
             <PushManagerInline />
+
+            {/* Preferências de alertas inteligentes */}
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Alertas inteligentes</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 14 }}>Escolha quais notificações push automáticas você quer receber</div>
+
+              {[
+                { key: 'resumo_semanal'   as const, emoji: '📅', titulo: 'Resumo semanal', desc: 'Todo domingo: receitas, gastos e resultado da semana' },
+                { key: 'aviso_meta'       as const, emoji: '🎯', titulo: 'Meta com prazo próximo', desc: 'Aviso quando uma meta vence em 7 dias e ainda não foi concluída' },
+                { key: 'alerta_orcamento' as const, emoji: '📊', titulo: 'Orçamento quase estourado', desc: 'Alerta quando um orçamento passa de 80% do limite' },
+              ].map(item => {
+                const ativo = pushPrefs[item.key]
+                return (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: `1px solid ${cores.borderLight}` }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <span style={{ fontSize: 18, marginTop: 1 }}>{item.emoji}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: cores.textPrimary }}>{item.titulo}</div>
+                        <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 2 }}>{item.desc}</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => !salvandoPushPrefs && salvarPushPrefs({ ...pushPrefs, [item.key]: !ativo })}
+                      disabled={salvandoPushPrefs}
+                      style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: ativo ? cores.accent : 'rgba(255,255,255,.12)', position: 'relative', transition: 'background .2s', flexShrink: 0, opacity: salvandoPushPrefs ? 0.6 : 1 }}
+                    >
+                      <div style={{ position: 'absolute', top: 2, left: ativo ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.3)' }} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
 
             {/* Indicar amigos */}
             {currentUserId && (

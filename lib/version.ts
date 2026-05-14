@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.14.0'
+export const APP_VERSION = '2.15.0'
 export const APP_BUILD   = '2026.05.14'
 
 /**
@@ -38,4 +38,5 @@ export const APP_BUILD   = '2026.05.14'
  * 2.12.0 · 2026.05.14 — PWA offline: SW v2 com cache estratégico, banner offline com último saldo, reload automático ao reconectar
  * 2.13.0 · 2026.05.14 — Onboarding revisado: 3 passos (objetivo financeiro, conta bancária, primeiro lançamento) com barra de progresso
  * 2.14.0 · 2026.05.14 — Relatório IA mensal: análise por IA com resumo, gastos, tendências e recomendações personalizadas pelo objetivo
+ * 2.15.0 · 2026.05.14 — Notificações inteligentes: cron diário com resumo semanal, aviso de meta e alerta de orçamento; toggles no perfil
  */
