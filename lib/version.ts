@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.24.0'
+export const APP_VERSION = '2.25.0'
 export const APP_BUILD   = '2026.05.14'
 
 /**
@@ -48,4 +48,5 @@ export const APP_BUILD   = '2026.05.14'
  * 2.22.0 · 2026.05.14 — Alerta de orçamento no lançamento: banner ⚠️/🚨 mostra % usado ou estouro ao selecionar categoria com limite
  * 2.23.0 · 2026.05.14 — Metas com aportes: registrar aportes manuais, histórico, remoção e projeção de conclusão pela média dos últimos 3
  * 2.24.0 · 2026.05.14 — Meta compartilhada: compartilhar meta com família via 🔗, aba Família com aportes de todos os membros
+ * 2.25.0 · 2026.05.14 — Relatório PDF: donut SVG de categorias, barras semanais receita/despesa, cards de meta, rodapé e impressão otimizada
  */
