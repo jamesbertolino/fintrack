@@ -933,11 +933,11 @@ export default function PerfilPage() {
               ].map(item => {
                 const ativo = pushPrefs[item.key]
                 return (
-                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: `1px solid ${cores.borderLight}` }}>
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 0', borderBottom: `1px solid ${cores.borderMid}` }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <span style={{ fontSize: 18, marginTop: 1 }}>{item.emoji}</span>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: cores.textPrimary }}>{item.titulo}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{item.titulo}</div>
                         <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 2 }}>{item.desc}</div>
                       </div>
                     </div>
