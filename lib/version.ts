@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.8.1'
+export const APP_VERSION = '2.8.0'
 export const APP_BUILD   = '2026.05.13'
 
 /**
@@ -32,5 +32,4 @@ export const APP_BUILD   = '2026.05.13'
  * 2.6.0 · 2026.05.13 — Dashboard: gráfico de saldo dos últimos 30 dias (SVG inline, sem libs extras)
  * 2.7.0 · 2026.05.13 — Dashboard: widget de orçamento por categoria com barras de progresso e alerta de excesso
  * 2.8.0 · 2026.05.13 — Família App: convite por e-mail, membros com permissão leitura/edição, aba "Pessoas" no perfil
- * 2.8.1 · 2026.05.13 — Pessoas unificado: convite único (email + WhatsApp opcionais), WhatsApp vira config avançada
  */
