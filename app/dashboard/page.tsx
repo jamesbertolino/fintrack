@@ -453,6 +453,8 @@ export default function Dashboard() {
   const [orcRealizado, setOrcReal]  = useState<Record<string, number>>({})
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
+  const [buscaQuery, setBuscaQuery] = useState('')
+  const [buscaAberta, setBuscaAb]   = useState(false)
   const [iaAnalisando, setIaAnalisando]   = useState(false)
   const [extratoXPAberto, setExtratoXP]   = useState(false)
 
@@ -462,6 +464,15 @@ export default function Dashboard() {
 useEffect(() => {
   setSidebar(!isMobile) // eslint-disable-line react-hooks/set-state-in-effect
 }, [isMobile])
+
+useEffect(() => {
+  function onKey(e: KeyboardEvent) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setBuscaAb(true) }
+    if (e.key === 'Escape') { setBuscaAb(false); setBuscaQuery('') }
+  }
+  window.addEventListener('keydown', onKey)
+  return () => window.removeEventListener('keydown', onKey)
+}, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const xp           = calcularXP({ transacoes, metas, xpBonus: profile?.xp_bonus || 0 })
   const { receitas, despesas, saldo } = xp
@@ -623,6 +634,100 @@ useEffect(() => {
           <style>{`@keyframes ia-spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       )}
+
+      {/* ── Modal busca global ── */}
+      {buscaAberta && (() => {
+        const q = buscaQuery.trim().toLowerCase()
+        const resultados = q.length < 1 ? [] : transacoes.filter(t =>
+          t.descricao.toLowerCase().includes(q) ||
+          t.categoria.toLowerCase().includes(q) ||
+          Math.abs(t.valor).toFixed(2).includes(q) ||
+          formatBRL(Math.abs(t.valor)).toLowerCase().includes(q)
+        ).slice(0, 12)
+        return (
+          <div
+            onClick={() => { setBuscaAb(false); setBuscaQuery('') }}
+            style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: isMobile ? 60 : 80 }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, margin: '0 1rem', background: '#111', border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,.6)' }}>
+              {/* Input */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0, color: 'rgba(255,255,255,.4)' }}><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.4"/><path d="M10 10l3.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+                <input
+                  autoFocus
+                  value={buscaQuery}
+                  onChange={e => setBuscaQuery(e.target.value)}
+                  placeholder="Buscar por descrição, categoria ou valor…"
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#fff', caretColor: tx.accentColor }}
+                />
+                <kbd onClick={() => { setBuscaAb(false); setBuscaQuery('') }} style={{ fontSize: 10, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, padding: '2px 7px', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>ESC</kbd>
+              </div>
+              {/* Resultados */}
+              {q.length > 0 && (
+                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                  {resultados.length === 0 ? (
+                    <div style={{ padding: '2rem', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.3)' }}>Nenhum resultado para "{buscaQuery}"</div>
+                  ) : (
+                    <>
+                      <div style={{ padding: '6px 16px 4px', fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' as const, letterSpacing: '.08em' }}>
+                        {resultados.length} resultado{resultados.length !== 1 ? 's' : ''}
+                      </div>
+                      {resultados.map(t => (
+                        <div
+                          key={t.id}
+                          onClick={() => { router.push('/dashboard/gastos'); setBuscaAb(false); setBuscaQuery('') }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', borderTop: '1px solid rgba(255,255,255,.04)', transition: 'background .1s' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: `${CORES[t.categoria] || '#6b7280'}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280' }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>
+                              {t.categoria} · {fmtData(t.data_hora)}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? tx.accentColor : '#f87171', flexShrink: 0 }}>
+                            {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
+                          </div>
+                        </div>
+                      ))}
+                      {transacoes.filter(t => t.descricao.toLowerCase().includes(q) || t.categoria.toLowerCase().includes(q)).length > 12 && (
+                        <div
+                          onClick={() => { router.push('/dashboard/gastos'); setBuscaAb(false); setBuscaQuery('') }}
+                          style={{ padding: '10px 16px', textAlign: 'center', fontSize: 12, color: tx.accentColor, cursor: 'pointer', borderTop: '1px solid rgba(255,255,255,.05)' }}>
+                          Ver todos os resultados em Gastos →
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              {q.length === 0 && (
+                <div style={{ padding: '1.25rem 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 4 }}>Atalhos rápidos</div>
+                  {[
+                    { label: m ? 'Livro do Tesouro' : 'Lançamentos', href: '/dashboard/lancamento', icon: m ? '📜' : '📝' },
+                    { label: m ? 'Batalhas' : 'Gastos', href: '/dashboard/gastos', icon: m ? '⚔️' : '💸' },
+                    { label: m ? 'Edito do Reino' : 'Orçamento', href: '/dashboard/orcamento', icon: m ? '⚖️' : '📊' },
+                    { label: m ? 'Quests' : 'Metas', href: '/dashboard/metas', icon: m ? '🎯' : '🎯' },
+                  ].map(item => (
+                    <div key={item.href} onClick={() => { router.push(item.href); setBuscaAb(false) }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', transition: 'background .1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.05)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <span style={{ fontSize: 14 }}>{item.icon}</span>
+                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,.6)' }}>{item.label}</span>
+                      <svg style={{ marginLeft: 'auto', color: 'rgba(255,255,255,.2)' }} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Overlay escuro em mobile quando sidebar aberta */}
       {isMobile && sidebarAberta && (
@@ -837,6 +942,15 @@ useEffect(() => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {/* Busca global */}
+            <button
+              onClick={() => setBuscaAb(true)}
+              title="Buscar (Ctrl+K)"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '5px 10px', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 12 }}>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.3"/><path d="M8.5 8.5l3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+              {!isMobile && <span style={{ fontSize: 11 }}>Buscar</span>}
+              {!isMobile && <kbd style={{ fontSize: 9, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 4, padding: '1px 5px', color: 'rgba(255,255,255,.35)' }}>⌘K</kbd>}
+            </button>
             {/* Badge webhook — oculto em telas muito pequenas */}
             {!isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 20, padding: '4px 10px' }}>

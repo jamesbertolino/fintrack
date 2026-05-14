@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.10.0'
+export const APP_VERSION = '2.11.0'
 export const APP_BUILD   = '2026.05.13'
 
 /**
@@ -34,4 +34,5 @@ export const APP_BUILD   = '2026.05.13'
  * 2.8.0 · 2026.05.13 — Família App: convite por e-mail, membros com permissão leitura/edição, aba "Pessoas" no perfil
  * 2.9.0 · 2026.05.13 — Dashboard: mapa de calor de gastos por dia (calendário clicável, sem libs externas)
  * 2.10.0 · 2026.05.13 — Dashboard: comparativo mês a mês — receitas, gastos, saldo e top 5 categorias com barras duplas
+ * 2.11.0 · 2026.05.13 — Busca global: modal Ctrl+K, filtra por descrição/categoria/valor, atalhos rápidos de navegação
  */
