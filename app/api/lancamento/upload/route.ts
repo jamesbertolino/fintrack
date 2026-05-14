@@ -281,9 +281,11 @@ const PREFIXOS_PAGAMENTO: [RegExp, string][] = [
   [/^CARTAO\b/i,                         'Cartão'],
   [/^VISA ELECTRON\b/i,                  'Débito'],
   [/^MASTERCARD DEBITO\b/i,              'Débito'],
+  [/^TRANSFERENCIA PIX\b/i,              'PIX'],
+  [/^TRANSFE PIX\b/i,                    'PIX'],
+  [/^TRANSF PIX\b/i,                     'PIX'],
   [/^PIX QR CODE ESTATICO\b/i,           'PIX'],
   [/^PIX QR CODE\b/i,                    'PIX'],
-  [/^TRANSFERENCIA PIX\b/i,              'PIX'],
   [/^PIX\b/i,                            'PIX'],
   [/^PAGTO ELETRON COBRANCA\b/i,         'Boleto'],
   [/^PAGTO ELETRON\b/i,                  'Pagamento Eletrônico'],
@@ -297,19 +299,31 @@ const PREFIXOS_PAGAMENTO: [RegExp, string][] = [
   [/^RESGATE\b/i,                        'Resgate'],
   [/^APLICACAO\b/i,                      'Aplicação'],
   [/^TRANSFERENCIA\b/i,                  'Transferência'],
+  [/^TRANSFE\b/i,                        'Transferência'],
+  [/^TRANSF\b/i,                         'Transferência'],
   [/^DEPOSITO\b/i,                       'Depósito'],
   [/^CREDITO EM CONTA\b/i,               'Crédito em Conta'],
-  [/^DES:\s*/i,                          ''],  // remove prefixo "DES:" mas não define tipo
 ]
 
 function extrairTipoPagamento(raw: string): { descricao: string; tipo_pagamento: string } {
+  let descricao = raw
+  let tipo_pagamento = ''
+
   for (const [re, tipo] of PREFIXOS_PAGAMENTO) {
-    if (re.test(raw)) {
-      const descricao = raw.replace(re, '').replace(/^[-–:]\s*/, '').trim()
-      return { descricao: descricao || raw, tipo_pagamento: tipo }
+    if (re.test(descricao)) {
+      descricao = descricao.replace(re, '').replace(/^[-–:\s]+/, '').trim()
+      tipo_pagamento = tipo
+      break
     }
   }
-  return { descricao: raw, tipo_pagamento: '' }
+
+  // Limpa prefixo "DES:" que pode aparecer depois do tipo (ex: "TRANSFE PIX DES: NOME")
+  descricao = descricao.replace(/^DES:\s*/i, '').trim()
+
+  // Remove data no final da descrição (ex: "NOME 28/03" ou "NOME 28/03/2026")
+  descricao = descricao.replace(/\s+\d{2}\/\d{2}(\/\d{2,4})?$/, '').trim()
+
+  return { descricao: descricao || raw, tipo_pagamento }
 }
 
 // ─── Parser local para PDF: texto contínuo, padrão código+valor+saldo ─────────
@@ -741,7 +755,7 @@ function processarOFX(texto: string): TransacaoDetectada[] {
     const dtpost   = tag(bStr, 'DTPOSTED')
     const valorStr = tag(bStr, 'TRNAMT')
     const fitid    = tag(bStr, 'FITID')
-    const memo     = tag(bStr, 'MEMO') || tag(bStr, 'NAME') || 'Transação'
+    const memoRaw  = tag(bStr, 'MEMO') || tag(bStr, 'NAME') || 'Transação'
 
     const valorRaw = parseFloat(valorStr.replace(',', '.'))
     if (isNaN(valorRaw) || valorRaw === 0) continue
@@ -750,11 +764,13 @@ function processarOFX(texto: string): TransacaoDetectada[] {
     const tipo  = valorRaw < 0 ? 'debito' : 'credito'
     const valor = Math.abs(valorRaw)
 
-    const { categoria, nao_categorizado } = detectarCategoria(memo)
+    // Limpa prefixo de meio de pagamento do memo OFX
+    const { descricao: memoLimpo, tipo_pagamento: tipoPagMemo } = extrairTipoPagamento(memoRaw)
+    const { categoria, nao_categorizado } = detectarCategoria(memoLimpo)
 
     resultado.push({
-      descricao:      memo.toUpperCase(),
-      tipo_pagamento: tipo_ofx || undefined,
+      descricao:      memoLimpo.toUpperCase(),
+      tipo_pagamento: tipoPagMemo || tipo_ofx || undefined,
       valor,
       tipo,
       categoria,
