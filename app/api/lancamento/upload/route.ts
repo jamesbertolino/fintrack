@@ -26,7 +26,7 @@ function detectarCategoria(desc: string): { categoria: string; nao_categorizado:
   if (d.match(/farmácia|farmacia|drogaria|saúde|saude|médico|medico|hospital|clinica|dentista|exame|laboratorio|plano de saude|unimed|amil|convenio/)) return { categoria: 'Saúde', nao_categorizado: false }
   if (d.match(/aluguel|condomin|água|agua|energia|luz |gas |internet|telefone|moradia|iptu|conta de /)) return { categoria: 'Moradia', nao_categorizado: false }
   if (d.match(/escola|faculdade|curso|educaç|educac|universidade|colégio|colegio|mensalidade|material escolar/)) return { categoria: 'Educação', nao_categorizado: false }
-  if (d.match(/salário|salario|folha|pgto|pagamento recebido|vencimento|remuneracao|proventos/)) return { categoria: 'Salário', nao_categorizado: false }
+  if (d.match(/salário|salario|folha de pagto|pagamento recebido|vencimento|remuneracao|proventos/)) return { categoria: 'Salário', nao_categorizado: false }
   if (d.match(/freelance|free-lance|serviço prestado|honorario/)) return { categoria: 'Freelance', nao_categorizado: false }
   if (d.match(/rendimento|investimento|dividendo|juros|cdb|lci|lca|tesouro|acoes|acão|fundo /)) return { categoria: 'Investimento', nao_categorizado: false }
   if (d.match(/presente|gift|mimo/)) return { categoria: 'Presente', nao_categorizado: false }
@@ -279,6 +279,8 @@ const PREFIXOS_PAGAMENTO: [RegExp, string][] = [
   [/^CARTAO VISA\b/i,                    'Crédito'],
   [/^CARTAO MASTERCARD\b/i,              'Crédito'],
   [/^CARTAO\b/i,                         'Cartão'],
+  [/^VISA ELECTRON\b/i,                  'Débito'],
+  [/^MASTERCARD DEBITO\b/i,              'Débito'],
   [/^PIX QR CODE ESTATICO\b/i,           'PIX'],
   [/^PIX QR CODE\b/i,                    'PIX'],
   [/^TRANSFERENCIA PIX\b/i,              'PIX'],
