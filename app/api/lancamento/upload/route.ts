@@ -14,6 +14,7 @@ export interface TransacaoDetectada {
   nao_categorizado?: boolean
   ref_externa?: string          // chave de deduplicação: data:documento ou data:valor:descricao
   confirmada_duplicata?: boolean // true = encontrado no banco com mesma ref_externa
+  origem_categoria?: 'aprendido' | 'padrao' | 'ia'
 }
 
 // ─── Detecta categoria por palavra-chave ─────────────────────────────────────
@@ -30,6 +31,24 @@ function detectarCategoria(desc: string): { categoria: string; nao_categorizado:
   if (d.match(/rendimento|investimento|dividendo|juros|cdb|lci|lca|tesouro|acoes|acão|fundo /)) return { categoria: 'Investimento', nao_categorizado: false }
   if (d.match(/presente|gift|mimo/)) return { categoria: 'Presente', nao_categorizado: false }
   return { categoria: 'Outros', nao_categorizado: true }
+}
+
+// ─── Normaliza descrição para chave de aprendizado ───────────────────────────
+export function normalizarChave(desc: string): string {
+  return desc.toLowerCase().replace(/\d/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
+}
+
+// ─── Aplica padrões aprendidos sobre lista de transações ──────────────────────
+function applyLearned(
+  transacoes: TransacaoDetectada[],
+  learned: Map<string, string>,
+): TransacaoDetectada[] {
+  return transacoes.map(t => {
+    const chave = normalizarChave(t.descricao)
+    const cat = learned.get(chave)
+    if (cat) return { ...t, categoria: cat, nao_categorizado: false, origem_categoria: 'aprendido' as const }
+    return { ...t, origem_categoria: t.origem_categoria ?? 'padrao' }
+  })
 }
 
 // ─── Converte valor BR para número ───────────────────────────────────────────
@@ -762,6 +781,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Carrega padrões aprendidos do usuário para sugestão de categoria
+    const { data: aprendidas } = await supabase.from('categoria_aprendida').select('chave, categoria').eq('user_id', user.id)
+    const learnedMap = new Map<string, string>((aprendidas || []).map(a => [a.chave, a.categoria]))
+
     const formData = await request.formData()
     const arquivo = formData.get('arquivo') as File | null
     if (!arquivo) return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
@@ -836,10 +859,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const naoCat = transacoes.filter(t => t.nao_categorizado).length
+      const transacoesAprendidas = applyLearned(transacoes, learnedMap)
+      const naoCat = transacoesAprendidas.filter(t => t.nao_categorizado).length
       return NextResponse.json({
-        ok: true, transacoes, banco_nome, banco_id, conta_id, conta_sugerida,
-        resumo: `${transacoes.length} transações do OFX${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        ok: true, transacoes: transacoesAprendidas, banco_nome, banco_id, conta_id, conta_sugerida,
+        resumo: `${transacoesAprendidas.length} transações do OFX${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
         tipo_documento: 'extrato_bancario',
       })
     }
@@ -879,19 +903,23 @@ export async function POST(request: NextRequest) {
 
       if (!parsed.length) return NextResponse.json({ error: 'Nenhuma transação encontrada no CSV' }, { status: 400 })
 
+      // Marca origem_categoria antes de aplicar learned
+      const parsedComOrigem = parsed.map(t => ({ ...t, origem_categoria: t.origem_categoria ?? (process.env.OPENAI_API_KEY ? 'ia' : 'padrao') as 'ia' | 'padrao' }))
+      const parsedFinal = applyLearned(parsedComOrigem, learnedMap)
+
       // Verifica duplicatas por ref_externa no banco
-      const refsCSV = parsed.map(t => t.ref_externa).filter(Boolean) as string[]
+      const refsCSV = parsedFinal.map(t => t.ref_externa).filter(Boolean) as string[]
       if (refsCSV.length) {
         const { data: existentesCSV } = await supabase
           .from('transactions').select('ref_externa')
           .eq('user_id', user.id).in('ref_externa', refsCSV)
         if (existentesCSV?.length) {
           const refsExistentesCSV = new Set(existentesCSV.map(e => e.ref_externa))
-          parsed.forEach(t => { if (t.ref_externa && refsExistentesCSV.has(t.ref_externa)) t.confirmada_duplicata = true })
+          parsedFinal.forEach(t => { if (t.ref_externa && refsExistentesCSV.has(t.ref_externa)) t.confirmada_duplicata = true })
         }
       }
 
-      const naoCat = parsed.filter(t => t.nao_categorizado).length
+      const naoCat = parsedFinal.filter(t => t.nao_categorizado).length
 
       let banco_id: string | null = null
       let banco_nao_encontrado = false
@@ -907,8 +935,8 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json({
-        ok: true, transacoes: parsed,
-        resumo: `${parsed.length} transações encontradas no CSV${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        ok: true, transacoes: parsedFinal,
+        resumo: `${parsedFinal.length} transações encontradas no CSV${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
         tipo_documento: tipoDoc,
         banco_nome: bancoNomeCSV,
         banco_id,
@@ -989,11 +1017,15 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const naoCat = transacoes.filter(t => t.nao_categorizado).length
+      const transacoesAprendidasPDF = applyLearned(
+        transacoes.map(t => ({ ...t, origem_categoria: t.origem_categoria ?? 'ia' as const })),
+        learnedMap,
+      )
+      const naoCat = transacoesAprendidasPDF.filter(t => t.nao_categorizado).length
       const lacunas: string[] = (parsed as { lacunas?: string[] }).lacunas || []
       return NextResponse.json({
-        ok: true, transacoes,
-        resumo: `${transacoes.length} transações${naoCat ? ` (${naoCat} sem categoria)` : ''} — ${parsed.resumo || ''}`.trim(),
+        ok: true, transacoes: transacoesAprendidasPDF,
+        resumo: `${transacoesAprendidasPDF.length} transações${naoCat ? ` (${naoCat} sem categoria)` : ''} — ${parsed.resumo || ''}`.trim(),
         banco_nome, banco_id,
         conta_id,
         conta_sugerida,
@@ -1033,10 +1065,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const naoCat = transacoes.filter(t => t.nao_categorizado).length
+      const transacoesAprendidasImg = applyLearned(
+        transacoes.map(t => ({ ...t, origem_categoria: 'ia' as const })),
+        learnedMap,
+      )
+      const naoCat = transacoesAprendidasImg.filter(t => t.nao_categorizado).length
       return NextResponse.json({
-        ok: true, transacoes,
-        resumo: `${transacoes.length} itens detectados na imagem${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
+        ok: true, transacoes: transacoesAprendidasImg,
+        resumo: `${transacoesAprendidasImg.length} itens detectados na imagem${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
         tipo_documento: parsed.tipo_documento || 'outro',
         banco_nome: parsed.banco_nome || null,
       })

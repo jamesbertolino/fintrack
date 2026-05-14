@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.26.0'
+export const APP_VERSION = '2.27.0'
 export const APP_BUILD   = '2026.05.14'
 
 /**
@@ -50,4 +50,5 @@ export const APP_BUILD   = '2026.05.14'
  * 2.24.0 · 2026.05.14 — Meta compartilhada: compartilhar meta com família via 🔗, aba Família com aportes de todos os membros
  * 2.25.0 · 2026.05.14 — Relatório PDF: donut SVG de categorias, barras semanais receita/despesa, cards de meta, rodapé e impressão otimizada
  * 2.26.0 · 2026.05.14 — Finanças do grupo familiar: fontes (conta/espécie/cheque) com saldo, extrato consolidado com running balance e totais
+ * 2.27.0 · 2026.05.14 — Importação melhorada: padrões aprendidos (🧠 memorizado / 🔑 palavra-chave / 🤖 IA) com persistência em categoria_aprendida
  */

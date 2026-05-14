@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { logAudit } from '@/lib/auditLog'
 import { verificarConquistas } from '@/lib/verificarConquistas'
 import { verificarEventosPosLancamento } from '@/lib/pushEventos'
+import { normalizarChave } from '@/app/api/lancamento/upload/route'
 
 export async function POST(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -96,6 +97,14 @@ export async function POST(request: NextRequest) {
   }
 
   logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
+
+  // Memoriza padrões descrição→categoria para sugestões futuras
+  const aprendizados = novas
+    .map(t => ({ user_id: user.id, chave: normalizarChave(t.descricao), categoria: t.categoria, vezes: 1, updated_at: new Date().toISOString() }))
+    .filter(a => a.chave.length >= 3)
+  if (aprendizados.length) {
+    supabase.from('categoria_aprendida').upsert(aprendizados, { onConflict: 'user_id,chave' }).then(() => null)
+  }
 
   verificarConquistas(supabase, user.id).catch(() => null)
   verificarEventosPosLancamento(supabase, user.id, novas)

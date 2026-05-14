@@ -85,6 +85,7 @@ interface TransacaoDetectada {
   duplicata_origem?: 'historico' | 'lote'
   confirmada_duplicata?: boolean  // já existe no banco com mesma ref_externa
   ref_externa?: string
+  origem_categoria?: 'aprendido' | 'padrao' | 'ia'
 }
 
 const CATEGORIAS_DESPESA = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Outros']
@@ -1351,6 +1352,15 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                                 onClick={() => setEditandoCategoriaIdx(editandoCategoriaIdx === i ? null : i)}>
                                 {t.categoria} ▾
                               </span>
+                              {t.origem_categoria === 'aprendido' && (
+                                <span title="Categoria memorizada de importações anteriores" style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(168,85,247,.12)', color: '#c084fc', border: '1px solid rgba(168,85,247,.25)' }}>🧠</span>
+                              )}
+                              {t.origem_categoria === 'ia' && !t.nao_categorizado && (
+                                <span title="Categoria sugerida pela IA" style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(34,211,238,.08)', color: '#67e8f9', border: '1px solid rgba(34,211,238,.2)' }}>🤖</span>
+                              )}
+                              {t.origem_categoria === 'padrao' && !t.nao_categorizado && (
+                                <span title="Categoria detectada por palavra-chave" style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(251,191,36,.08)', color: '#fcd34d', border: '1px solid rgba(251,191,36,.2)' }}>🔑</span>
+                              )}
                               {editandoCategoriaIdx === i && (
                                 <select autoFocus value={t.categoria}
                                   onChange={e => { editarTransacao(i, 'categoria', e.target.value); setEditandoCategoriaIdx(null) }}
