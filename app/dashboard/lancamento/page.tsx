@@ -1334,14 +1334,14 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   )}
                 </div>
 
-                {/* ── Transações categorizadas ─────────────────────────── */}
-                {transacoesDetectadas.filter(t => !t.nao_categorizado).length > 0 && (
+                {/* ── Transações prontas (sem nenhum problema) ─────────── */}
+                {transacoesDetectadas.filter(t => !t.nao_categorizado && !t.confirmada_duplicata && !t.potencial_duplicata).length > 0 && (
                   <>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
-                      ✅ Categorizados ({transacoesDetectadas.filter(t => !t.nao_categorizado).length})
+                      ✅ Prontas ({transacoesDetectadas.filter(t => !t.nao_categorizado && !t.confirmada_duplicata && !t.potencial_duplicata).length})
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 240, overflowY: 'auto', marginBottom: 10 }}>
-                      {transacoesDetectadas.map((t, i) => t.nao_categorizado ? null : (
+                      {transacoesDetectadas.map((t, i) => (t.nao_categorizado || t.confirmada_duplicata || t.potencial_duplicata) ? null : (
                         <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✕</button>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1428,43 +1428,60 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   </div>
                 )}
 
-                {/* ── Possíveis duplicatas (fuzzy) ────────────────────────── */}
-                {transacoesDetectadas.filter(t => t.potencial_duplicata).length > 0 && (
+                {/* ── Possíveis duplicatas (fuzzy: mesma data+valor, desc diferente) ── */}
+                {transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length > 0 && (
                   <div style={{ background: 'rgba(249,115,22,.04)', border: '1px solid rgba(249,115,22,.25)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
-                    <TipCard id="tip-duplicatas" icon="🔁" tips={tips} accent="#f97316"
-                      text="Detectamos lançamentos que podem ser <strong>duplicados</strong> — mesmo valor, descrição e data próxima de um registro já existente ou de outro item neste lote. Revise e descarte os que forem repetição." />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <div style={{ fontSize: 10, color: '#f97316', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
-                        🔁 Possíveis duplicatas ({transacoesDetectadas.filter(t => t.potencial_duplicata).length})
+                      <div>
+                        <div style={{ fontSize: 10, color: '#f97316', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
+                          🔁 Verificar — {transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length} possíve{transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length > 1 ? 'is duplicatas' : 'l duplicata'}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Mesma data e valor de um lançamento já existente — verifique se é o mesmo.</div>
                       </div>
                       <button
                         onClick={descartarDuplicatas}
-                        style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(249,115,22,.12)', border: '1px solid rgba(249,115,22,.3)', borderRadius: 6, color: '#f97316', cursor: 'pointer' }}
+                        style={{ fontSize: 10, padding: '3px 10px', background: 'rgba(249,115,22,.12)', border: '1px solid rgba(249,115,22,.3)', borderRadius: 6, color: '#f97316', cursor: 'pointer', flexShrink: 0, marginLeft: 8 }}
                       >
                         Descartar todas
                       </button>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
-                      {transacoesDetectadas.map((t, i) => !t.potencial_duplicata ? null : (
-                        <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(249,115,22,.2)', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(249,115,22,.5)', fontSize: 13, flexShrink: 0, lineHeight: 1 }} title="Descartar">✕</button>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)' }}>{t.descricao}</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                              <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(249,115,22,.12)', color: '#f97316', border: '1px solid rgba(249,115,22,.25)' }}>
-                                {t.duplicata_origem === 'historico' ? 'possível duplicata' : 'repete no lote'}
-                              </span>
-                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 240, overflowY: 'auto' }}>
+                      {transacoesDetectadas.map((t, i) => (!t.potencial_duplicata || t.confirmada_duplicata) ? null : (
+                        <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(249,115,22,.2)', borderRadius: 8, padding: '7px 10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(249,115,22,.5)', fontSize: 13, flexShrink: 0, lineHeight: 1 }} title="Descartar">✕</button>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <input value={t.descricao} onChange={e => editarTransacao(i, 'descricao', e.target.value)}
+                                style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }} />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(249,115,22,.12)', color: '#f97316', border: '1px solid rgba(249,115,22,.25)' }}>
+                                  mesma data e valor já lançados
+                                </span>
+                                {t.nao_categorizado ? (
+                                  <select value={t.categoria} onChange={e => editarTransacao(i, 'categoria', e.target.value)}
+                                    style={{ fontSize: 11, padding: '2px 8px', background: '#0a0a0a', border: '1px solid rgba(251,191,36,.35)', borderRadius: 6, color: '#fbbf24', outline: 'none', cursor: 'pointer' }}>
+                                    {todasCategorias.map(c => <option key={c} value={c}>{c}</option>)}
+                                  </select>
+                                ) : (
+                                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: `${CORES[t.categoria] || '#6b7280'}18`, color: CORES[t.categoria] || '#6b7280', border: `1px solid ${CORES[t.categoria] || '#6b7280'}33` }}>
+                                    {t.categoria}
+                                  </span>
+                                )}
+                                {t.tipo_pagamento && (
+                                  <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 6, background: 'rgba(255,255,255,.05)', color: 'rgba(255,255,255,.35)', border: '1px solid rgba(255,255,255,.1)' }}>{t.tipo_pagamento}</span>
+                                )}
+                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</span>
+                              </div>
                             </div>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171' }}>
-                              {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171' }}>
+                                {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
+                              </div>
+                              <button onClick={() => desmarcarDuplicata(i)}
+                                style={{ fontSize: 9, padding: '2px 7px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, color: 'rgba(255,255,255,.4)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                Lançar mesmo assim
+                              </button>
                             </div>
-                            <button onClick={() => desmarcarDuplicata(i)}
-                              style={{ fontSize: 9, padding: '2px 7px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
-                              Manter assim mesmo
-                            </button>
                           </div>
                         </div>
                       ))}
@@ -1472,14 +1489,14 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   </div>
                 )}
 
-                {/* ── Transações não categorizadas ─────────────────────── */}
-                {transacoesDetectadas.filter(t => t.nao_categorizado).length > 0 && (
+                {/* ── Transações não categorizadas (sem duplicata pendente) ── */}
+                {transacoesDetectadas.filter(t => t.nao_categorizado && !t.potencial_duplicata && !t.confirmada_duplicata).length > 0 && (
                   <div style={{ background: 'rgba(251,191,36,.04)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
                     <TipCard id="tip-sem-categoria" icon="🏷️" tips={tips} accent="#fbbf24"
                       text="Clique no <strong>select de categoria</strong> ao lado de cada item ou use <strong>&quot;Lançar todos como Outros&quot;</strong> para categorizar em lote. Você pode alterar depois." />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ fontSize: 10, color: '#fbbf24', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
-                        ⚠ Sem categoria ({transacoesDetectadas.filter(t => t.nao_categorizado).length})
+                        ⚠ Sem categoria ({transacoesDetectadas.filter(t => t.nao_categorizado && !t.potencial_duplicata && !t.confirmada_duplicata).length})
                       </div>
                       <button
                         onClick={categorizarNaoCategorizadosComoOutros}
@@ -1489,7 +1506,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                       </button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
-                      {transacoesDetectadas.map((t, i) => !t.nao_categorizado ? null : (
+                      {transacoesDetectadas.map((t, i) => (!t.nao_categorizado || t.potencial_duplicata || t.confirmada_duplicata) ? null : (
                         <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(251,191,36,.15)', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 13, flexShrink: 0, lineHeight: 1 }}>✕</button>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -1563,13 +1580,15 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                       Cancelar
                     </button>
                     <button
-                      onClick={() => { if (!transacoesDetectadas.some(t => t.nao_categorizado)) setEtapaConfirmacao(true) }}
-                      disabled={transacoesDetectadas.some(t => t.nao_categorizado)}
-                      title={transacoesDetectadas.some(t => t.nao_categorizado) ? 'Categorize todos os itens antes de confirmar' : ''}
-                      style={{ flex: 2, padding: '10px', background: transacoesDetectadas.some(t => t.nao_categorizado) ? '#374151' : '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: transacoesDetectadas.some(t => t.nao_categorizado) ? 'not-allowed' : 'pointer' }}>
-                      {transacoesDetectadas.some(t => t.nao_categorizado)
-                        ? `Categorize os ${transacoesDetectadas.filter(t => t.nao_categorizado).length} itens pendentes`
-                        : `Avançar — ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
+                      onClick={() => { if (!transacoesDetectadas.some(t => (t.nao_categorizado || t.potencial_duplicata) && !t.confirmada_duplicata)) setEtapaConfirmacao(true) }}
+                      disabled={transacoesDetectadas.some(t => (t.nao_categorizado || t.potencial_duplicata) && !t.confirmada_duplicata)}
+                      title={transacoesDetectadas.some(t => t.potencial_duplicata && !t.confirmada_duplicata) ? 'Resolva as possíveis duplicatas antes de confirmar' : transacoesDetectadas.some(t => t.nao_categorizado && !t.confirmada_duplicata) ? 'Categorize todos os itens antes de confirmar' : ''}
+                      style={{ flex: 2, padding: '10px', background: transacoesDetectadas.some(t => (t.nao_categorizado || t.potencial_duplicata) && !t.confirmada_duplicata) ? '#374151' : '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: transacoesDetectadas.some(t => (t.nao_categorizado || t.potencial_duplicata) && !t.confirmada_duplicata) ? 'not-allowed' : 'pointer' }}>
+                      {transacoesDetectadas.some(t => t.potencial_duplicata && !t.confirmada_duplicata)
+                        ? `Resolva ${transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length} possíve${transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length > 1 ? 'is duplicatas' : 'l duplicata'}`
+                        : transacoesDetectadas.some(t => t.nao_categorizado && !t.confirmada_duplicata)
+                          ? `Categorize os ${transacoesDetectadas.filter(t => t.nao_categorizado && !t.confirmada_duplicata).length} itens pendentes`
+                          : `Avançar — ${transacoesDetectadas.length} lançamento${transacoesDetectadas.length > 1 ? 's' : ''}`}
                     </button>
                   </div>
                 )}
