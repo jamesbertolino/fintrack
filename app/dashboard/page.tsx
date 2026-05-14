@@ -1041,6 +1041,17 @@ useEffect(() => {
               {!isMobile && <span style={{ fontSize: 11 }}>Buscar</span>}
               {!isMobile && <kbd style={{ fontSize: 9, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 4, padding: '1px 5px', color: 'rgba(255,255,255,.35)' }}>⌘K</kbd>}
             </button>
+            {/* Modo TV */}
+            {!isMobile && (
+              <button
+                onClick={() => router.push('/dashboard/tv')}
+                title="Modo TV / Kiosk"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '5px 10px', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 12 }}
+              >
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="2" width="11" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.5 10.5h4M6.5 10v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+                <span style={{ fontSize: 11 }}>TV</span>
+              </button>
+            )}
             {/* Badge webhook — oculto em telas muito pequenas */}
             {!isMobile && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 20, padding: '4px 10px' }}>

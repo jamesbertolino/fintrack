@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.15.0'
+export const APP_VERSION = '2.16.0'
 export const APP_BUILD   = '2026.05.14'
 
 /**
@@ -39,4 +39,5 @@ export const APP_BUILD   = '2026.05.14'
  * 2.13.0 · 2026.05.14 — Onboarding revisado: 3 passos (objetivo financeiro, conta bancária, primeiro lançamento) com barra de progresso
  * 2.14.0 · 2026.05.14 — Relatório IA mensal: análise por IA com resumo, gastos, tendências e recomendações personalizadas pelo objetivo
  * 2.15.0 · 2026.05.14 — Notificações inteligentes: cron diário com resumo semanal, aviso de meta e alerta de orçamento; toggles no perfil
+ * 2.16.0 · 2026.05.14 — Modo TV/Kiosk: tela cheia com relógio, saldo total, métricas do mês, contas, categorias, metas e transações
  */
