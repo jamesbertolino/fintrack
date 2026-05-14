@@ -39,8 +39,11 @@ function GraficoFamilia({ dash }: { dash: FamiliaDash }) {
   const W = 500, H = 120, P = { t: 12, b: 24, l: 44, r: 12 }
   const iW = W - P.l - P.r, iH = H - P.t - P.b
 
-  let acc = dash.totalSaldo - dash.historico.reduce((a, [, v]) => a + v, 0)
-  const pontos = dash.historico.map(([dia, val]) => { acc += val; return { dia, val: acc } })
+  const base   = dash.totalSaldo - dash.historico.reduce((a, [, v]) => a + v, 0)
+  const pontos = dash.historico.reduce<{ dia: string; val: number }[]>((arr, [dia, val]) => {
+    const prev = arr.length ? arr[arr.length - 1].val : base
+    return [...arr, { dia, val: prev + val }]
+  }, [])
   const mn = Math.min(...pontos.map(p => p.val))
   const mx = Math.max(...pontos.map(p => p.val), mn + 1)
 
