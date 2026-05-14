@@ -481,11 +481,24 @@ export default function Dashboard() {
   const [relatorioErro, setRelErro]       = useState('')
 
   // Em mobile sidebar começa fechada, em desktop aberta
-  const [sidebarAberta, setSidebar] = useState(true)
+  const [sidebarAberta, setSidebar]   = useState(true)
+  const [openGroups,   setOpenGroups] = useState<Set<string>>(new Set(['principal']))
+  const [hoveredGroup, setHoveredGroup] = useState<string | null>(null)
 
 useEffect(() => {
   setSidebar(!isMobile) // eslint-disable-line react-hooks/set-state-in-effect
 }, [isMobile])
+
+useEffect(() => {
+  const groups = [
+    { id: 'principal', ids: ['inicio','lancamento','gastos'] },
+    { id: 'financas',  ids: ['orcamento','metas','contas','dividas','planejamento'] },
+    { id: 'insights',  ids: ['score','evolucao','ia','relatorio'] },
+    { id: 'gestao',    ids: ['tarefas','notificacoes','familia','categorias','admin'] },
+  ]
+  const gid = groups.find(g => g.ids.includes(paginaAtiva))?.id
+  if (gid) setOpenGroups(prev => new Set([...prev, gid])) // eslint-disable-line react-hooks/set-state-in-effect
+}, [paginaAtiva])
 
 useEffect(() => {
   function onKey(e: KeyboardEvent) {
@@ -635,25 +648,49 @@ useEffect(() => {
     </div>
   )
 
-  const NAV_ITEMS = [
-    { id: 'inicio',       label: m ? 'Salão do Reino'   : 'Início',          icon: m ? '🏰' : '🏠' },
-    { id: 'lancamento',   label: m ? 'Livro do Tesouro' : 'Lançamentos',     icon: m ? '📜' : '📝', href: '/dashboard/lancamento',    tour: 'tour-nav-lancamento' },
-    { id: 'gastos',       label: m ? 'Batalhas'         : 'Gastos',          icon: m ? '⚔️' : '💸', href: '/dashboard/gastos',         tour: 'tour-nav-gastos' },
-    { id: 'orcamento',    label: m ? 'Edito do Reino'   : 'Orçamento',       icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento',      tour: 'tour-nav-orcamento' },
-    { id: 'metas',        label: m ? 'Quests'           : 'Metas',           icon: m ? '🎯' : '🎯', href: '/dashboard/metas',          tour: 'tour-nav-metas' },
-    { id: 'tarefas',      label: m ? 'Missões & Desafios': 'Tarefas',         icon: '📋',              href: '/dashboard/tarefas' },
-    { id: 'ia',           label: m ? 'Oráculo'          : 'Assistente IA',   icon: m ? '🔮' : '🤖', href: '/dashboard/ia',             tour: 'tour-nav-ia' },
-    { id: 'notificacoes', label: m ? 'Pergaminhos'      : 'Notificações',    icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes',   tour: 'tour-nav-notificacoes' },
-    { id: 'evolucao',     label: m ? 'Jornada do Herói' : 'Evolução',        icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },
-    { id: 'contas',       label: m ? 'Cofres do Reino'  : 'Contas',          icon: m ? '💰' : '🏦', href: '/dashboard/contas' },
-    { id: 'relatorio',    label: m ? 'Pergaminho Real'  : 'Relatório PDF',   icon: m ? '📜' : '📄', href: '/dashboard/relatorio' },
-    { id: 'planejamento', label: m ? 'Visão do Oráculo' : 'Planejamento',    icon: m ? '🔭' : '📅', href: '/dashboard/planejamento' },
-    { id: 'dividas',      label: m ? 'Batalha das Dívidas' : 'Dívidas',     icon: m ? '⚔️' : '💳', href: '/dashboard/dividas' },
-    { id: 'score',        label: m ? 'Honra do Cavaleiro'  : 'Score',        icon: m ? '⭐' : '⭐', href: '/dashboard/score' },
-    { id: 'familia',      label: m ? 'Reino Familiar'      : 'Família',      icon: m ? '👑' : '👨‍👩‍👧', href: '/dashboard/familia' },
-    { id: 'categorias',   label: m ? 'Pergaminho de Categorias' : 'Categorias', icon: '🏷️', href: '/dashboard/categorias' },
-    ...(profile?.is_admin ? [{ id: 'admin', label: 'Painel Admin', icon: '🛠️', href: '/dashboard/admin' }] : []),
+  type NavItem = { id: string; label: string; icon: string; href?: string; tour?: string }
+  type NavGroup = { id: string; label: string; icon: string; items: NavItem[] }
+
+  const NAV_GROUPS: NavGroup[] = [
+    {
+      id: 'principal', label: m ? 'Salão' : 'Principal', icon: m ? '🏰' : '🏠',
+      items: [
+        { id: 'inicio',     label: m ? 'Salão do Reino'   : 'Início',      icon: m ? '🏰' : '🏠' },
+        { id: 'lancamento', label: m ? 'Livro do Tesouro' : 'Lançamentos', icon: m ? '📜' : '📝', href: '/dashboard/lancamento', tour: 'tour-nav-lancamento' },
+        { id: 'gastos',     label: m ? 'Batalhas'         : 'Gastos',      icon: m ? '⚔️' : '💸', href: '/dashboard/gastos',     tour: 'tour-nav-gastos' },
+      ],
+    },
+    {
+      id: 'financas', label: m ? 'Finanças' : 'Finanças', icon: m ? '💰' : '💰',
+      items: [
+        { id: 'orcamento',    label: m ? 'Edito do Reino'      : 'Orçamento',   icon: m ? '⚖️' : '📊', href: '/dashboard/orcamento',    tour: 'tour-nav-orcamento' },
+        { id: 'metas',        label: m ? 'Quests'              : 'Metas',        icon: m ? '🎯' : '🎯', href: '/dashboard/metas',         tour: 'tour-nav-metas' },
+        { id: 'contas',       label: m ? 'Cofres do Reino'     : 'Contas',       icon: m ? '🏦' : '🏦', href: '/dashboard/contas' },
+        { id: 'dividas',      label: m ? 'Batalha das Dívidas' : 'Dívidas',      icon: m ? '⚔️' : '💳', href: '/dashboard/dividas' },
+        { id: 'planejamento', label: m ? 'Visão do Oráculo'    : 'Planejamento', icon: m ? '🔭' : '📅', href: '/dashboard/planejamento' },
+      ],
+    },
+    {
+      id: 'insights', label: 'Insights', icon: m ? '🔮' : '📊',
+      items: [
+        { id: 'score',    label: m ? 'Honra do Cavaleiro' : 'Score',        icon: m ? '⭐' : '⭐', href: '/dashboard/score' },
+        { id: 'evolucao', label: m ? 'Jornada do Herói'  : 'Evolução',     icon: m ? '⚡' : '📈', href: '/dashboard/evolucao' },
+        { id: 'ia',       label: m ? 'Oráculo'           : 'Assistente IA',icon: m ? '🔮' : '🤖', href: '/dashboard/ia', tour: 'tour-nav-ia' },
+        { id: 'relatorio',label: m ? 'Pergaminho Real'   : 'Relatório PDF',icon: m ? '📜' : '📄', href: '/dashboard/relatorio' },
+      ],
+    },
+    {
+      id: 'gestao', label: m ? 'Gestão' : 'Gestão', icon: m ? '⚙️' : '⚙️',
+      items: [
+        { id: 'tarefas',      label: m ? 'Missões & Desafios'        : 'Tarefas',       icon: '📋',  href: '/dashboard/tarefas' },
+        { id: 'notificacoes', label: m ? 'Pergaminhos'               : 'Notificações',  icon: m ? '📯' : '🔔', href: '/dashboard/notificacoes', tour: 'tour-nav-notificacoes' },
+        { id: 'familia',      label: m ? 'Reino Familiar'            : 'Família',       icon: m ? '👑' : '👨‍👩‍👧', href: '/dashboard/familia' },
+        { id: 'categorias',   label: m ? 'Pergaminho de Categorias'  : 'Categorias',    icon: '🏷️', href: '/dashboard/categorias' },
+        ...(profile?.is_admin ? [{ id: 'admin', label: 'Painel Admin', icon: '🛠️', href: '/dashboard/admin' }] : []),
+      ],
+    },
   ]
+
 
   // largura do sidebar — em mobile sempre 200 quando aberto (drawer), em desktop colapsa para 56
   const sidebarWidth = isMobile ? 200 : (sidebarAberta ? 200 : 56)
@@ -893,68 +930,126 @@ useEffect(() => {
         )}
 
         <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
-          {!collapsed && (
-            <div style={{ padding: '6px 1rem 4px', fontSize: 9, color: cores.sidebarTextFaint, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
-              {tx.navSep1}
-            </div>
-          )}
+          {NAV_GROUPS.map(group => {
+            const isOpen    = openGroups.has(group.id)
+            const hasActive = group.items.some(i => i.id === paginaAtiva)
+            const isHovered = hoveredGroup === group.id
 
-          {NAV_ITEMS.slice(0, 4).map(item => (
-            <button key={item.id}
-              {...('tour' in item && item.tour ? { 'data-tour': item.tour } : {})}
-              onClick={() => {
-                if ('href' in item && item.href) router.push(item.href)
-                else setPagina(item.id)
-                if (isMobile) setSidebar(false)
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: !collapsed ? '7px 1rem' : '7px 14px',
-                width: '100%',
-                background: paginaAtiva === item.id ? cores.sidebarActive : 'transparent',
-                border: 'none',
-                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
-                cursor: 'pointer',
-                color: paginaAtiva === item.id ? cores.sidebarActiveColor : cores.sidebarTextMuted,
-                fontSize: 12, fontWeight: paginaAtiva === item.id ? 600 : 400,
-                transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
-              }}>
-              <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</span>
-              {!collapsed && item.label}
-            </button>
-          ))}
+            function navItemBtn(item: NavItem) {
+              return (
+                <button key={item.id}
+                  {...(item.tour ? { 'data-tour': item.tour } : {})}
+                  onClick={() => {
+                    if (item.href) router.push(item.href)
+                    else setPagina(item.id)
+                    if (isMobile) setSidebar(false)
+                    setHoveredGroup(null)
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '6px 1rem 6px 2rem',
+                    width: '100%',
+                    background: paginaAtiva === item.id ? cores.sidebarActive : 'transparent',
+                    border: 'none',
+                    borderLeft: paginaAtiva === item.id ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
+                    cursor: 'pointer',
+                    color: paginaAtiva === item.id ? cores.sidebarActiveColor : cores.sidebarTextMuted,
+                    fontSize: 12, fontWeight: paginaAtiva === item.id ? 600 : 400,
+                    transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
+                  }}>
+                  <span style={{ fontSize: 14, flexShrink: 0, lineHeight: 1, opacity: 0.75 }}>{item.icon}</span>
+                  {item.label}
+                </button>
+              )
+            }
 
-          {!collapsed && (
-            <div style={{ padding: '10px 1rem 4px', fontSize: 9, color: cores.sidebarTextFaint, textTransform: 'uppercase' as const, letterSpacing: '.15em', fontFamily: tx.fontDisplay }}>
-              {tx.navSep2}
-            </div>
-          )}
-          {collapsed && <div style={{ height: 1, background: cores.sidebarBorder, margin: '6px 10px' }} />}
+            if (collapsed) {
+              // collapsed: group icon with hover flyout
+              return (
+                <div key={group.id} style={{ position: 'relative' }}
+                  onMouseEnter={() => setHoveredGroup(group.id)}
+                  onMouseLeave={() => setHoveredGroup(null)}>
+                  <button
+                    title={group.label}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: '100%', padding: '9px 14px',
+                      background: hasActive ? cores.sidebarActive : 'transparent',
+                      border: 'none',
+                      borderLeft: hasActive ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
+                      cursor: 'pointer',
+                      color: hasActive ? cores.sidebarActiveColor : cores.sidebarTextMuted,
+                      fontSize: 16, transition: 'all .15s',
+                    }}>
+                    {group.icon}
+                  </button>
+                  {isHovered && (
+                    <div style={{
+                      position: 'absolute', left: '100%', top: 0, zIndex: 200,
+                      background: cores.surface, border: `1px solid ${cores.border}`,
+                      borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.35)',
+                      minWidth: 180, padding: '6px 0', marginLeft: 4,
+                    }}>
+                      <div style={{ padding: '4px 14px 8px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.12em', color: cores.textMuted, fontFamily: tx.fontDisplay }}>
+                        {group.label}
+                      </div>
+                      {group.items.map(item => (
+                        <button key={item.id}
+                          onClick={() => {
+                            if (item.href) router.push(item.href)
+                            else setPagina(item.id)
+                            setHoveredGroup(null)
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            padding: '7px 14px', width: '100%',
+                            background: paginaAtiva === item.id ? cores.sidebarActive : 'transparent',
+                            border: 'none',
+                            borderLeft: paginaAtiva === item.id ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
+                            cursor: 'pointer',
+                            color: paginaAtiva === item.id ? cores.sidebarActiveColor : cores.text,
+                            fontSize: 12, fontWeight: paginaAtiva === item.id ? 600 : 400,
+                            whiteSpace: 'nowrap', textAlign: 'left',
+                          }}>
+                          <span style={{ fontSize: 14 }}>{item.icon}</span>
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
 
-          {NAV_ITEMS.slice(4).map(item => (
-            <button key={item.id}
-              {...('tour' in item && item.tour ? { 'data-tour': item.tour } : {})}
-              onClick={() => {
-                if ('href' in item && item.href) router.push(item.href)
-                else setPagina(item.id)
-                if (isMobile) setSidebar(false)
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: !collapsed ? '7px 1rem' : '7px 14px',
-                width: '100%',
-                background: paginaAtiva === item.id ? cores.sidebarActive : 'transparent',
-                border: 'none',
-                borderLeft: paginaAtiva === item.id ? `2px solid ${cores.sidebarActiveColor}` : '2px solid transparent',
-                cursor: 'pointer',
-                color: paginaAtiva === item.id ? cores.sidebarActiveColor : cores.sidebarTextMuted,
-                fontSize: 12, fontWeight: paginaAtiva === item.id ? 600 : 400,
-                transition: 'all .15s', textAlign: 'left', whiteSpace: 'nowrap',
-              }}>
-              <span style={{ fontSize: 15, flexShrink: 0, lineHeight: 1 }}>{item.icon}</span>
-              {!collapsed && item.label}
-            </button>
-          ))}
+            // expanded: collapsible group
+            return (
+              <div key={group.id}>
+                <button
+                  onClick={() => setOpenGroups(prev => {
+                    const next = new Set(prev)
+                    if (next.has(group.id)) next.delete(group.id)
+                    else next.add(group.id)
+                    return next
+                  })}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '7px 1rem', width: '100%',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: hasActive ? cores.sidebarActiveColor : cores.sidebarTextMuted,
+                    fontSize: 11, fontWeight: 600, textAlign: 'left',
+                    textTransform: 'uppercase' as const, letterSpacing: '.08em',
+                    fontFamily: tx.fontDisplay,
+                    borderTop: `1px solid ${cores.sidebarBorder}`,
+                    marginTop: 2,
+                  }}>
+                  <span style={{ fontSize: 14 }}>{group.icon}</span>
+                  <span style={{ flex: 1 }}>{group.label}</span>
+                  <span style={{ fontSize: 9, opacity: 0.5, transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>▶</span>
+                </button>
+                {isOpen && group.items.map(item => navItemBtn(item))}
+              </div>
+            )
+          })}
         </nav>
 
         {!collapsed && (
