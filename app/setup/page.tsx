@@ -14,9 +14,6 @@ const OBJETIVOS: { id: Objetivo; emoji: string; titulo: string; descricao: strin
   { id: 'investir', emoji: '👑', titulo: 'Investir e crescer', descricao: 'Quero fazer meu dinheiro render e alcançar independência financeira' },
 ]
 
-const BANCOS_COMUNS = [
-  { id: null, nome: 'Nenhum (genérico)' },
-]
 
 export default function SetupPage() {
   const router   = useRouter()

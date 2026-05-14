@@ -472,6 +472,11 @@ export default function Dashboard() {
   const [buscaAberta, setBuscaAb]   = useState(false)
   const [iaAnalisando, setIaAnalisando]   = useState(false)
   const [extratoXPAberto, setExtratoXP]   = useState(false)
+  const [relatorioAberto, setRelAb]       = useState(false)
+  const [relatorioTexto, setRelTxt]       = useState('')
+  const [relatorioMes, setRelMes]         = useState('')
+  const [relatorioLoad, setRelLoad]       = useState(false)
+  const [relatorioErro, setRelErro]       = useState('')
 
   // Em mobile sidebar começa fechada, em desktop aberta
   const [sidebarAberta, setSidebar] = useState(true)
@@ -760,6 +765,59 @@ useEffect(() => {
           </div>
         )
       })()}
+
+      {/* ── Modal relatório IA ── */}
+      {relatorioAberto && (
+        <div onClick={() => setRelAb(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 600, background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', fontFamily: 'system-ui, sans-serif' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>✨ Relatório IA</div>
+                {relatorioMes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>{relatorioMes}</div>}
+              </div>
+              <button onClick={() => setRelAb(false)} style={{ background: 'rgba(255,255,255,.07)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+
+            {relatorioLoad && (
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'rgba(255,255,255,.4)', fontSize: 13 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                Analisando seu mês com IA...
+              </div>
+            )}
+
+            {relatorioErro && !relatorioLoad && (
+              <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '12px', fontSize: 13, color: '#f87171' }}>
+                {relatorioErro}
+              </div>
+            )}
+
+            {relatorioTexto && !relatorioLoad && (() => {
+              const secoes = relatorioTexto.split('---').map(s => s.trim()).filter(Boolean)
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {secoes.map((sec, i) => {
+                    const lines  = sec.split('\n').filter(Boolean)
+                    const titulo = lines[0]?.replace(/^##\s*/, '') || ''
+                    const corpo  = lines.slice(1).join('\n').trim()
+                    const bgMap  = ['rgba(74,222,128,.05)', 'rgba(96,165,250,.05)', 'rgba(251,191,36,.05)', 'rgba(167,139,250,.05)']
+                    const bdMap  = ['rgba(74,222,128,.12)', 'rgba(96,165,250,.12)', 'rgba(251,191,36,.12)', 'rgba(167,139,250,.12)']
+                    return (
+                      <div key={i} style={{ background: bgMap[i] || 'rgba(255,255,255,.03)', border: `1px solid ${bdMap[i] || 'rgba(255,255,255,.08)'}`, borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 8 }}>{titulo}</div>
+                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{corpo}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+
+            <div style={{ marginTop: '1rem', fontSize: 11, color: 'rgba(255,255,255,.25)', textAlign: 'center' }}>
+              Gerado por IA com base nos seus lançamentos reais · Não é aconselhamento financeiro
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overlay escuro em mobile quando sidebar aberta */}
       {isMobile && sidebarAberta && (
@@ -1240,6 +1298,45 @@ useEffect(() => {
                       <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>comparado a {nomePrev}</span>
                     </div>
                     {comp}
+                  </div>
+                )
+              })()}
+
+              {/* Relatório IA */}
+              {(() => {
+                const mesAtual = new Date().toISOString().slice(0, 7)
+                async function gerarRelatorio() {
+                  setRelLoad(true); setRelErro(''); setRelAb(true)
+                  try {
+                    const res  = await fetch('/api/relatorio-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mes: mesAtual }) })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data.error || 'Erro ao gerar relatório')
+                    setRelTxt(data.relatorio); setRelMes(data.mes)
+                  } catch (e) { setRelErro(e instanceof Error ? e.message : 'Erro desconhecido') }
+                  finally { setRelLoad(false) }
+                }
+                return (
+                  <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay, marginBottom: 2 }}>
+                          {m ? '🔮 Análise do Mago' : '✨ Relatório IA'}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Resumo inteligente do mês com recomendações personalizadas</div>
+                      </div>
+                      <button
+                        onClick={gerarRelatorio}
+                        disabled={relatorioLoad}
+                        style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: tx.accentColor, color: '#fff', fontSize: 12, fontWeight: 600, cursor: relatorioLoad ? 'default' : 'pointer', opacity: relatorioLoad ? 0.6 : 1, flexShrink: 0, marginLeft: 12 }}
+                      >
+                        {relatorioLoad ? '⏳ Gerando...' : relatorioTexto ? '↻ Regenerar' : '✨ Analisar mês'}
+                      </button>
+                    </div>
+                    {relatorioTexto && !relatorioLoad && (
+                      <button onClick={() => setRelAb(true)} style={{ marginTop: 10, width: '100%', padding: '8px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, color: 'rgba(255,255,255,.6)', fontSize: 12, cursor: 'pointer' }}>
+                        Ver relatório de {relatorioMes} →
+                      </button>
+                    )}
                   </div>
                 )
               })()}
