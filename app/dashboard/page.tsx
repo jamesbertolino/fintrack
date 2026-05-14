@@ -1196,7 +1196,7 @@ useEffect(() => {
                 const sc = calcularScore({
                   transacoes: transacoes as Parameters<typeof calcularScore>[0]['transacoes'],
                   metas:      metas.map(mt => ({ valor_total: mt.valor_total, valor_atual: mt.valor_atual, ativo: true })),
-                  orcamentos: orcamentos.map(o => ({ categoria: o.categoria, limite: o.limite })),
+                  orcamentos: orcamentos.map(o => ({ categoria: o.categoria, limite: o.valor_planejado })),
                   dividas,
                   saldoTotal: contas.filter(c => c.mostrar_saldo).reduce((a, c) => a + c.saldo, 0),
                 })

@@ -13,7 +13,7 @@ interface CategoriaCustom extends Categoria {
 const TIPO_LABEL = { debito: 'Despesa', credito: 'Receita', ambos: 'Ambos' }
 const TIPO_COR   = { debito: '#f87171', credito: '#4ade80', ambos: '#94a3b8' }
 
-const FORM_VAZIO = { nome: '', cor: '#4ade80', icone: '📌', tipo: 'ambos' as const }
+const FORM_VAZIO: { nome: string; cor: string; icone: string; tipo: 'debito' | 'credito' | 'ambos' } = { nome: '', cor: '#4ade80', icone: '📌', tipo: 'ambos' }
 
 export default function CategoriasPage() {
   const router = useRouter()
