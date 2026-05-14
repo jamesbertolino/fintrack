@@ -12,8 +12,10 @@ export interface TransacaoDetectada {
   categoria: string
   data_hora: string
   nao_categorizado?: boolean
-  ref_externa?: string          // chave de deduplicação: data:documento ou data:valor:descricao
-  confirmada_duplicata?: boolean // true = encontrado no banco com mesma ref_externa
+  ref_externa?: string           // chave de deduplicação: data:documento ou data:valor:descricao
+  confirmada_duplicata?: boolean  // true = encontrado no banco com mesma ref_externa
+  potencial_duplicata?: boolean   // mesma data+valor mas descrição diferente
+  duplicata_origem?: 'historico' | 'lote'
   origem_categoria?: 'aprendido' | 'padrao' | 'ia'
 }
 
@@ -783,6 +785,77 @@ function processarOFX(texto: string): TransacaoDetectada[] {
   return resultado
 }
 
+// ─── Normalização para comparação fuzzy de descrição ─────────────────────────
+function normalizarDescFuzzy(desc: string): string {
+  return (desc || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 30)
+}
+
+// ─── Verificação de duplicatas: ref_externa exata + fuzzy data+valor ──────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function verificarDuplicatas(supabase: any, userId: string, transacoes: TransacaoDetectada[]): Promise<void> {
+  if (!transacoes.length) return
+
+  // 1. Duplicata exata por ref_externa
+  const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
+  if (refs.length) {
+    const { data: porRef } = await supabase
+      .from('transactions').select('ref_externa')
+      .eq('user_id', userId).in('ref_externa', refs)
+    if (porRef?.length) {
+      const refSet = new Set(porRef.map((e: { ref_externa: string }) => e.ref_externa))
+      transacoes.forEach(t => { if (t.ref_externa && refSet.has(t.ref_externa)) t.confirmada_duplicata = true })
+    }
+  }
+
+  // 2. Fuzzy: mesma data + mesmo valor absoluto (para transações ainda não flagadas)
+  const pendentes = transacoes.filter(t => !t.confirmada_duplicata)
+  if (!pendentes.length) return
+
+  const datas = pendentes.map(t => t.data_hora?.slice(0, 10)).filter(Boolean) as string[]
+  if (!datas.length) return
+  const dataMin = datas.reduce((a, b) => a < b ? a : b)
+  const dataMax = datas.reduce((a, b) => a > b ? a : b)
+
+  const { data: existentes } = await supabase
+    .from('transactions')
+    .select('data_hora, valor, descricao')
+    .eq('user_id', userId)
+    .gte('data_hora', dataMin + 'T00:00:00.000Z')
+    .lte('data_hora', dataMax + 'T23:59:59.999Z')
+
+  if (!existentes?.length) return
+
+  // Agrupa existentes por chave data:valor_absoluto
+  type Row = { data_hora: string; valor: number; descricao: string }
+  const byDateVal = new Map<string, Row[]>()
+  for (const e of existentes as Row[]) {
+    const key = `${e.data_hora.slice(0, 10)}:${Math.abs(e.valor)}`
+    const list = byDateVal.get(key) ?? []
+    list.push(e)
+    byDateVal.set(key, list)
+  }
+
+  for (const t of pendentes) {
+    const date = t.data_hora?.slice(0, 10)
+    if (!date) continue
+    const key = `${date}:${Math.abs(t.valor)}`
+    const matches = byDateVal.get(key)
+    if (!matches?.length) continue
+
+    const descNorm = normalizarDescFuzzy(t.descricao)
+    const exactDesc = matches.some(m => normalizarDescFuzzy(m.descricao) === descNorm)
+
+    if (exactDesc) {
+      // Mesma data + valor + descrição → duplicata definitiva
+      t.confirmada_duplicata = true
+    } else {
+      // Mesma data + valor mas descrição diferente → pede confirmação
+      t.potencial_duplicata = true
+      t.duplicata_origem = 'historico'
+    }
+  }
+}
+
 // ─── Handler principal ───────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
@@ -865,17 +938,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Verifica duplicatas por ref_externa (FITID)
-      const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
-      if (refs.length) {
-        const { data: existentes } = await supabase
-          .from('transactions').select('ref_externa')
-          .eq('user_id', user.id).in('ref_externa', refs)
-        if (existentes?.length) {
-          const refsExistentes = new Set(existentes.map(e => e.ref_externa))
-          transacoes.forEach(t => { if (t.ref_externa && refsExistentes.has(t.ref_externa)) t.confirmada_duplicata = true })
-        }
-      }
+      await verificarDuplicatas(supabase, user.id, transacoes)
 
       const transacoesAprendidas = applyLearned(transacoes, learnedMap)
       const naoCat = transacoesAprendidas.filter(t => t.nao_categorizado).length
@@ -926,16 +989,7 @@ export async function POST(request: NextRequest) {
       const parsedFinal = applyLearned(parsedComOrigem, learnedMap)
 
       // Verifica duplicatas por ref_externa no banco
-      const refsCSV = parsedFinal.map(t => t.ref_externa).filter(Boolean) as string[]
-      if (refsCSV.length) {
-        const { data: existentesCSV } = await supabase
-          .from('transactions').select('ref_externa')
-          .eq('user_id', user.id).in('ref_externa', refsCSV)
-        if (existentesCSV?.length) {
-          const refsExistentesCSV = new Set(existentesCSV.map(e => e.ref_externa))
-          parsedFinal.forEach(t => { if (t.ref_externa && refsExistentesCSV.has(t.ref_externa)) t.confirmada_duplicata = true })
-        }
-      }
+      await verificarDuplicatas(supabase, user.id, parsedFinal)
 
       const naoCat = parsedFinal.filter(t => t.nao_categorizado).length
 
@@ -1019,21 +1073,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Verifica quais ref_externa já existem no banco (duplicatas confirmadas)
-      const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
-      if (refs.length) {
-        const { data: existentes } = await supabase
-          .from('transactions')
-          .select('ref_externa')
-          .eq('user_id', user.id)
-          .in('ref_externa', refs)
-        if (existentes?.length) {
-          const refsExistentes = new Set(existentes.map(e => e.ref_externa))
-          transacoes.forEach(t => {
-            if (t.ref_externa && refsExistentes.has(t.ref_externa)) t.confirmada_duplicata = true
-          })
-        }
-      }
+      await verificarDuplicatas(supabase, user.id, transacoes)
 
       const transacoesAprendidasPDF = applyLearned(
         transacoes.map(t => ({ ...t, origem_categoria: t.origem_categoria ?? 'ia' as const })),
@@ -1071,17 +1111,7 @@ export async function POST(request: NextRequest) {
       })
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
 
-      // Verifica duplicatas por ref_externa
-      const refsImg = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
-      if (refsImg.length) {
-        const { data: existentesImg } = await supabase
-          .from('transactions').select('ref_externa')
-          .eq('user_id', user.id).in('ref_externa', refsImg)
-        if (existentesImg?.length) {
-          const refsExistentesImg = new Set(existentesImg.map(e => e.ref_externa))
-          transacoes.forEach(t => { if (t.ref_externa && refsExistentesImg.has(t.ref_externa)) t.confirmada_duplicata = true })
-        }
-      }
+      await verificarDuplicatas(supabase, user.id, transacoes)
 
       const transacoesAprendidasImg = applyLearned(
         transacoes.map(t => ({ ...t, origem_categoria: 'ia' as const })),
