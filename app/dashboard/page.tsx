@@ -25,6 +25,130 @@ interface Transacao {
   data_hora: string
 }
 
+const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+
+function CalendarioGastos({ transacoes, accentColor, isMobile }: { transacoes: Transacao[]; accentColor: string; isMobile: boolean }) {
+  const [diaSel, setDiaSel] = useState<string | null>(null)
+
+  const hoje = new Date()
+  const ano  = hoje.getFullYear()
+  const mes  = hoje.getMonth()
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate()
+  const primeiroDia = new Date(ano, mes, 1).getDay()
+
+  // Agrupa débitos do mês por dia
+  const porDia: Record<string, number> = {}
+  const txPorDia: Record<string, Transacao[]> = {}
+  transacoes.forEach(t => {
+    const d = new Date(t.data_hora)
+    if (d.getFullYear() !== ano || d.getMonth() !== mes) return
+    const key = String(d.getDate()).padStart(2, '0')
+    if (t.tipo === 'debito') porDia[key] = (porDia[key] || 0) + Math.abs(t.valor)
+    txPorDia[key] = txPorDia[key] || []
+    txPorDia[key].push(t)
+  })
+
+  const maxGasto = Math.max(...Object.values(porDia), 1)
+  const CELL = isMobile ? 36 : 40
+
+  const cells: { dia: number | null; key: string }[] = []
+  for (let i = 0; i < primeiroDia; i++) cells.push({ dia: null, key: `e${i}` })
+  for (let d = 1; d <= diasNoMes; d++) cells.push({ dia: d, key: String(d).padStart(2, '0') })
+
+  const txSel = diaSel ? (txPorDia[diaSel] || []) : []
+  const totalSel = txSel.filter(t => t.tipo === 'debito').reduce((s, t) => s + Math.abs(t.valor), 0)
+
+  return (
+    <div>
+      {/* Cabeçalho dias da semana */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 4 }}>
+        {DIAS_SEMANA.map((d, i) => (
+          <div key={i} style={{ textAlign: 'center', fontSize: 9, color: 'rgba(255,255,255,.3)', fontWeight: 600, padding: '2px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Grid de dias */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+        {cells.map(({ dia, key }) => {
+          if (!dia) return <div key={key} />
+          const kk       = String(dia).padStart(2, '0')
+          const gasto    = porDia[kk] || 0
+          const intensidade = gasto > 0 ? 0.15 + (gasto / maxGasto) * 0.75 : 0
+          const ehHoje   = dia === hoje.getDate()
+          const selecionado = diaSel === kk
+          const temTx    = !!txPorDia[kk]
+          return (
+            <div
+              key={key}
+              onClick={() => setDiaSel(selecionado ? null : kk)}
+              style={{
+                height: CELL, borderRadius: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: temTx ? 'pointer' : 'default',
+                background: selecionado ? accentColor : gasto > 0 ? `rgba(${hexToRgb(accentColor)},${intensidade.toFixed(2)})` : 'rgba(255,255,255,.03)',
+                border: ehHoje ? `1px solid ${accentColor}` : selecionado ? 'none' : '1px solid transparent',
+                transition: 'background .15s',
+                position: 'relative',
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: ehHoje ? 700 : 400, color: selecionado ? '#000' : gasto > 0 ? '#fff' : 'rgba(255,255,255,.4)' }}>{dia}</span>
+              {gasto > 0 && !selecionado && (
+                <span style={{ fontSize: 8, color: 'rgba(255,255,255,.5)', marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
+                  {gasto >= 1000 ? `${(gasto/1000).toFixed(1)}k` : gasto.toFixed(0)}
+                </span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Painel do dia selecionado */}
+      {diaSel && (
+        <div style={{ marginTop: 12, background: 'rgba(255,255,255,.03)', border: `1px solid ${accentColor}33`, borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: accentColor }}>
+              {parseInt(diaSel)}/{mes + 1}/{ano}
+            </span>
+            {totalSel > 0 && <span style={{ fontSize: 11, color: '#f87171', fontWeight: 600 }}>-{formatBRL(totalSel)}</span>}
+          </div>
+          {txSel.length === 0 ? (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>Nenhuma transação neste dia.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 160, overflowY: 'auto' }}>
+              {txSel.map(t => (
+                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</span>
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: t.tipo === 'credito' ? accentColor : '#f87171', flexShrink: 0 }}>
+                    {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Legenda */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, justifyContent: 'flex-end' }}>
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>menos</span>
+        {[0.1, 0.3, 0.55, 0.75, 0.9].map((op, i) => (
+          <div key={i} style={{ width: 10, height: 10, borderRadius: 3, background: `rgba(${hexToRgb(accentColor)},${op})` }} />
+        ))}
+        <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>mais</span>
+      </div>
+    </div>
+  )
+}
+
+function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.substring(0, 2), 16)
+  const g = parseInt(h.substring(2, 4), 16)
+  const b = parseInt(h.substring(4, 6), 16)
+  return `${r},${g},${b}`
+}
+
 function GraficoSaldo({ transacoes, accentColor, isMobile }: { transacoes: Transacao[]; accentColor: string; isMobile: boolean }) {
   const dias = 30
   const hoje = new Date()
@@ -786,6 +910,21 @@ useEffect(() => {
                   </div>
                 )
               })()}
+
+              {/* Calendário de calor de gastos */}
+              {transacoes.length > 0 && (
+                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                      {m ? '🗓️ Crônicas do Mês' : '🗓️ Gastos do mês'}
+                    </span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>
+                      {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <CalendarioGastos transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
+                </div>
+              )}
 
               {/* Insights + Por categoria — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
