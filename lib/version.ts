@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.21.0'
+export const APP_VERSION = '2.22.0'
 export const APP_BUILD   = '2026.05.14'
 
 /**
@@ -45,4 +45,5 @@ export const APP_BUILD   = '2026.05.14'
  * 2.19.0 · 2026.05.14 — Score financeiro 0-1000: 6 dimensões, gauge SVG, dicas personalizadas e widget no dashboard
  * 2.20.0 · 2026.05.14 — Família avançada: dashboard consolidado com saldo, receitas, gastos, metas e comparativo por membro
  * 2.21.0 · 2026.05.14 — Categorias personalizadas: criar, editar, colorir com paleta e ícones emoji; gerenciar do sidebar
+ * 2.22.0 · 2026.05.14 — Alerta de orçamento no lançamento: banner ⚠️/🚨 mostra % usado ou estouro ao selecionar categoria com limite
  */

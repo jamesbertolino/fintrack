@@ -297,6 +297,7 @@ export default function LancamentoPage() {
   const [salvando, setSalvando]     = useState(false)
   const [erro, setErro]             = useState('')
   const [sucesso, setSucesso]       = useState(false)
+  const [alertaOrcamento, setAlertaOrcamento] = useState<{ limite: number; gasto: number; percentual: number; excedido: boolean } | null>(null)
   const [userId, setUserId]         = useState('')
   const [contas, setContas]         = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
   const [contaSelecionada, setConta] = useState('')
@@ -432,6 +433,19 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (tipo !== 'debito') { setAlertaOrcamento(null); return }
+    const mes = new Date().toISOString().slice(0, 7)
+    fetch(`/api/orcamento/check?categoria=${encodeURIComponent(categoria)}&mes=${mes}`)
+      .then(r => r.json())
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      .then(d => setAlertaOrcamento(d.limite != null ? d : null))
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      .catch(() => setAlertaOrcamento(null))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoria, tipo])
 
   function handleSetTipo(t: 'debito' | 'credito') {
     setTipo(t)
@@ -979,6 +993,24 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               </div>
             </div>
 
+            {alertaOrcamento && (
+              <div style={{
+                background: alertaOrcamento.excedido ? 'rgba(239,68,68,.1)' : 'rgba(251,191,36,.08)',
+                border: `1px solid ${alertaOrcamento.excedido ? 'rgba(239,68,68,.35)' : 'rgba(251,191,36,.35)'}`,
+                borderLeft: `3px solid ${alertaOrcamento.excedido ? '#f87171' : '#fbbf24'}`,
+                borderRadius: 8, padding: '8px 12px', fontSize: 12,
+                color: alertaOrcamento.excedido ? '#f87171' : '#fbbf24',
+                marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{ fontSize: 15 }}>{alertaOrcamento.excedido ? '🚨' : '⚠️'}</span>
+                <span>
+                  {alertaOrcamento.excedido
+                    ? <>Orçamento de <strong>{categoria}</strong> estourado! Gasto R$ {alertaOrcamento.gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de R$ {alertaOrcamento.limite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.</>
+                    : <>Orçamento de <strong>{categoria}</strong>: {Math.round(alertaOrcamento.percentual * 100)}% usado (R$ {alertaOrcamento.gasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} de R$ {alertaOrcamento.limite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}).</>
+                  }
+                </span>
+              </div>
+            )}
             {erro && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erro}</div>}
             {sucesso && (
               <div style={{ background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
