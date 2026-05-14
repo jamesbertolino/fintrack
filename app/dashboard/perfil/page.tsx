@@ -83,7 +83,7 @@ export default function PerfilPage() {
   const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades'>('perfil')
 
   // Família app
-  const [familiaGrupo, setFamiliaGrupo]       = useState<{ id: string } | null>(null)
+  const [, setFamiliaGrupo]                   = useState<{ id: string } | null>(null)
   const [familiaMembros, setFamiliaMembros]   = useState<{ id: string; permissao: string; created_at: string; membro_id: string; profiles: { nome: string; avatar_url?: string | null } | null }[]>([])
   const [familiaConvites, setFamiliaConvites] = useState<{ id: string; email: string; permissao: string; expires_at: string }[]>([])
   const [familiaEmail, setFamiliaEmail]       = useState('')

@@ -472,7 +472,7 @@ useEffect(() => {
   }
   window.addEventListener('keydown', onKey)
   return () => window.removeEventListener('keydown', onKey)
-}, []) // eslint-disable-line react-hooks/exhaustive-deps
+}, [])
 
   const xp           = calcularXP({ transacoes, metas, xpBonus: profile?.xp_bonus || 0 })
   const { receitas, despesas, saldo } = xp
@@ -665,7 +665,7 @@ useEffect(() => {
               {q.length > 0 && (
                 <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                   {resultados.length === 0 ? (
-                    <div style={{ padding: '2rem', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.3)' }}>Nenhum resultado para "{buscaQuery}"</div>
+                    <div style={{ padding: '2rem', textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.3)' }}>Nenhum resultado para &ldquo;{buscaQuery}&rdquo;</div>
                   ) : (
                     <>
                       <div style={{ padding: '6px 16px 4px', fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' as const, letterSpacing: '.08em' }}>
