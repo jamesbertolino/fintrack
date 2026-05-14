@@ -27,6 +27,15 @@ interface AlertaRegra {
   threshold_pct: number | null
 }
 
+interface Aporte {
+  id: string
+  meta_id: string
+  valor: number
+  nota: string | null
+  data: string
+  created_at: string
+}
+
 const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
 function fmtBRL(v: number) {
@@ -70,6 +79,14 @@ export default function MetasPage() {
     valor_atual: '0', contribuicao_mensal: '', prazo: '', categoria_vinculada: '',
   })
 
+  // aportes
+  const [metaAporte,   setMetaAporte]   = useState<Meta | null>(null)
+  const [aportes,      setAportes]      = useState<Aporte[]>([])
+  const [loadAportes,  setLoadAportes]  = useState(false)
+  const [formAporte,   setFormAporte]   = useState({ valor: '', nota: '', data: new Date().toISOString().slice(0, 10) })
+  const [salvandoAporte, setSalvandoAporte] = useState(false)
+  const [erroAporte,   setErroAporte]   = useState('')
+
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -99,6 +116,60 @@ export default function MetasPage() {
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
+
+  async function abrirAportes(m: Meta) {
+    setMetaAporte(m)
+    setFormAporte({ valor: '', nota: '', data: new Date().toISOString().slice(0, 10) })
+    setErroAporte('')
+    setLoadAportes(true)
+    const res = await fetch(`/api/metas/${m.id}/aportes`)
+    const d = await res.json()
+    setAportes(d.aportes || [])
+    setLoadAportes(false)
+  }
+
+  async function registrarAporte(e: React.FormEvent) {
+    e.preventDefault()
+    const v = parseFloat(formAporte.valor.replace(',', '.'))
+    if (!v || v <= 0) { setErroAporte('Valor inválido'); return }
+    setSalvandoAporte(true); setErroAporte('')
+    const res = await fetch(`/api/metas/${metaAporte!.id}/aportes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valor: v, nota: formAporte.nota || null, data: formAporte.data }),
+    })
+    const d = await res.json()
+    if (!res.ok) { setErroAporte(d.error || 'Erro'); setSalvandoAporte(false); return }
+    setMetas(prev => prev.map(m => m.id === metaAporte!.id ? { ...m, valor_atual: d.valor_atual } : m))
+    setMetaAporte(prev => prev ? { ...prev, valor_atual: d.valor_atual } : prev)
+    setAportes(prev => [d.aporte, ...prev])
+    setFormAporte(p => ({ ...p, valor: '', nota: '' }))
+    setSalvandoAporte(false)
+  }
+
+  async function removerAporte(aporte_id: string, valor: number) {
+    await fetch(`/api/metas/${metaAporte!.id}/aportes`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aporte_id }),
+    })
+    setAportes(prev => prev.filter(a => a.id !== aporte_id))
+    const novoValor = Math.max(0, (metaAporte?.valor_atual || 0) - valor)
+    setMetas(prev => prev.map(m => m.id === metaAporte!.id ? { ...m, valor_atual: novoValor } : m))
+    setMetaAporte(prev => prev ? { ...prev, valor_atual: novoValor } : prev)
+  }
+
+  function calcProjecaoAportes(meta: Meta, historicoAportes: Aporte[]) {
+    if (meta.valor_atual >= meta.valor_total) return 'Concluída!'
+    const ultimos = historicoAportes.slice(0, 3)
+    if (ultimos.length === 0) return null
+    const media = ultimos.reduce((s, a) => s + a.valor, 0) / ultimos.length
+    if (media <= 0) return null
+    const meses = Math.ceil((meta.valor_total - meta.valor_atual) / media)
+    const d = new Date()
+    d.setMonth(d.getMonth() + meses)
+    return `${MESES[d.getMonth()]}/${String(d.getFullYear()).slice(2)} (~${meses} meses, média ${fmtBRL(media)}/mês)`
+  }
 
   async function salvarMeta(e: React.FormEvent) {
     e.preventDefault()
@@ -251,6 +322,9 @@ export default function MetasPage() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => abrirAportes(m)} style={{ background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#4ade80', fontSize: 11, fontWeight: 600 }}>
+                            + Aportar
+                          </button>
                           <button onClick={() => editarMeta(m)} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: 'rgba(255,255,255,.5)', fontSize: 11 }}>
                             Editar
                           </button>
@@ -449,6 +523,102 @@ export default function MetasPage() {
                 {salvando ? 'Salvando...' : metaSel ? 'Salvar alterações' : 'Criar meta'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL APORTES ── */}
+      {metaAporte && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>💰 Aportes — {metaAporte.nome}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>
+                  {fmtBRL(metaAporte.valor_atual)} de {fmtBRL(metaAporte.valor_total)} ({Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100)}%)
+                </div>
+              </div>
+              <button onClick={() => setMetaAporte(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 20, lineHeight: 1 }}>×</button>
+            </div>
+
+            {/* Barra de progresso */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <PctBar pct={Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100)} cor={metaAporte.valor_atual >= metaAporte.valor_total ? '#4ade80' : '#22d3ee'} />
+            </div>
+
+            {/* Projeção baseada nos aportes */}
+            {aportes.length > 0 && (() => {
+              const proj = calcProjecaoAportes(metaAporte, aportes)
+              return proj ? (
+                <div style={{ background: 'rgba(34,211,238,.07)', border: '1px solid rgba(34,211,238,.2)', borderRadius: 8, padding: '10px 14px', marginBottom: '1.25rem', fontSize: 12, color: '#22d3ee', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 16 }}>📅</span>
+                  <span>Projeção: <strong>{proj}</strong></span>
+                </div>
+              ) : null
+            })()}
+
+            {/* Formulário novo aporte */}
+            <form onSubmit={registrarAporte} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid #1a3a1a', borderRadius: 10, padding: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>Novo aporte</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Valor (R$)</label>
+                  <input
+                    value={formAporte.valor}
+                    onChange={e => setFormAporte(p => ({ ...p, valor: e.target.value }))}
+                    placeholder="0,00"
+                    style={{ width: '100%', padding: '8px 10px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 7, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data</label>
+                  <input
+                    type="date"
+                    value={formAporte.data}
+                    onChange={e => setFormAporte(p => ({ ...p, data: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 7, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box', colorScheme: 'dark' }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nota (opcional)</label>
+                <input
+                  value={formAporte.nota}
+                  onChange={e => setFormAporte(p => ({ ...p, nota: e.target.value }))}
+                  placeholder="Ex: Bônus de abril, 13º salário..."
+                  style={{ width: '100%', padding: '8px 10px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 7, color: '#fff', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+              {erroAporte && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{erroAporte}</div>}
+              <button type="submit" disabled={salvandoAporte} style={{ padding: '8px 20px', background: '#16a34a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 13, fontWeight: 600, cursor: salvandoAporte ? 'default' : 'pointer', opacity: salvandoAporte ? 0.6 : 1 }}>
+                {salvandoAporte ? 'Registrando...' : 'Registrar aporte'}
+              </button>
+            </form>
+
+            {/* Histórico */}
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>
+              Histórico ({aportes.length})
+            </div>
+            {loadAportes ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'rgba(255,255,255,.3)', fontSize: 13 }}>Carregando...</div>
+            ) : aportes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'rgba(255,255,255,.3)', fontSize: 13 }}>Nenhum aporte ainda.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {aportes.map(a => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(255,255,255,.03)', border: '1px solid #1a3a1a', borderRadius: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#4ade80' }}>+{fmtBRL(a.valor)}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>
+                        {new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                        {a.nota && <span style={{ marginLeft: 6 }}>· {a.nota}</span>}
+                      </div>
+                    </div>
+                    <button onClick={() => removerAporte(a.id, a.valor)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,.5)', fontSize: 15, padding: 4, lineHeight: 1 }} title="Remover aporte">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
