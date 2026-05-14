@@ -1,347 +1,374 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 
-type Passo  = 'carregando' | 'free' | 'confirmar' | 1 | 2
-type Status = 'aguardando' | 'conectado'
+type Passo   = 'carregando' | 1 | 2 | 3
+type Objetivo = 'poupar' | 'quitar' | 'investir'
 
-function formatarWhatsapp(num: string): string {
-  const digits = num.replace(/\D/g, '')
-  if (digits.startsWith('55') && digits.length >= 12) {
-    const dd   = digits.slice(2, 4)
-    const rest = digits.slice(4)
-    if (rest.length === 9) return `+55 (${dd}) ${rest.slice(0, 5)}-${rest.slice(5)}`
-    if (rest.length === 8) return `+55 (${dd}) ${rest.slice(0, 4)}-${rest.slice(4)}`
-    return `+55 (${dd}) ${rest}`
-  }
-  return `+${digits}`
-}
+const OBJETIVOS: { id: Objetivo; emoji: string; titulo: string; descricao: string }[] = [
+  { id: 'poupar',   emoji: '🏰', titulo: 'Guardar dinheiro',   descricao: 'Quero construir uma reserva e ter controle dos meus gastos' },
+  { id: 'quitar',   emoji: '⚔️', titulo: 'Quitar dívidas',     descricao: 'Quero organizar e eliminar minhas dívidas de uma vez por todas' },
+  { id: 'investir', emoji: '👑', titulo: 'Investir e crescer', descricao: 'Quero fazer meu dinheiro render e alcançar independência financeira' },
+]
+
+const BANCOS_COMUNS = [
+  { id: null, nome: 'Nenhum (genérico)' },
+]
 
 export default function SetupPage() {
   const router   = useRouter()
   const supabase = createClient()
 
-  const [passo, setPasso]           = useState<Passo>('carregando')
-  const [userId, setUserId]         = useState('')
-  const [plano, setPlano]           = useState('') // eslint-disable-line @typescript-eslint/no-unused-vars
-  const [whatsapp, setWhatsapp]     = useState('')
-  const [nomeGrupo, setNomeGrupo]   = useState('')
-  const [instancia, setInstancia]   = useState('')
-  const [qrcode, setQrcode]         = useState('')
-  const [status, setStatus]         = useState<Status>('aguardando')
-  const [carregando, setCarregando] = useState(false)
-  const [gerandoQR, setGerandoQR]   = useState(false)
-  const [erro, setErro]             = useState('')
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [passo, setPasso]               = useState<Passo>('carregando')
+  const [objetivo, setObjetivo]         = useState<Objetivo | null>(null)
+  const [nomeConta, setNomeConta]       = useState('Conta Principal')
+  const [tipoConta, setTipoConta]       = useState<'corrente' | 'poupanca' | 'carteira'>('corrente')
+  const [saldoInicial, setSaldoInicial] = useState('')
+  const [txDesc, setTxDesc]             = useState('')
+  const [txValor, setTxValor]           = useState('')
+  const [txTipo, setTxTipo]             = useState<'debito' | 'credito'>('debito')
+  const [txData, setTxData]             = useState(new Date().toISOString().slice(0, 10))
+  const [salvando, setSalvando]         = useState(false)
+  const [erro, setErro]                 = useState('')
+  const [userId, setUserId]             = useState('')
+  const [contaId, setContaId]           = useState('')
 
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-
       setUserId(user.id)
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('nome, whatsapp, plano, setup_completo')
+        .select('setup_completo, nome')
         .eq('id', user.id)
         .single()
 
       if (profile?.setup_completo) { router.push('/dashboard'); return }
 
-      if (profile?.whatsapp)  setWhatsapp(profile.whatsapp)
-      if (profile?.nome)      setNomeGrupo(`Família ${profile.nome}`)
-
-      const p = profile?.plano || 'free'
-      setPlano(p)
-
-      if (p === 'free') {
-        setPasso('free')
-      } else {
-        setPasso('confirmar')
-      }
+      setPasso(1)
     }
-
     init()
-
-    return () => { if (pollingRef.current) clearInterval(pollingRef.current) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function marcarSetupCompleto() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('profiles').update({ setup_completo: true }).eq('id', user.id)
-    router.push('/dashboard')
+  async function avancarPara2() {
+    if (!objetivo) return
+    // Salva objetivo no profile (ignora erro se coluna não existir)
+    await supabase.from('profiles').update({ objetivo } as Record<string, string>).eq('id', userId).then(() => {})
+    setPasso(2)
+    setErro('')
   }
 
-  function iniciarPolling(inst: string, grupo: string) {
-    if (pollingRef.current) clearInterval(pollingRef.current)
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res  = await fetch(`/api/evolution/status/${inst}?grupo=${encodeURIComponent(grupo)}&user_id=${userId}`)
-        const data = await res.json()
-        if (data.state === 'open') {
-          clearInterval(pollingRef.current!)
-          pollingRef.current = null
-          setStatus('conectado')
-          setTimeout(() => router.push('/dashboard'), 2000)
+  async function criarConta() {
+    if (!nomeConta.trim()) return
+    setSalvando(true)
+    setErro('')
+
+    try {
+      const res = await fetch('/api/contas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome:          nomeConta.trim(),
+          tipo:          tipoConta,
+          saldo_inicial: saldoInicial ? parseFloat(saldoInicial.replace(',', '.')) : 0,
+          mostrar_saldo: true,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar conta')
+      setContaId(data.conta?.id || '')
+      setPasso(3)
+      setErro('')
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Erro desconhecido')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  async function concluir(comTransacao = false) {
+    setSalvando(true)
+    setErro('')
+
+    try {
+      if (comTransacao && txDesc.trim() && txValor) {
+        const val = parseFloat(txValor.replace(',', '.'))
+        if (!isNaN(val) && val > 0) {
+          await supabase.from('transactions').insert({
+            user_id:     userId,
+            conta_id:    contaId || null,
+            descricao:   txDesc.trim(),
+            valor:       txTipo === 'debito' ? -Math.abs(val) : Math.abs(val),
+            data:        txData,
+            categoria:   'Outros',
+            tipo:        txTipo,
+          })
         }
-      } catch { /* polling silencioso */ }
-    }, 3000)
-  }
-
-  async function avancarPasso2() {
-    if (!nomeGrupo.trim()) return
-    setCarregando(true)
-    setErro('')
-
-    try {
-      const res  = await fetch('/api/evolution/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao criar instância')
-
-      if (data.jaConectada) {
-        setStatus('conectado')
-        setTimeout(() => router.push('/dashboard'), 2000)
-        return
       }
 
-      setInstancia(data.instancia)
-      setQrcode(data.qrcode || '')
-      setPasso(2)
-      iniciarPolling(data.instancia, nomeGrupo.trim())
+      await supabase.from('profiles').update({ setup_completo: true }).eq('id', userId)
+      router.push('/dashboard')
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro desconhecido')
-    } finally {
-      setCarregando(false)
+      setSalvando(false)
     }
   }
 
-  async function gerarNovoQR() {
-    setGerandoQR(true)
-    setErro('')
-
-    try {
-      const res  = await fetch('/api/evolution/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Erro ao gerar QR')
-
-      if (data.jaConectada) {
-        setStatus('conectado')
-        setTimeout(() => router.push('/dashboard'), 2000)
-        return
-      }
-
-      setInstancia(data.instancia)
-      setQrcode(data.qrcode || '')
-      iniciarPolling(data.instancia, nomeGrupo.trim())
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Erro desconhecido')
-    } finally {
-      setGerandoQR(false)
-    }
+  // ── Estilos ────────────────────────────────────────────────────────────────
+  const wrap: React.CSSProperties = {
+    minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif',
+    color: '#fff', padding: '1.5rem',
   }
-
   const card: React.CSSProperties = {
-    width: '100%', maxWidth: 440,
-    background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '2rem',
+    width: '100%', maxWidth: 460, background: '#111',
+    border: '1px solid #1a3a1a', borderRadius: 16, padding: '2rem',
   }
-  const btnPrimary: React.CSSProperties = {
+  const btnPrimary = (active: boolean): React.CSSProperties => ({
     width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-    background: '#16a34a', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-  }
-  const btnSecondary: React.CSSProperties = {
-    width: '100%', padding: '12px', borderRadius: 10,
-    border: '1px solid rgba(255,255,255,.12)', background: 'transparent',
-    color: 'rgba(255,255,255,.5)', fontSize: 13, cursor: 'pointer',
-  }
-  const btnDisabled = (active: boolean): React.CSSProperties => ({
-    width: '100%', padding: '12px', borderRadius: 10, border: 'none',
-    background: active ? '#16a34a' : 'rgba(22,163,74,.25)',
+    background: active ? '#16a34a' : 'rgba(22,163,74,.2)',
     color: '#fff', fontSize: 14, fontWeight: 600,
-    cursor: active ? 'pointer' : 'default', opacity: active ? 1 : 0.55,
+    cursor: active ? 'pointer' : 'default', opacity: active ? 1 : 0.5,
+    transition: 'all .2s',
   })
+  const btnSecondary: React.CSSProperties = {
+    width: '100%', padding: '11px', borderRadius: 10,
+    border: '1px solid rgba(255,255,255,.1)', background: 'transparent',
+    color: 'rgba(255,255,255,.45)', fontSize: 13, cursor: 'pointer',
+  }
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '10px 12px', background: '#0a1a0a',
+    border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff',
+    fontSize: 14, outline: 'none', boxSizing: 'border-box',
+  }
+  const label: React.CSSProperties = {
+    display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)',
+    marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em',
+  }
 
-  // ── Carregando ──────────────────────────────────────────────────────────────
+  // ── Carregando ─────────────────────────────────────────────────────────────
   if (passo === 'carregando') {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.3)', fontFamily: 'system-ui' }}>Carregando...</div>
+      <div style={wrap}>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.3)' }}>Carregando...</div>
       </div>
     )
   }
 
-  // ── Sucesso antecipado (jaConectada no passo 1) ─────────────────────────────
-  if (status === 'conectado' && passo === 1) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#fff' }}>
-        <div style={card}>
-          <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-            <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80', marginBottom: 8 }}>WhatsApp conectado!</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Redirecionando para o dashboard...</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const totalPassos = 3
+  const passoNum = passo as number
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', color: '#fff', padding: '1.5rem' }}>
-
-      <div style={{ marginBottom: '2rem' }}>
+    <div style={wrap}>
+      <div style={{ marginBottom: '1.75rem' }}>
         <PoupaUpLogo mode="compact" />
       </div>
 
-      {/* Indicador de passos — só aparece nas etapas do grupo */}
-      {(passo === 1 || passo === 2) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1.75rem' }}>
-          {([1, 2] as const).map((s, i) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Barra de progresso */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '2rem' }}>
+        {Array.from({ length: totalPassos }).map((_, i) => {
+          const n = i + 1
+          const done    = passoNum > n
+          const active  = passoNum === n
+          return (
+            <div key={n} style={{ display: 'flex', alignItems: 'center' }}>
               <div style={{
-                width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 13, fontWeight: 700,
-                background: passo >= s ? '#16a34a' : 'rgba(255,255,255,.08)',
-                color: passo >= s ? '#fff' : 'rgba(255,255,255,.3)',
-                border: `2px solid ${passo >= s ? '#4ade80' : 'rgba(255,255,255,.12)'}`,
+                width: 32, height: 32, borderRadius: '50%', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+                background: done ? '#16a34a' : active ? '#0f5132' : 'rgba(255,255,255,.07)',
+                color: done || active ? '#fff' : 'rgba(255,255,255,.3)',
+                border: `2px solid ${done ? '#4ade80' : active ? '#16a34a' : 'rgba(255,255,255,.1)'}`,
                 transition: 'all .3s',
-              }}>{s}</div>
-              {i < 1 && (
-                <div style={{ width: 44, height: 2, background: passo > 1 ? '#16a34a' : 'rgba(255,255,255,.1)', borderRadius: 1, transition: 'background .3s' }} />
+              }}>
+                {done ? '✓' : n}
+              </div>
+              {i < totalPassos - 1 && (
+                <div style={{ width: 52, height: 2, background: done ? '#16a34a' : 'rgba(255,255,255,.08)', transition: 'background .3s' }} />
               )}
             </div>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
 
       <div style={card}>
 
-        {/* ── FREE: WhatsApp não disponível ────────────────────────────────── */}
-        {passo === 'free' && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>WhatsApp é recurso Pro</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', marginBottom: 24, lineHeight: 1.6 }}>
-              O controle financeiro via WhatsApp está disponível nos planos <strong style={{ color: '#4ade80' }}>Pro</strong> e <strong style={{ color: '#a78bfa' }}>Família</strong>. Você pode fazer upgrade a qualquer momento em Configurações.
-            </div>
-            <div style={{ background: 'rgba(74,222,128,.05)', border: '1px solid rgba(74,222,128,.12)', borderRadius: 10, padding: '12px 14px', marginBottom: 24, fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.6, textAlign: 'left' }}>
-              <div style={{ fontWeight: 600, color: 'rgba(255,255,255,.6)', marginBottom: 6 }}>O que você tem no plano Free:</div>
-              <div>✓ Dashboard completo de finanças</div>
-              <div>✓ Importação de extrato OFX/PDF</div>
-              <div>✓ Metas, orçamentos e relatórios</div>
-              <div>✓ Sistema de XP e conquistas</div>
-            </div>
-            <button style={btnPrimary} onClick={marcarSetupCompleto}>
-              Ir para o dashboard →
-            </button>
-            <button
-              style={{ ...btnSecondary, marginTop: 10, fontSize: 12 }}
-              onClick={() => window.open('/#precos', '_blank')}
-            >
-              Ver planos e fazer upgrade ↗
-            </button>
-          </div>
-        )}
-
-        {/* ── CONFIRMAR: Deseja configurar o grupo? ────────────────────────── */}
-        {passo === 'confirmar' && (
-          <div>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-            <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Configurar grupo no WhatsApp?</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', marginBottom: 20, lineHeight: 1.6 }}>
-              O PoupaUp pode criar um grupo no seu WhatsApp para enviar alertas financeiros, resumos diários e notificações em tempo real.
-            </div>
-
-            {/* Número cadastrado */}
-            {whatsapp ? (
-              <div style={{ background: 'rgba(22,163,74,.08)', border: '1px solid rgba(22,163,74,.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 20, fontSize: 13 }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>WhatsApp cadastrado</div>
-                <div style={{ color: '#4ade80', fontWeight: 600 }}>{formatarWhatsapp(whatsapp)}</div>
-              </div>
-            ) : (
-              <div style={{ background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 10, padding: '10px 14px', marginBottom: 20, fontSize: 13 }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Número não cadastrado</div>
-                <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12 }}>
-                  Para conectar o WhatsApp você precisará cadastrar seu número.{' '}
-                  <a href="/dashboard/perfil" style={{ color: '#fbbf24', fontWeight: 600, textDecoration: 'none' }}>Cadastrar em Perfil →</a>
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button
-                style={btnPrimary}
-                onClick={() => setPasso(1)}
-              >
-                ✓ Sim, quero configurar agora
-              </button>
-              <button
-                style={btnSecondary}
-                onClick={marcarSetupCompleto}
-              >
-                Agora não — configurar depois
-              </button>
-            </div>
-
-            <div style={{ marginTop: 16, fontSize: 11, color: 'rgba(255,255,255,.25)', textAlign: 'center', lineHeight: 1.5 }}>
-              Você pode configurar o grupo a qualquer momento em<br />
-              <strong style={{ color: 'rgba(255,255,255,.4)' }}>Dashboard → Perfil → WhatsApp</strong>
-            </div>
-          </div>
-        )}
-
-        {/* ── PASSO 1: Nome do grupo ────────────────────────────────────────── */}
+        {/* ── PASSO 1: Objetivo financeiro ──────────────────────────────────── */}
         {passo === 1 && (
           <div>
-            <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 6 }}>Configure seu grupo</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: '1.75rem', lineHeight: 1.5 }}>
-              Esse será o nome do grupo do WhatsApp para receber seus alertas financeiros.
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Qual é seu objetivo?</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              Isso nos ajuda a personalizar sua experiência no PoupaUp.
             </div>
 
-            {/* Número — somente exibição, sem edição */}
-            {whatsapp ? (
-              <div style={{ background: 'rgba(22,163,74,.08)', border: '1px solid rgba(22,163,74,.2)', borderRadius: 10, padding: '10px 14px', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Conectando via</div>
-                <div style={{ fontSize: 13, color: '#4ade80', fontWeight: 600 }}>{formatarWhatsapp(whatsapp)}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>
-                  Para alterar o número vá em{' '}
-                  <a href="/dashboard/perfil" style={{ color: 'rgba(74,222,128,.7)', textDecoration: 'none' }}>Perfil → WhatsApp</a>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: '1.5rem' }}>
+              {OBJETIVOS.map(obj => {
+                const sel = objetivo === obj.id
+                return (
+                  <button
+                    key={obj.id}
+                    onClick={() => setObjetivo(obj.id)}
+                    style={{
+                      background: sel ? 'rgba(22,163,74,.12)' : 'rgba(255,255,255,.03)',
+                      border: `1.5px solid ${sel ? '#16a34a' : 'rgba(255,255,255,.1)'}`,
+                      borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
+                      transition: 'all .2s',
+                    }}
+                  >
+                    <div style={{ fontSize: 28, flexShrink: 0 }}>{obj.emoji}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: sel ? '#4ade80' : '#fff', marginBottom: 2 }}>{obj.titulo}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', lineHeight: 1.4 }}>{obj.descricao}</div>
+                    </div>
+                    {sel && <div style={{ marginLeft: 'auto', fontSize: 18, color: '#4ade80', flexShrink: 0 }}>✓</div>}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button onClick={avancarPara2} disabled={!objetivo} style={btnPrimary(!!objetivo)}>
+              Continuar →
+            </button>
+          </div>
+        )}
+
+        {/* ── PASSO 2: Conta bancária ──────────────────────────────────────── */}
+        {passo === 2 && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Sua primeira conta</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              Configure sua conta principal para começar a registrar seus lançamentos.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={label}>Nome da conta</span>
+                <input
+                  value={nomeConta}
+                  onChange={e => setNomeConta(e.target.value)}
+                  placeholder="Ex.: Nubank, Bradesco, Carteira"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div>
+                <span style={label}>Tipo de conta</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['corrente', 'poupanca', 'carteira'] as const).map(t => {
+                    const labels = { corrente: 'Corrente', poupanca: 'Poupança', carteira: 'Carteira' }
+                    const sel = tipoConta === t
+                    return (
+                      <button
+                        key={t}
+                        onClick={() => setTipoConta(t)}
+                        style={{
+                          flex: 1, padding: '8px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                          cursor: 'pointer', transition: 'all .2s',
+                          background: sel ? 'rgba(22,163,74,.15)' : 'transparent',
+                          border: `1px solid ${sel ? '#16a34a' : 'rgba(255,255,255,.12)'}`,
+                          color: sel ? '#4ade80' : 'rgba(255,255,255,.5)',
+                        }}
+                      >
+                        {labels[t]}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-            ) : (
-              <div style={{ background: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 10, padding: '10px 14px', marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Número não cadastrado</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>
-                  Cadastre seu número em{' '}
-                  <a href="/dashboard/perfil" style={{ color: '#f87171', fontWeight: 600, textDecoration: 'none' }}>Perfil → WhatsApp</a>{' '}
-                  antes de continuar.
+
+              <div>
+                <span style={label}>Saldo atual (opcional)</span>
+                <input
+                  value={saldoInicial}
+                  onChange={e => setSaldoInicial(e.target.value)}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                  style={inputStyle}
+                />
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginTop: 4 }}>
+                  Informe quanto você tem nessa conta hoje
                 </div>
+              </div>
+            </div>
+
+            {erro && (
+              <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>
+                {erro}
               </div>
             )}
 
-            <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-              Nome do grupo
-            </label>
-            <input
-              value={nomeGrupo}
-              onChange={e => setNomeGrupo(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && avancarPasso2()}
-              placeholder="Ex.: Família Silva"
-              style={{ width: '100%', padding: '10px 12px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 14, outline: 'none', marginBottom: '1.25rem', boxSizing: 'border-box' }}
-            />
+            <button onClick={criarConta} disabled={salvando || !nomeConta.trim()} style={btnPrimary(!salvando && !!nomeConta.trim())}>
+              {salvando ? 'Criando...' : 'Continuar →'}
+            </button>
+            <button style={{ ...btnSecondary, marginTop: 10 }} onClick={() => { setPasso(1); setErro('') }}>
+              ← Voltar
+            </button>
+          </div>
+        )}
+
+        {/* ── PASSO 3: Primeiro lançamento ─────────────────────────────────── */}
+        {passo === 3 && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Primeiro lançamento</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              Registre uma transação recente para começar. Você pode pular e fazer depois.
+            </div>
+
+            {/* Toggle débito/crédito */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: '1rem', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, overflow: 'hidden' }}>
+              {(['debito', 'credito'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTxTipo(t)}
+                  style={{
+                    flex: 1, padding: '9px', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all .2s',
+                    background: txTipo === t ? (t === 'debito' ? 'rgba(239,68,68,.2)' : 'rgba(22,163,74,.2)') : 'transparent',
+                    color: txTipo === t ? (t === 'debito' ? '#f87171' : '#4ade80') : 'rgba(255,255,255,.35)',
+                  }}
+                >
+                  {t === 'debito' ? '↓ Despesa' : '↑ Receita'}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div>
+                <span style={label}>Descrição</span>
+                <input
+                  value={txDesc}
+                  onChange={e => setTxDesc(e.target.value)}
+                  placeholder="Ex.: Aluguel, Salário, Supermercado"
+                  style={inputStyle}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <span style={label}>Valor (R$)</span>
+                  <input
+                    value={txValor}
+                    onChange={e => setTxValor(e.target.value)}
+                    placeholder="0,00"
+                    inputMode="decimal"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <span style={label}>Data</span>
+                  <input
+                    type="date"
+                    value={txData}
+                    onChange={e => setTxData(e.target.value)}
+                    style={{ ...inputStyle, colorScheme: 'dark' }}
+                  />
+                </div>
+              </div>
+            </div>
 
             {erro && (
               <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>
@@ -350,81 +377,23 @@ export default function SetupPage() {
             )}
 
             <button
-              onClick={avancarPasso2}
-              disabled={carregando || !nomeGrupo.trim() || !whatsapp}
-              style={btnDisabled(!carregando && !!nomeGrupo.trim() && !!whatsapp)}
+              onClick={() => concluir(true)}
+              disabled={salvando || !txDesc.trim() || !txValor}
+              style={btnPrimary(!salvando && !!txDesc.trim() && !!txValor)}
             >
-              {carregando ? 'Criando instância...' : 'Continuar →'}
+              {salvando ? 'Salvando...' : 'Salvar e ir para o dashboard →'}
             </button>
-
-            <button style={{ ...btnSecondary, marginTop: 10, fontSize: 12 }} onClick={() => setPasso('confirmar')}>
-              ← Voltar
+            <button style={{ ...btnSecondary, marginTop: 10 }} onClick={() => concluir(false)} disabled={salvando}>
+              Pular — configurar depois
             </button>
           </div>
         )}
 
-        {/* ── PASSO 2: QR Code ─────────────────────────────────────────────── */}
-        {passo === 2 && (
-          <div>
-            {status === 'conectado' ? (
-              <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-                <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80', marginBottom: 8 }}>WhatsApp conectado!</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Redirecionando para o dashboard...</div>
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 6 }}>Conecte o WhatsApp</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-                  No WhatsApp: <strong style={{ color: 'rgba(255,255,255,.7)' }}>Menu → Dispositivos vinculados → Vincular dispositivo</strong> e escaneie o QR Code.
-                </div>
+      </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', borderRadius: 12, padding: 16, marginBottom: '1.25rem', minHeight: 220 }}>
-                  {qrcode ? (
-                    <Image
-                      src={qrcode.startsWith('data:') ? qrcode : `data:image/png;base64,${qrcode}`}
-                      alt="QR Code WhatsApp"
-                      width={200}
-                      height={200}
-                      unoptimized
-                    />
-                  ) : (
-                    <div style={{ color: '#999', fontSize: 13 }}>Carregando QR Code...</div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: '1.25rem', fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
-                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80' }} />
-                  Aguardando leitura do QR Code...
-                </div>
-
-                {erro && (
-                  <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>
-                    {erro}
-                  </div>
-                )}
-
-                <button onClick={gerarNovoQR} disabled={gerandoQR} style={{
-                  width: '100%', padding: '10px', background: 'transparent',
-                  border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.5)',
-                  fontSize: 13, cursor: gerandoQR ? 'default' : 'pointer',
-                  opacity: gerandoQR ? 0.5 : 1, marginBottom: 10,
-                }}>
-                  {gerandoQR ? 'Gerando...' : '↻ Gerar novo QR'}
-                </button>
-
-                <button style={{ ...btnSecondary, fontSize: 12 }} onClick={marcarSetupCompleto}>
-                  Configurar WhatsApp depois
-                </button>
-
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', textAlign: 'center', marginTop: 12 }}>
-                  instância: {instancia}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
+      {/* Rodapé discreto */}
+      <div style={{ marginTop: '1.5rem', fontSize: 11, color: 'rgba(255,255,255,.2)', textAlign: 'center' }}>
+        Você pode alterar tudo isso depois em Configurações
       </div>
     </div>
   )
