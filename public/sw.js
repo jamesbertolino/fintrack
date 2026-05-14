@@ -1,32 +1,73 @@
-const CACHE = 'poupaup-v1'
-const OFFLINE_URLS = ['/dashboard', '/login']
+const CACHE_STATIC  = 'poupaup-static-v2'
+const CACHE_PAGES   = 'poupaup-pages-v2'
+const STATIC_ASSETS = ['/', '/dashboard', '/login', '/logo.png', '/velocimetro.png', '/manifest.json']
 
+// ── Install: pré-cacheia assets estáticos ────────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(OFFLINE_URLS)).then(() => self.skipWaiting())
+    caches.open(CACHE_STATIC)
+      .then(c => c.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   )
 })
 
+// ── Activate: limpa caches antigos ───────────────────────────────────────────
 self.addEventListener('activate', e => {
+  const keep = [CACHE_STATIC, CACHE_PAGES]
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => !keep.includes(k)).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   )
 })
 
+// ── Fetch: estratégia por tipo de recurso ────────────────────────────────────
 self.addEventListener('fetch', e => {
-  // Só intercepta GET de navegação — deixa API passar normalmente
-  if (e.request.method !== 'GET') return
-  if (e.request.url.includes('/api/')) return
+  const url = new URL(e.request.url)
 
+  // APIs externas (Supabase, Stripe, etc.) e rotas /api/ — sempre rede
+  if (e.request.method !== 'GET') return
+  if (url.pathname.startsWith('/api/')) return
+  if (!url.origin.startsWith(self.location.origin) && !url.hostname.endsWith('supabase.co') === false) return
+
+  // Páginas Next.js (_next/static) — cache-first
+  if (url.pathname.startsWith('/_next/static/')) {
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+        const clone = res.clone()
+        caches.open(CACHE_STATIC).then(c => c.put(e.request, clone))
+        return res
+      }))
+    )
+    return
+  }
+
+  // Páginas de navegação — network-first, fallback para cache
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone()
+          caches.open(CACHE_PAGES).then(c => c.put(e.request, clone))
+          return res
+        })
+        .catch(() => caches.match(e.request).then(r => r || caches.match('/dashboard')))
+    )
+    return
+  }
+
+  // Assets estáticos (imagens, fontes) — cache-first
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request).then(r => r || caches.match('/dashboard')))
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => new Response('', { status: 408 })))
   )
+})
+
+// ── Mensagens do cliente ──────────────────────────────────────────────────────
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 // ── Push notifications ────────────────────────────────────────────────────────
-
 self.addEventListener('push', e => {
   if (!e.data) return
   let payload
@@ -36,9 +77,7 @@ self.addEventListener('push', e => {
 
   e.waitUntil(
     self.registration.showNotification(title, {
-      body,
-      icon,
-      badge,
+      body, icon, badge,
       data: { url },
       vibrate: [100, 50, 100],
       requireInteraction: false,

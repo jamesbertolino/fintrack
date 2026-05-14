@@ -411,6 +411,20 @@ const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
   </div>
 )
 
+const OFFLINE_CACHE_KEY = 'poupaup_offline_snapshot'
+
+function useOffline() {
+  const [offline, setOffline] = useState(false)
+  useEffect(() => {
+    const set = () => setOffline(!navigator.onLine) // eslint-disable-line react-hooks/set-state-in-effect
+    set()
+    window.addEventListener('online',  set)
+    window.addEventListener('offline', set)
+    return () => { window.removeEventListener('online', set); window.removeEventListener('offline', set) }
+  }, [])
+  return offline
+}
+
 // Hook simples para detectar largura da tela
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
@@ -439,6 +453,7 @@ export default function Dashboard() {
   const supabase = createClient()
   const { fmtData, timezone, idioma } = usePerfil()
   const isMobile = useIsMobile()
+  const isOffline = useOffline()
   const cores = useCores()
   const { tema } = useTema()
   const m = tema === 'medieval'
@@ -546,6 +561,16 @@ useEffect(() => {
     setOrcReal(orcDados.realizado || {})
     setLoading(false)
 
+    // Salva snapshot offline
+    try {
+      const snap = {
+        ts: Date.now(),
+        nome: prof?.nome || '',
+        contas: (contasDados.contas || []).map((c: { nome: string; saldo: number; mostrar_saldo: boolean; bancos?: { nome_curto: string } | null }) => ({ nome: c.nome, saldo: c.saldo, mostrar_saldo: c.mostrar_saldo, banco: c.bancos?.nome_curto })),
+      }
+      localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(snap))
+    } catch { /* quota exceeded, ignore */ }
+
     // Auto-trigger IA notification (máx 2x/dia, aleatório)
     const hoje = new Date().toISOString().slice(0, 10)
     const key  = `poupaup_ia_notif_${hoje}`
@@ -580,6 +605,13 @@ useEffect(() => {
     init()
     return () => { if (channel) supabase.removeChannel(channel) }
   }, [carregarDados, supabase])
+
+  // Recarrega dados ao voltar online
+  useEffect(() => {
+    const onOnline = () => { if (!loading) carregarDados() }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [carregarDados, loading])
 
   async function sair() {
     await supabase.auth.signOut()
@@ -971,6 +1003,46 @@ useEffect(() => {
 
         {/* Conteúdo das páginas */}
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
+
+          {/* Banner offline */}
+          {isOffline && (() => {
+            let snap: { ts: number; nome: string; contas: { nome: string; saldo: number; mostrar_saldo: boolean; banco?: string }[] } | null = null
+            try { snap = JSON.parse(localStorage.getItem(OFFLINE_CACHE_KEY) || 'null') } catch { /* ignore */ }
+            const sincAgo = snap ? (() => {
+              const mins = Math.round((Date.now() - snap.ts) / 60000)
+              if (mins < 1) return 'agora mesmo'
+              if (mins < 60) return `há ${mins} min`
+              const hrs = Math.round(mins / 60)
+              return hrs < 24 ? `há ${hrs}h` : `há ${Math.round(hrs / 24)}d`
+            })() : null
+            const totalSnap = snap ? snap.contas.filter(c => c.mostrar_saldo).reduce((s, c) => s + c.saldo, 0) : null
+            return (
+              <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>📡</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#fbbf24' }}>Você está offline</div>
+                    {snap && sincAgo && (
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>
+                        Última sincronização {sincAgo}
+                        {totalSnap !== null && <> · Saldo: <strong style={{ color: '#fbbf24' }}>{formatBRL(totalSnap)}</strong></>}
+                      </div>
+                    )}
+                    {!snap && <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 1 }}>Sem dados em cache disponíveis.</div>}
+                  </div>
+                </div>
+                {snap && snap.contas.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {snap.contas.slice(0, 3).map((c, i) => (
+                      <div key={i} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(251,191,36,.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,.2)' }}>
+                        {c.banco || c.nome}: {c.mostrar_saldo ? formatBRL(c.saldo) : '••••'}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Banner upgrade Stripe */}
           <Suspense>

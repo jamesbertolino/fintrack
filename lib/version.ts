@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.11.0'
+export const APP_VERSION = '2.12.0'
 export const APP_BUILD   = '2026.05.13'
 
 /**
@@ -35,4 +35,5 @@ export const APP_BUILD   = '2026.05.13'
  * 2.9.0 · 2026.05.13 — Dashboard: mapa de calor de gastos por dia (calendário clicável, sem libs externas)
  * 2.10.0 · 2026.05.13 — Dashboard: comparativo mês a mês — receitas, gastos, saldo e top 5 categorias com barras duplas
  * 2.11.0 · 2026.05.13 — Busca global: modal Ctrl+K, filtra por descrição/categoria/valor, atalhos rápidos de navegação
+ * 2.12.0 · 2026.05.14 — PWA offline: SW v2 com cache estratégico, banner offline com último saldo, reload automático ao reconectar
  */
