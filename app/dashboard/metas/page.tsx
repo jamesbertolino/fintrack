@@ -36,6 +36,13 @@ interface Aporte {
   created_at: string
 }
 
+interface MetaFamilia extends Meta {
+  dono: { nome: string; avatar_url: string | null }
+  dono_id: string
+  aportes: Aporte[]
+  e_minha: boolean
+}
+
 const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']
 
 function fmtBRL(v: number) {
@@ -59,6 +66,35 @@ function PctBar({ pct, cor = '#4ade80' }: { pct: number; cor?: string }) {
   )
 }
 
+function AportarRapido({ metaId, onAportar }: { metaId: string; onAportar: (id: string, valor: number) => Promise<void> }) {
+  const [valor, setValor] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    const v = parseFloat(valor.replace(',', '.'))
+    if (!v || v <= 0) return
+    setSalvando(true)
+    await onAportar(metaId, v)
+    setValor('')
+    setSalvando(false)
+  }
+
+  return (
+    <form onSubmit={submit} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <input
+        value={valor}
+        onChange={e => setValor(e.target.value)}
+        placeholder="R$ 0,00"
+        style={{ width: 90, padding: '5px 8px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 6, color: '#fff', fontSize: 11, outline: 'none' }}
+      />
+      <button type="submit" disabled={salvando} style={{ padding: '5px 10px', background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, color: '#4ade80', fontSize: 11, fontWeight: 600, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
+        {salvando ? '...' : '+ Aportar'}
+      </button>
+    </form>
+  )
+}
+
 export default function MetasPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -71,8 +107,15 @@ export default function MetasPage() {
   const [metaSel, setMetaSel]     = useState<Meta | null>(null)
   const [salvando, setSalvando]   = useState(false)
   const [erro, setErro]           = useState('')
-  const [abaSel, setAbaSel]       = useState<'metas' | 'alertas'>('metas')
+  const [abaSel, setAbaSel]       = useState<'metas' | 'alertas' | 'familia'>('metas')
   const [userId, setUserId]       = useState('')
+
+  // compartilhamento familiar
+  const [compartilhadas,    setCompartilhadas]    = useState<Record<string, boolean>>({})
+  const [metasFamilia,      setMetasFamilia]      = useState<MetaFamilia[]>([])
+  const [loadFamilia,       setLoadFamilia]       = useState(false)
+  const [toggling,          setToggling]          = useState<string | null>(null)
+  const [temFamilia,        setTemFamilia]        = useState(false)
 
   const [form, setForm] = useState({
     nome: '', tipo: 'acumulacao', valor_total: '',
@@ -116,6 +159,55 @@ export default function MetasPage() {
     return () => { supabase.removeChannel(channel) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
+
+  useEffect(() => {
+    if (abaSel === 'familia') carregarFamilia() // eslint-disable-line react-hooks/set-state-in-effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abaSel])
+
+  async function carregarFamilia() {
+    setLoadFamilia(true)
+    const [famRes, compRes] = await Promise.all([
+      fetch('/api/familia'),
+      fetch('/api/metas/compartilhadas'),
+    ])
+    const famData = await famRes.json()
+    const compData = await compRes.json()
+    setTemFamilia(!!(famData.grupo || famData.grupo_id))
+    setMetasFamilia(compData.metas || [])
+    const map: Record<string, boolean> = {}
+    for (const m of (compData.metas || []) as MetaFamilia[]) {
+      if (m.e_minha) map[m.id] = true
+    }
+    setCompartilhadas(map)
+    setLoadFamilia(false)
+  }
+
+  async function toggleCompartilhar(m: Meta) {
+    setToggling(m.id)
+    const jaComp = compartilhadas[m.id]
+    const res = await fetch(`/api/metas/${m.id}/compartilhar`, { method: jaComp ? 'DELETE' : 'POST' })
+    if (res.ok) {
+      setCompartilhadas(prev => ({ ...prev, [m.id]: !jaComp }))
+      if (abaSel === 'familia') await carregarFamilia()
+    }
+    setToggling(null)
+  }
+
+  async function aportarMetaFamilia(metaId: string, valor: number) {
+    const res = await fetch(`/api/metas/${metaId}/aportes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valor, data: new Date().toISOString().slice(0, 10) }),
+    })
+    if (res.ok) {
+      const d = await res.json()
+      setMetasFamilia(prev => prev.map(m => m.id === metaId
+        ? { ...m, valor_atual: d.valor_atual, aportes: [d.aporte, ...m.aportes] }
+        : m
+      ))
+    }
+  }
 
   async function abrirAportes(m: Meta) {
     setMetaAporte(m)
@@ -283,13 +375,17 @@ export default function MetasPage() {
 
         {/* Abas */}
         <div style={{ display: 'flex', gap: 5, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, marginBottom: '1.5rem', width: 'fit-content' }}>
-          {(['metas', 'alertas'] as const).map(a => (
-            <button key={a} onClick={() => setAbaSel(a)} style={{
+          {([
+            { id: 'metas',   label: `Minhas metas (${metas.length})` },
+            { id: 'familia', label: '👨‍👩‍👧 Família' },
+            { id: 'alertas', label: `Alertas (${alertas.length})` },
+          ] as const).map(a => (
+            <button key={a.id} onClick={() => setAbaSel(a.id)} style={{
               padding: '6px 16px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-              background: abaSel === a ? '#16a34a' : 'transparent',
-              color: abaSel === a ? '#fff' : 'rgba(255,255,255,.4)',
+              background: abaSel === a.id ? '#16a34a' : 'transparent',
+              color: abaSel === a.id ? '#fff' : 'rgba(255,255,255,.4)',
             }}>
-              {a === 'metas' ? `Minhas metas (${metas.length})` : `Alertas (${alertas.length})`}
+              {a.label}
             </button>
           ))}
         </div>
@@ -324,6 +420,13 @@ export default function MetasPage() {
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button onClick={() => abrirAportes(m)} style={{ background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#4ade80', fontSize: 11, fontWeight: 600 }}>
                             + Aportar
+                          </button>
+                          <button
+                            onClick={() => toggleCompartilhar(m)}
+                            disabled={toggling === m.id}
+                            title={compartilhadas[m.id] ? 'Parar de compartilhar' : 'Compartilhar com família'}
+                            style={{ background: compartilhadas[m.id] ? 'rgba(251,191,36,.12)' : 'rgba(255,255,255,.05)', border: `1px solid ${compartilhadas[m.id] ? 'rgba(251,191,36,.4)' : 'rgba(255,255,255,.1)'}`, borderRadius: 6, padding: '5px 8px', cursor: toggling === m.id ? 'default' : 'pointer', color: compartilhadas[m.id] ? '#fbbf24' : 'rgba(255,255,255,.35)', fontSize: 13, opacity: toggling === m.id ? 0.5 : 1 }}>
+                            {compartilhadas[m.id] ? '👨‍👩‍👧' : '🔗'}
                           </button>
                           <button onClick={() => editarMeta(m)} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: 'rgba(255,255,255,.5)', fontSize: 11 }}>
                             Editar
@@ -437,6 +540,82 @@ export default function MetasPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── FAMÍLIA ── */}
+        {abaSel === 'familia' && (
+          <div>
+            {loadFamilia ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.4)', fontSize: 13 }}>Carregando...</div>
+            ) : !temFamilia ? (
+              <div style={{ background: '#111', border: '1px dashed #1a3a1a', borderRadius: 12, padding: '3rem', textAlign: 'center' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>👨‍👩‍👧</div>
+                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Você não pertence a nenhuma família</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 20 }}>Configure sua família em Configurações → Família para compartilhar metas</div>
+                <button onClick={() => router.push('/dashboard/perfil')} style={{ padding: '9px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                  Configurar família
+                </button>
+              </div>
+            ) : metasFamilia.length === 0 ? (
+              <div style={{ background: '#111', border: '1px dashed #1a3a1a', borderRadius: 12, padding: '3rem', textAlign: 'center' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>🔗</div>
+                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>Nenhuma meta compartilhada ainda</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Na aba &ldquo;Minhas metas&rdquo;, clique em 🔗 para compartilhar uma meta com a família</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {metasFamilia.map(m => {
+                  const pct = m.valor_total > 0 ? Math.min(Math.round((m.valor_atual / m.valor_total) * 100), 100) : 0
+                  const cor = pct >= 100 ? '#4ade80' : pct >= 50 ? '#22d3ee' : '#16a34a'
+                  const totalAportes = m.aportes.reduce((s, a) => s + a.valor, 0)
+                  return (
+                    <div key={m.id} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <div style={{ fontSize: 14, fontWeight: 500 }}>{m.nome}</div>
+                            <span style={{ fontSize: 10, background: 'rgba(251,191,36,.12)', border: '1px solid rgba(251,191,36,.3)', color: '#fbbf24', borderRadius: 4, padding: '1px 6px' }}>👨‍👩‍👧 Família</span>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>por {m.dono.nome}</div>
+                        </div>
+                        {!m.e_minha && (
+                          <AportarRapido metaId={m.id} onAportar={aportarMetaFamilia} />
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+                        <div style={{ fontSize: 20, fontWeight: 500, color: cor }}>{fmtBRL(m.valor_atual)}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>de {fmtBRL(m.valor_total)}</div>
+                      </div>
+                      <PctBar pct={pct} cor={cor} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, marginBottom: 10 }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{pct}% concluído</span>
+                        {pct >= 100 && <span style={{ fontSize: 10, background: 'rgba(74,222,128,.15)', color: '#4ade80', padding: '1px 8px', borderRadius: 4 }}>✓ Concluída!</span>}
+                      </div>
+
+                      {/* Aportes recentes */}
+                      {m.aportes.length > 0 && (
+                        <div style={{ borderTop: '1px solid #1a3a1a', paddingTop: 10 }}>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                            {m.aportes.length} aporte{m.aportes.length !== 1 ? 's' : ''} · total {fmtBRL(totalAportes)}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {m.aportes.slice(0, 3).map(a => (
+                              <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                                <span style={{ color: 'rgba(255,255,255,.4)' }}>{new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR')}{a.nota ? ` · ${a.nota}` : ''}</span>
+                                <span style={{ color: '#4ade80', fontWeight: 600 }}>+{fmtBRL(a.valor)}</span>
+                              </div>
+                            ))}
+                            {m.aportes.length > 3 && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)' }}>+{m.aportes.length - 3} mais...</div>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
