@@ -13,6 +13,7 @@ import ExtratoXP from '@/components/ExtratoXP'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
 import { calcularXP, calcularNivel, getNomeNivel } from '@/lib/calcularXP'
+import { calcularScore } from '@/lib/calcularScore'
 import { useCores, useTema } from '@/components/ThemeProvider'
 import { APP_VERSION, APP_BUILD } from '@/lib/version'
 
@@ -466,6 +467,7 @@ export default function Dashboard() {
   const [contas, setContas]         = useState<Conta[]>([])
   const [orcamentos, setOrcamentos] = useState<OrcamentoItem[]>([])
   const [orcRealizado, setOrcReal]  = useState<Record<string, number>>({})
+  const [dividas, setDividas]       = useState<{ saldo: number; taxa_juros: number }[]>([])
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
   const [buscaQuery, setBuscaQuery] = useState('')
@@ -555,15 +557,18 @@ useEffect(() => {
     if (mt)   setMetas(mt)
 
     const mesAtual = new Date().toISOString().slice(0, 7)
-    const [contasRes, orcRes] = await Promise.all([
+    const [contasRes, orcRes, dividasRes] = await Promise.all([
       fetch('/api/contas'),
       fetch(`/api/orcamento?mes=${mesAtual}`),
+      fetch('/api/dividas'),
     ])
     const contasDados = await contasRes.json()
     const orcDados    = await orcRes.json()
+    const dividasDados = await dividasRes.json()
     setContas(contasDados.contas || [])
     setOrcamentos(orcDados.orcamentos || [])
     setOrcReal(orcDados.realizado || {})
+    setDividas(dividasDados.dividas || [])
     setLoading(false)
 
     // Salva snapshot offline
@@ -644,6 +649,7 @@ useEffect(() => {
     { id: 'relatorio',    label: m ? 'Pergaminho Real'  : 'Relatório PDF',   icon: m ? '📜' : '📄', href: '/dashboard/relatorio' },
     { id: 'planejamento', label: m ? 'Visão do Oráculo' : 'Planejamento',    icon: m ? '🔭' : '📅', href: '/dashboard/planejamento' },
     { id: 'dividas',      label: m ? 'Batalha das Dívidas' : 'Dívidas',     icon: m ? '⚔️' : '💳', href: '/dashboard/dividas' },
+    { id: 'score',        label: m ? 'Honra do Cavaleiro'  : 'Score',        icon: m ? '⭐' : '⭐', href: '/dashboard/score' },
     ...(profile?.is_admin ? [{ id: 'admin', label: 'Painel Admin', icon: '🛠️', href: '/dashboard/admin' }] : []),
   ]
 
@@ -1182,6 +1188,48 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
+
+              {/* Widget Score Financeiro */}
+              {(() => {
+                const sc = calcularScore({
+                  transacoes: transacoes as Parameters<typeof calcularScore>[0]['transacoes'],
+                  metas:      metas.map(mt => ({ valor_total: mt.valor_total, valor_atual: mt.valor_atual, ativo: true })),
+                  orcamentos: orcamentos.map(o => ({ categoria: o.categoria, limite: o.limite })),
+                  dividas,
+                  saldoTotal: contas.filter(c => c.mostrar_saldo).reduce((a, c) => a + c.saldo, 0),
+                })
+                return (
+                  <div
+                    onClick={() => router.push('/dashboard/score')}
+                    style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
+                  >
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <svg width="52" height="52" viewBox="0 0 52 52">
+                        <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="5" />
+                        <circle cx="26" cy="26" r="22" fill="none" stroke={sc.corNivel} strokeWidth="5"
+                          strokeDasharray={`${(sc.total / 1000) * 138.2} 138.2`}
+                          strokeLinecap="round"
+                          transform="rotate(-90 26 26)" />
+                        <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill={sc.corNivel} fontFamily="system-ui">{sc.total}</text>
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                        {m ? '⭐ Honra do Cavaleiro' : '⭐ Score Financeiro'}
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: sc.corNivel, marginTop: 2 }}>{sc.nivel}</div>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' as const }}>
+                        {sc.dimensoes.map(d => {
+                          const p = d.pontos / d.maximo
+                          const c = p >= 0.80 ? '#4ade80' : p >= 0.55 ? '#fbbf24' : '#f87171'
+                          return <span key={d.id} title={`${d.nome}: ${d.pontos}/${d.maximo}`} style={{ fontSize: 9, background: `${c}18`, border: `1px solid ${c}33`, borderRadius: 4, padding: '1px 5px', color: c }}>{d.emoji} {d.pontos}</span>
+                        })}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: cores.textMuted, flexShrink: 0 }}>Ver detalhes →</div>
+                  </div>
+                )
+              })()}
 
               {/* Gráfico saldo ao longo do tempo */}
               {transacoes.length > 1 && (
