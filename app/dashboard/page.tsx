@@ -141,6 +141,118 @@ function CalendarioGastos({ transacoes, accentColor, isMobile }: { transacoes: T
   )
 }
 
+function ComparativoMes({ transacoes, accentColor, isMobile, m: medieval }: { transacoes: Transacao[]; accentColor: string; isMobile: boolean; m: boolean }) {
+  const hoje   = new Date()
+  const anoA   = hoje.getFullYear(), mesA = hoje.getMonth()
+  const prevD  = new Date(anoA, mesA - 1, 1)
+  const anoB   = prevD.getFullYear(), mesB = prevD.getMonth()
+
+  function resumo(ano: number, mes: number) {
+    const txs = transacoes.filter(t => { const d = new Date(t.data_hora); return d.getFullYear() === ano && d.getMonth() === mes })
+    const receitas  = txs.filter(t => t.tipo === 'credito').reduce((s, t) => s + t.valor, 0)
+    const despesas  = txs.filter(t => t.tipo === 'debito').reduce((s, t) => s + Math.abs(t.valor), 0)
+    const porCat    = txs.filter(t => t.tipo === 'debito').reduce((acc, t) => { acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc }, {} as Record<string, number>)
+    return { receitas, despesas, saldo: receitas - despesas, porCat }
+  }
+
+  const atual = resumo(anoA, mesA)
+  const prev  = resumo(anoB, mesB)
+
+  if (prev.receitas === 0 && prev.despesas === 0) return null
+
+  const nomeMes  = (ano: number, mes: number) => new Date(ano, mes, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+  const delta    = (a: number, b: number) => b === 0 ? null : ((a - b) / b) * 100
+  const seta     = (pct: number | null, inverso = false) => {
+    if (pct === null) return null
+    const positivo = inverso ? pct < 0 : pct > 0
+    return { seta: positivo ? '↑' : '↓', cor: positivo ? '#4ade80' : '#f87171', pct: Math.abs(pct) }
+  }
+
+  // Categorias presentes em qualquer um dos dois meses
+  const cats = [...new Set([...Object.keys(atual.porCat), ...Object.keys(prev.porCat)])].sort((a, b) => (atual.porCat[b] || 0) - (atual.porCat[a] || 0)).slice(0, 5)
+
+  const metrics = [
+    { label: medieval ? 'Tributos' : 'Receitas',   atualV: atual.receitas,  prevV: prev.receitas,  inverso: false },
+    { label: medieval ? 'Batalhas' : 'Gastos',     atualV: atual.despesas,  prevV: prev.despesas,  inverso: true  },
+    { label: medieval ? 'Tesouro'  : 'Saldo',      atualV: atual.saldo,     prevV: prev.saldo,     inverso: false },
+  ]
+
+  return (
+    <div>
+      {/* Cards de métricas */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
+        {metrics.map(({ label, atualV, prevV, inverso }) => {
+          const d = seta(delta(atualV, prevV), inverso)
+          return (
+            <div key={label} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.07)', borderRadius: 10, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase' as const, letterSpacing: '.06em', marginBottom: 6 }}>{label}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>{formatBRL(atualV)}</span>
+                {d && (
+                  <span style={{ fontSize: 11, color: d.cor, fontWeight: 600 }}>{d.seta} {d.pct.toFixed(0)}%</span>
+                )}
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3 }}>
+                {nomeMes(anoB, mesB)}: {formatBRL(prevV)}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Comparativo por categoria */}
+      {cats.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 8 }}>Por categoria</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {cats.map(cat => {
+              const va = atual.porCat[cat] || 0
+              const vb = prev.porCat[cat] || 0
+              const maxV = Math.max(va, vb, 1)
+              const d = seta(delta(va, vb), true)
+              return (
+                <div key={cat}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[cat] || '#6b7280', flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)' }}>{cat}</span>
+                      {d && <span style={{ fontSize: 10, color: d.cor, fontWeight: 600 }}>{d.seta} {d.pct.toFixed(0)}%</span>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, fontSize: 10, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ color: 'rgba(255,255,255,.5)' }}>{nomeMes(anoB, mesB)}: {formatBRL(vb)}</span>
+                      <span style={{ color: '#fff', fontWeight: 600 }}>{nomeMes(anoA, mesA)}: {formatBRL(va)}</span>
+                    </div>
+                  </div>
+                  {/* Barra dupla */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,.05)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${(vb / maxV) * 100}%`, background: 'rgba(255,255,255,.2)', borderRadius: 2 }} />
+                    </div>
+                    <div style={{ height: 4, background: 'rgba(255,255,255,.05)', borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${(va / maxV) * 100}%`, background: CORES[cat] || accentColor, borderRadius: 2, opacity: 0.8 }} />
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {/* Legenda */}
+          <div style={{ display: 'flex', gap: 14, marginTop: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 16, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.2)' }} />
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{nomeMes(anoB, mesB)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 16, height: 4, borderRadius: 2, background: accentColor, opacity: 0.8 }} />
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,.3)' }}>{nomeMes(anoA, mesA)} (atual)</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function hexToRgb(hex: string): string {
   const h = hex.replace('#', '')
   const r = parseInt(h.substring(0, 2), 16)
@@ -925,6 +1037,26 @@ useEffect(() => {
                   <CalendarioGastos transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
                 </div>
               )}
+
+              {/* Comparativo mês a mês */}
+              {transacoes.length > 0 && (() => {
+                const comp = <ComparativoMes transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} m={m} />
+                if (!comp) return null
+                const hoje = new Date()
+                const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1)
+                const nomePrev = prev.toLocaleDateString('pt-BR', { month: 'long' })
+                return (
+                  <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                        {m ? '⚔️ Batalha vs. mês anterior' : '📊 vs. mês anterior'}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>comparado a {nomePrev}</span>
+                    </div>
+                    {comp}
+                  </div>
+                )
+              })()}
 
               {/* Insights + Por categoria — coluna única em mobile */}
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
