@@ -651,6 +651,7 @@ useEffect(() => {
     { id: 'dividas',      label: m ? 'Batalha das Dívidas' : 'Dívidas',     icon: m ? '⚔️' : '💳', href: '/dashboard/dividas' },
     { id: 'score',        label: m ? 'Honra do Cavaleiro'  : 'Score',        icon: m ? '⭐' : '⭐', href: '/dashboard/score' },
     { id: 'familia',      label: m ? 'Reino Familiar'      : 'Família',      icon: m ? '👑' : '👨‍👩‍👧', href: '/dashboard/familia' },
+    { id: 'categorias',   label: m ? 'Pergaminho de Categorias' : 'Categorias', icon: '🏷️', href: '/dashboard/categorias' },
     ...(profile?.is_admin ? [{ id: 'admin', label: 'Painel Admin', icon: '🛠️', href: '/dashboard/admin' }] : []),
   ]
 
