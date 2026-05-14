@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.17.0'
+export const APP_VERSION = '2.18.0'
 export const APP_BUILD   = '2026.05.14'
 
 /**
@@ -41,4 +41,5 @@ export const APP_BUILD   = '2026.05.14'
  * 2.15.0 · 2026.05.14 — Notificações inteligentes: cron diário com resumo semanal, aviso de meta e alerta de orçamento; toggles no perfil
  * 2.16.0 · 2026.05.14 — Modo TV/Kiosk: tela cheia com relógio, saldo total, métricas do mês, contas, categorias, metas e transações
  * 2.17.0 · 2026.05.14 — Planejamento anual: projeção de 12 meses com cenários pessimista/realista/otimista, gráfico SVG e tabela detalhada
+ * 2.18.0 · 2026.05.14 — Simulador de dívidas: métodos bola de neve e avalanche, gráfico comparativo, cronograma por dívida
  */

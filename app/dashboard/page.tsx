@@ -643,6 +643,7 @@ useEffect(() => {
     { id: 'contas',       label: m ? 'Cofres do Reino'  : 'Contas',          icon: m ? '💰' : '🏦', href: '/dashboard/contas' },
     { id: 'relatorio',    label: m ? 'Pergaminho Real'  : 'Relatório PDF',   icon: m ? '📜' : '📄', href: '/dashboard/relatorio' },
     { id: 'planejamento', label: m ? 'Visão do Oráculo' : 'Planejamento',    icon: m ? '🔭' : '📅', href: '/dashboard/planejamento' },
+    { id: 'dividas',      label: m ? 'Batalha das Dívidas' : 'Dívidas',     icon: m ? '⚔️' : '💳', href: '/dashboard/dividas' },
     ...(profile?.is_admin ? [{ id: 'admin', label: 'Painel Admin', icon: '🛠️', href: '/dashboard/admin' }] : []),
   ]
 
