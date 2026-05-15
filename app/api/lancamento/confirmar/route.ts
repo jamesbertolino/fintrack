@@ -99,11 +99,36 @@ export async function POST(request: NextRequest) {
   logAudit({ user_id: user.id, action: 'transaction.create', metadata: { count: data.length, origem: 'upload' } })
 
   // Memoriza padrões descrição→categoria para sugestões futuras
+  // Separa novos (insert vezes=1) de existentes (update vezes+1) para evitar reset do contador
   const aprendizados = novas
-    .map(t => ({ user_id: user.id, chave: normalizarChave(t.descricao), categoria: t.categoria, vezes: 1, updated_at: new Date().toISOString() }))
+    .map(t => ({ chave: normalizarChave(t.descricao), categoria: t.categoria }))
     .filter(a => a.chave.length >= 3)
   if (aprendizados.length) {
-    supabase.from('categoria_aprendida').upsert(aprendizados, { onConflict: 'user_id,chave' }).then(() => null)
+    const chavesUnicas = [...new Set(aprendizados.map(a => a.chave))]
+    supabase.from('categoria_aprendida')
+      .select('id, chave, vezes')
+      .eq('user_id', user.id)
+      .in('chave', chavesUnicas)
+      .then(({ data: existentes }) => {
+        const existMap = new Map((existentes || []).map(e => [e.chave, e]))
+        const agora = new Date().toISOString()
+
+        const novos = aprendizados.filter(a => !existMap.has(a.chave))
+        const updates = aprendizados.filter(a => existMap.has(a.chave))
+
+        if (novos.length) {
+          supabase.from('categoria_aprendida')
+            .insert(novos.map(a => ({ user_id: user.id, chave: a.chave, categoria: a.categoria, vezes: 1, updated_at: agora })))
+            .then(() => null)
+        }
+        for (const a of updates) {
+          const ex = existMap.get(a.chave)!
+          supabase.from('categoria_aprendida')
+            .update({ categoria: a.categoria, vezes: ex.vezes + 1, updated_at: agora })
+            .eq('id', ex.id)
+            .then(() => null)
+        }
+      })
   }
 
   verificarConquistas(supabase, user.id).catch(() => null)

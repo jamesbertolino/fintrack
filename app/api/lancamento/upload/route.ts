@@ -36,8 +36,17 @@ function detectarCategoria(desc: string): { categoria: string; nao_categorizado:
 }
 
 // ─── Normaliza descrição para chave de aprendizado ───────────────────────────
+// Remove apenas sequências longas de dígitos (IDs) e datas embutidas;
+// preserva dígitos que fazem parte do nome do merchant (ex: "99POP", "G3").
 export function normalizarChave(desc: string): string {
-  return desc.toLowerCase().replace(/\d/g, '').replace(/\s+/g, ' ').trim().slice(0, 20)
+  return desc
+    .toLowerCase()
+    .replace(/\d{5,}/g, '')                    // IDs numéricos longos
+    .replace(/\d{2}\/\d{2}(\/\d{2,4})?/g, '') // datas embutidas (DD/MM ou DD/MM/YYYY)
+    .replace(/[^a-záàâãéêíóôõúüç\s]/g, ' ')   // remove símbolos, mantém letras/acentos
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 20)
 }
 
 // ─── Aplica padrões aprendidos sobre lista de transações ──────────────────────
@@ -60,12 +69,13 @@ function parseBRL(val: string): number {
 }
 
 // ─── Converte data DD/MM/YYYY para ISO ───────────────────────────────────────
+// Usa Date.UTC para evitar deslocamento por fuso do servidor (ex: UTC-3 pularia para dia anterior).
 function parseData(val: string): string {
   if (!val || !val.trim()) return new Date().toISOString()
   const partes = val.trim().split('/')
   if (partes.length === 3) {
     const [dia, mes, ano] = partes
-    const d = new Date(Number(ano), Number(mes) - 1, Number(dia))
+    const d = new Date(Date.UTC(Number(ano), Number(mes) - 1, Number(dia)))
     if (!isNaN(d.getTime())) return d.toISOString()
   }
   return new Date().toISOString()
@@ -83,7 +93,11 @@ function processarCSV(texto: string): TransacaoDetectada[] {
   }
   if (idxCabecalho === -1) return []
 
-  const cabecalho = linhas[idxCabecalho].split(';').map(c => c.toLowerCase().trim().replace(/"/g, ''))
+  // Detecta separador a partir do cabeçalho (suporte a ; | \t | ,)
+  const linhaCab = linhas[idxCabecalho]
+  const sep = linhaCab.includes(';') ? ';' : linhaCab.includes('\t') ? '\t' : ','
+
+  const cabecalho = linhaCab.split(sep).map(c => c.toLowerCase().trim().replace(/"/g, ''))
   const iData    = cabecalho.findIndex(c => c === 'data')
   const iHist    = cabecalho.findIndex(c => c.includes('hist'))
   const iCredito = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred'))
@@ -93,8 +107,8 @@ function processarCSV(texto: string): TransacaoDetectada[] {
 
   for (let i = idxCabecalho + 1; i < linhas.length; i++) {
     const linha = linhas[i]
-    if (!linha || linha.startsWith(';') || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos') || linha.startsWith(';;Total')) continue
-    const cols = linha.split(';').map(c => c.trim().replace(/"/g, ''))
+    if (!linha || linha.startsWith(sep) || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos') || linha.startsWith(`${sep}${sep}Total`)) continue
+    const cols = linha.split(sep).map(c => c.trim().replace(/"/g, ''))
     const dataVal = cols[iData] || ''
     const hist    = cols[iHist] || ''
     if (!dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || !hist) continue
@@ -336,14 +350,17 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
   const hIdx = flat.search(/Saldo\s*\(R\$\)/i)
   const content = hIdx !== -1 ? flat.slice(hIdx + 20) : flat
 
-  // Código numérico de 6-7 dígitos (padrão Bradesco/Itaú/BB) + valor + saldo
-  const reTrans = /\b(\d{6,7})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
+  // Código numérico de 4-8 dígitos OPCIONAL (Bradesco/Itaú/BB usam 6-7; Nubank/Inter/C6 não têm)
+  // Grupos: match[1] = valor, match[2] = saldo
+  const reTrans = /(?:\b\d{4,8}\s+)?(\d{1,3}(?:\.\d{3})*,\d{2})\s+(\d{1,3}(?:\.\d{3})*,\d{2})\b/g
   const reData4 = /\b(\d{2}\/\d{2}\/\d{4})\b/g
   const reData2 = /\b\d{2}\/\d{2}\b/g
 
-  let saldoAnt = 0
+  // Usa NaN como sentinela: se não encontrar saldo inicial, não assume 0
+  // (evitaria classificar todo débito com saldo > 0 como crédito)
+  let saldoAnt = NaN
   const mSaldo = content.match(/COD\.?\s*LANC\.[^0-9]*\d*[,\s.]*\d*,\d{2}\s+([\d.]+,\d{2})/)
-  if (mSaldo) saldoAnt = parseFloat(mSaldo[1].replace(/\./g, '').replace(',', '.')) || 0
+  if (mSaldo) saldoAnt = parseFloat(mSaldo[1].replace(/\./g, '').replace(',', '.')) || NaN
 
   const resultado: TransacaoDetectada[] = []
   let dataAtual = ''
@@ -369,9 +386,10 @@ function pdfParserLocal(text: string): TransacaoDetectada[] {
     if (!rawDesc || rawDesc.length < 3 || !dataAtual) continue
     if (/^[\d\s.,]+$/.test(rawDesc)) continue
 
-    const valor     = match[2]
-    const saldoAtu  = parseFloat(match[3].replace(/\./g, '').replace(',', '.')) || 0
-    const isCredito = saldoAtu > saldoAnt
+    const valor     = match[1]
+    const saldoAtu  = parseFloat(match[2].replace(/\./g, '').replace(',', '.')) || 0
+    // Quando saldoAnt é NaN (saldo inicial não encontrado), fallback conservador = débito
+    const isCredito = !isNaN(saldoAnt) ? saldoAtu > saldoAnt : false
     saldoAnt = saldoAtu
 
     const valorNum = parseFloat(valor.replace(/\./g, '').replace(',', '.')) || 0
@@ -744,10 +762,10 @@ function processarOFX(texto: string): TransacaoDetectada[] {
   }
 
   function parseOFXData(s: string): string {
-    // YYYYMMDDHHMMSS ou YYYYMMDD[offset]
+    // YYYYMMDDHHMMSS ou YYYYMMDD[offset] — usa UTC para evitar deslocamento por fuso do servidor
     const m = s.match(/^(\d{4})(\d{2})(\d{2})/)
     if (!m) return new Date().toISOString()
-    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toISOString()
+    return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).toISOString()
   }
 
   for (const bloco of blocos) {
@@ -913,7 +931,10 @@ export async function POST(request: NextRequest) {
       // Extrai agência e conta do cabeçalho OFX
       const agencia_detectada = texto.match(/<BRANCHID>([^<\n\r]*)/i)?.[1]?.trim() || null
       const numero_detectado  = texto.match(/<ACCTID>([^<\n\r]*)/i)?.[1]?.trim() || null
-      const titular_detectado = texto.match(/<NAME>([^<\n\r]*)/i)?.[1]?.trim() || null
+      // Restringe busca de <NAME> ao cabeçalho antes do primeiro bloco de transação
+      // para evitar capturar o campo <NAME> dentro de <STMTTRN> (memo de transação)
+      const cabecalhoOFX = texto.split(/<STMTTRN>/i)[0]
+      const titular_detectado = cabecalhoOFX.match(/<NAME>([^<\n\r]*)/i)?.[1]?.trim() || null
 
       // Tenta vincular à conta existente do usuário
       const { data: contasUsuario } = await supabase
@@ -951,7 +972,10 @@ export async function POST(request: NextRequest) {
 
     // ── CSV ──────────────────────────────────────────────────────────────────
     if (nome.endsWith('.csv')) {
-      const texto = new TextDecoder('utf-8').decode(bytes)
+      // Tenta UTF-8; se houver caractere de substituição (BOM inválido), redecodifica em latin1
+      // — bancos BR como Bradesco e BB exportam CSV em ISO-8859-1
+      let texto = new TextDecoder('utf-8').decode(bytes)
+      if (texto.includes('�')) texto = new TextDecoder('latin1').decode(bytes)
 
       // Tenta IA primeiro; fallback para parser local se sem chave ou erro
       let parsed: ReturnType<typeof processarCSV> | null = null
@@ -965,7 +989,8 @@ export async function POST(request: NextRequest) {
             const nao_categorizado = t.nao_categorizado ?? (t.categoria === 'Outros')
             // Gera ref_externa se a IA não forneceu — garante deduplicação em reimportações
             const ref_externa = t.ref_externa || (() => {
-              const dt = t.data_hora ? new Date(t.data_hora).toLocaleDateString('pt-BR') : ''
+              // Usa slice ISO (YYYY-MM-DD) para evitar dependência de locale no servidor
+              const dt = t.data_hora ? t.data_hora.slice(0, 10) : ''
               const desc = (t.descricao || '').slice(0, 40).toUpperCase()
               return dt ? `csv:${dt}:${Math.abs(t.valor)}:${desc}` : undefined
             })()

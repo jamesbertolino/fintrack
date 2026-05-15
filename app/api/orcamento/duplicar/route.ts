@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     : `${ano}-${String(mm - 1).padStart(2, '0')}`
 
   const { data: origem } = await supabase.from('orcamentos')
-    .select('categoria, valor_planejado')
+    .select('categoria, valor_planejado, limite')
     .eq('user_id', user.id)
     .eq('mes', mesAnterior)
 
@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
     user_id: user.id,
     categoria: o.categoria,
     valor_planejado: o.valor_planejado,
+    limite: o.limite ?? o.valor_planejado,
     mes,
+    mes_num: mm,
+    ano,
   }))
 
   const { error } = await supabase.from('orcamentos')

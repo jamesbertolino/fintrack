@@ -69,7 +69,7 @@ export async function DELETE(
   const service = getServiceClient()
   await service.from('whatsapp_logs').update({ transacao_id: null }).eq('transacao_id', id)
 
-  const { error } = await service.from('transactions').delete().eq('id', id)
+  const { error } = await service.from('transactions').delete().eq('id', id).eq('user_id', user.id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

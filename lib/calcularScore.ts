@@ -1,5 +1,5 @@
 export interface ScoreInput {
-  transacoes: { valor: number; tipo: 'debito' | 'credito'; data_hora: string }[]
+  transacoes: { valor: number; tipo: 'debito' | 'credito'; data_hora: string; categoria?: string }[]
   metas:      { valor_total: number; valor_atual: number; ativo: boolean }[]
   orcamentos: { categoria: string; limite: number }[]
   dividas:    { saldo: number; taxa_juros: number }[]
@@ -55,7 +55,7 @@ export function calcularScore(input: ScoreInput): ScoreResult {
     transacoes
       .filter(t => t.tipo === 'debito' && t.data_hora >= inicioMes)
       .forEach(t => {
-        const cat = (t as { categoria?: string }).categoria || 'Outros'
+        const cat = t.categoria || 'Outros'
         porCat[cat] = (porCat[cat] || 0) + Math.abs(t.valor)
       })
 
