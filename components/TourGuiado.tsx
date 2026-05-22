@@ -291,7 +291,9 @@ export default function TourGuiado({ onConcluido }: Props) {
             <div style={{ height: '100%', width: `${progresso}%`, background: accentColor, borderRadius: 2, transition: 'width .4s' }} />
           </div>
           <span style={{ fontSize: 10, color: cores.textFaint, whiteSpace: 'nowrap' }}>{passo + 1}/{PASSOS.length}</span>
-          <button onClick={pular} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textFaint, fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
+          <button onClick={pular} style={{ background: 'none', border: `1px solid ${cores.border}`, cursor: 'pointer', color: cores.textMuted, fontSize: 11, lineHeight: 1, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+            Pular tour
+          </button>
         </div>
 
         {/* Emoji + título */}
@@ -368,14 +370,7 @@ export default function TourGuiado({ onConcluido }: Props) {
           </button>
         </div>
 
-        {/* Link pular tour (apenas nos primeiros passos) */}
-        {passo < 3 && (
-          <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <button onClick={pular} style={{ background: 'none', border: 'none', color: cores.textFaint, fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>
-              Pular tour
-            </button>
-          </div>
-        )}
+        {/* espaço removido — pular tour está no topo */}
       </div>
     </>
   )
