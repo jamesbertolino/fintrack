@@ -137,6 +137,7 @@ export default function RelatorioPage() {
   const [dados, setDados]     = useState<Dados | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro]       = useState('')
+  const [isMobile, setIsMobile] = useState(false)
 
   const buscar = useCallback(async () => {
     setLoading(true); setErro('')
@@ -147,6 +148,12 @@ export default function RelatorioPage() {
     } catch { setErro('Erro de conexão') }
     finally { setLoading(false) }
   }, [ano, mes])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => { buscar() }, [buscar]) // eslint-disable-line react-hooks/set-state-in-effect
 
@@ -224,7 +231,7 @@ export default function RelatorioPage() {
             </div>
 
             {/* ── Cards resumo ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: 12, marginBottom: '1.5rem' }}>
               {[
                 { label: 'Total de Receitas', valor: dados.resumo.receitas, cor: '#4ade80', icon: '↑', sub: `${dados.transacoes.filter(t => t.tipo === 'credito').length} entradas` },
                 { label: 'Total de Despesas', valor: dados.resumo.despesas, cor: '#f87171', icon: '↓', sub: `${dados.transacoes.filter(t => t.tipo === 'debito').length} saídas` },
@@ -266,7 +273,7 @@ export default function RelatorioPage() {
                 <div style={{ padding: '1.25rem' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: '1rem' }}>📊 Receitas vs Despesas por semana</div>
                   <WeeklyChart transacoes={dados.transacoes} ano={dados.periodo.ano} mes={dados.periodo.mes} />
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6, marginTop: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 6, marginTop: 10 }}>
                     {['S1','S2','S3','S4'].map((s, i) => {
                       const w = [1,8,15,22]
                       const we = [7,14,21, new Date(dados.periodo.ano, dados.periodo.mes, 0).getDate()]

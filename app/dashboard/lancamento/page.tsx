@@ -378,6 +378,7 @@ export default function LancamentoPage() {
   // ─── histórico de importações ───
   const [importacoes, setImportacoes] = useState<ImportacaoItem[]>([])
   const [loadingImportacoes, setLoadingImportacoes] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   const carregarImportacoes = useCallback(async () => {
     setLoadingImportacoes(true)
@@ -385,6 +386,13 @@ export default function LancamentoPage() {
     const d = await res.json()
     setImportacoes(d.importacoes || [])
     setLoadingImportacoes(false)
+  }, [])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {
@@ -881,7 +889,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
         <span style={{ fontSize: 15, fontWeight: 500 }}>Lançamento</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', minHeight: 'calc(100vh - 53px)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '420px 1fr', minHeight: 'calc(100vh - 53px)' }}>
 
         {/* ─── Formulário ─── */}
         <div style={{ borderRight: '1px solid #1a3a1a', padding: '1.5rem', overflowY: 'auto' }}>
@@ -1054,7 +1062,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
             {/* 4 passos — só aparece quando não há transações detectadas e não está processando */}
             {transacoesDetectadas.length === 0 && !processando && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
                 {[
                   { n: '1', label: 'Envie', desc: 'PDF, imagem ou CSV', icon: '📤' },
                   { n: '2', label: 'IA analisa', desc: 'Detecta e categoriza', icon: '🤖' },

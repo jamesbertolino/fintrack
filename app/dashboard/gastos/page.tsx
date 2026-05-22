@@ -50,6 +50,7 @@ export default function GastosPage() {
 
   const [transacoes, setTransacoes]   = useState<Transacao[]>([])
   const [loading, setLoading]         = useState(true)
+  const [isMobile, setIsMobile]       = useState(false)
   const [catFiltro, setCatFiltro]     = useState('Todas')
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
   const [busca, setBusca]             = useState('')
@@ -115,6 +116,13 @@ export default function GastosPage() {
 
   useEffect(() => {
     fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
+  }, [])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {
@@ -337,7 +345,7 @@ export default function GastosPage() {
       <div style={{ padding: '1.5rem' }}>
 
         {/* ── Cards de métricas — sempre período completo, nunca filtrado ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: filtroAtivo ? 6 : '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: filtroAtivo ? 6 : '1.25rem' }}>
           {[
             { label: 'Receitas',   val: fmtBRL(totalReceitasPeriodo),  cor: '#4ade80' },
             { label: 'Despesas',   val: fmtBRL(totalDespesasPeriodo),  cor: '#f87171' },
@@ -747,7 +755,7 @@ export default function GastosPage() {
               Nenhuma transação encontrada com os filtros aplicados
             </div>
           ) : (
-            <div>
+            <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 520 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px 28px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4, alignItems: 'center' }}>
                 <input type="checkbox"
                   checked={selecionados.length === filtradas.length && filtradas.length > 0}
@@ -809,7 +817,7 @@ export default function GastosPage() {
                 </div>
                 <div />
               </div>
-            </div>
+            </div></div>
           )}
         </div>
 

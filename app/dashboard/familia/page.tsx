@@ -120,6 +120,13 @@ export default function FamiliaPage() {
   const [salvandoMov,    setSalvandoMov]    = useState(false)
   const [erroMov,        setErroMov]        = useState('')
   const [filtroOrigem,   setFiltroOrigem]   = useState('')
+  const [isMobile,       setIsMobile]       = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     fetch('/api/familia/dashboard')
@@ -420,6 +427,7 @@ export default function FamiliaPage() {
               </div>
             ) : (
               <div style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 560 }}>
                 {/* Header */}
                 <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto auto auto 90px 28px', gap: '0 12px', padding: '8px 14px', borderBottom: `1px solid ${cores.border}`, fontSize: 9, fontWeight: 700, color: cores.textMuted, textTransform: 'uppercase', letterSpacing: '.06em' }}>
                   <span>Data</span><span>Descrição</span><span>Origem</span><span>Quem</span><span>Categ.</span><span style={{ textAlign: 'right' }}>Valor / Saldo</span><span />
@@ -451,6 +459,7 @@ export default function FamiliaPage() {
                   </div>
                   <span style={{ fontSize: 12 }}>Saldo: <strong style={{ color: saldoGrupo >= 0 ? '#4ade80' : '#f87171' }}>{fmt(saldoGrupo)}</strong></span>
                 </div>
+                </div></div>
               </div>
             )}
           </div>
@@ -459,7 +468,7 @@ export default function FamiliaPage() {
         {aba === 'dashboard' && dash && !loading && (
           <>
             {/* ── Cards consolidados ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
               {[
                 { label: `Saldo consolidado`, valor: dash.totalSaldo, cor: dash.totalSaldo >= 0 ? '#4ade80' : '#f87171' },
                 { label: `Receitas — ${nomeMes}`, valor: dash.totalReceitas, cor: '#34d399' },

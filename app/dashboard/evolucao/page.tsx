@@ -54,6 +54,7 @@ export default function EvolucaoPage() {
   const [metas, setMetas]           = useState<Meta[]>([])
   const [nome, setNome]             = useState('')
   const [loading, setLoading]       = useState(true)
+  const [isMobile, setIsMobile]     = useState(false)
   const [abaSel, setAbaSel]         = useState<'visao' | 'conquistas' | 'ranking'>('visao')
   const [ranking, setRanking]       = useState<MembroRanking[]>([])
   const [rankingLoading, setRankingLoading] = useState(false)
@@ -86,6 +87,13 @@ export default function EvolucaoPage() {
     } finally {
       setRankingLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {
@@ -261,7 +269,7 @@ export default function EvolucaoPage() {
         </div>
 
         {/* ── Cards de fontes XP ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: '1.5rem' }}>
           {[
             { label: 'Transações',  val: xpTransacoes, desc: `${transacoes.length} registros × 10`, cor: '#4ade80',  icone: '📝' },
             { label: 'Saldo',       val: xpSaldo,      desc: `R$ ${Math.abs(saldo).toFixed(0)} ÷ 10`, cor: saldo >= 0 ? '#22d3ee' : '#f87171', icone: saldo >= 0 ? '💎' : '⚠️' },

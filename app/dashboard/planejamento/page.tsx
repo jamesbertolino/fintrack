@@ -42,6 +42,13 @@ export default function PlanejamentoPage() {
   const [saldoAtual, setSaldoAtual] = useState(0)
   const [cenario,    setCenario]    = useState<Cenario>('realista')
   const [loading,    setLoading]    = useState(true)
+  const [isMobile,   setIsMobile]   = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     async function init() {
@@ -215,7 +222,7 @@ export default function PlanejamentoPage() {
             </div>
 
             {/* Cards de resumo */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
               {[
                 { label: 'Saldo hoje',            valor: saldoAtual,                          cor: '#fff' },
                 { label: 'Saldo em 6 meses',      valor: projecaoAcc[5]?.saldoAcc ?? 0,       cor: (projecaoAcc[5]?.saldoAcc ?? 0) >= 0 ? accentColor : '#f87171' },
