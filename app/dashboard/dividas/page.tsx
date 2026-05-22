@@ -99,10 +99,17 @@ export default function DividasPage() {
   const [metodo,    setMetodo]    = useState<Metodo>('neve')
   const [extra,     setExtra]     = useState(0)
   const [form,      setForm]      = useState({ nome: '', saldo: '', taxa: '', minimo: '' })
+  const [isMobile,  setIsMobile]  = useState(false)
   const [adicionando, setAdd]     = useState(false)
   const [salvando,  setSalvando]  = useState(false)
   const [erro,      setErro]      = useState('')
   const [tabAberta, setTabAberta] = useState<string | null>(null)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     fetch('/api/dividas')
@@ -201,7 +208,7 @@ export default function DividasPage() {
               {/* Formulário de adição */}
               {adicionando && (
                 <div style={{ padding: '1rem 1.25rem', borderBottom: `1px solid ${cores.border}`, background: 'rgba(255,255,255,.02)' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '2fr 1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
                     {[
                       { key: 'nome',   placeholder: 'Ex: Cartão Nubank',  label: 'Nome da dívida' },
                       { key: 'saldo',  placeholder: '5000,00',            label: 'Saldo devedor (R$)' },

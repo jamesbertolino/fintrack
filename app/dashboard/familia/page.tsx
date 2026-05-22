@@ -277,7 +277,7 @@ export default function FamiliaPage() {
               <div style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: '1rem' }}>Nova fonte de recursos</div>
                 <form onSubmit={criarOrigem}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
                     <div>
                       <div style={{ fontSize: 10, color: cores.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nome</div>
                       <input value={formOrigem.nome} onChange={e => setFormOrigem(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: Conta conjunta" style={inputSt} />

@@ -122,6 +122,12 @@ const COR_ACTION: Record<string, string> = {
 function AbaOverview({ stats, carregar }: { stats: Stats; carregar: () => void }) {
   const [reconfigurando, setReconf] = useState(false)
   const [reconfMsg, setReconfMsg]   = useState('')
+  const [isMobile, setIsMobile]     = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   const { resumo, planos, ia_por_endpoint, ia_tokens_por_dia, top_users_ia, tx_por_dia, cad_por_dia, referral } = stats
   const totalIA = Object.values(ia_por_endpoint).reduce((s, v) => s + v.total, 0)
@@ -130,7 +136,7 @@ function AbaOverview({ stats, carregar }: { stats: Stats; carregar: () => void }
   return (
     <>
       {/* ── Cards de resumo ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 10, marginBottom: '1.5rem' }}>
         {[
           { label: 'Usuários',        val: fmtNum(resumo.total_usuarios),   cor: '#a78bfa', icon: '👥' },
           { label: 'Transações',      val: fmtNum(resumo.total_transacoes), cor: '#4ade80', icon: '📊' },
@@ -415,6 +421,7 @@ function AbaUsers() {
 
       {/* Tabela */}
       <div style={{ background: '#111', border: '1px solid #1a1a3a', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 560 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px 120px 60px 90px', gap: 8, padding: '8px 14px', borderBottom: '1px solid #1a1a3a' }}>
           {['Nome', 'Plano', 'XP', 'Cadastro', 'Referral', 'Alterar plano'].map(h => (
             <div key={h} style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{h}</div>
@@ -445,6 +452,7 @@ function AbaUsers() {
             </div>
           ))
         )}
+        </div></div>
       </div>
 
       {/* Paginação */}
@@ -574,6 +582,7 @@ function AbaAudit() {
       {erro && <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.3)', borderRadius: 8, color: '#f87171', fontSize: 12 }}>{erro}</div>}
 
       <div style={{ background: '#111', border: '1px solid #1a1a3a', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 480 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1fr 1fr', gap: 8, padding: '8px 14px', borderBottom: '1px solid #1a1a3a' }}>
           {['Data / Hora', 'Usuário', 'Ação', 'Recurso'].map(h => (
             <div key={h} style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{h}</div>
@@ -597,6 +606,7 @@ function AbaAudit() {
             </div>
           ))
         )}
+        </div></div>
       </div>
 
       {totalPages > 1 && (

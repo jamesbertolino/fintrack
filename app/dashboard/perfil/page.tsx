@@ -81,6 +81,7 @@ export default function PerfilPage() {
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
   const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades'>('perfil')
+  const [isMobile, setIsMobile]     = useState(false)
 
   // Família app
   const [, setFamiliaGrupo]                   = useState<{ id: string } | null>(null)
@@ -290,6 +291,12 @@ export default function PerfilPage() {
     if (totp) { setMfaAtivo(true); setMfaFactorId(totp.id) }
     else { setMfaAtivo(false); setMfaFactorId('') }
   }, [supabase])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check(); window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -745,7 +752,7 @@ export default function PerfilPage() {
             <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Tema</div>
               <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 16 }}>Escolha a aparência do aplicativo</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 10 }}>
 
                 {/* Tema Escuro */}
                 <button
