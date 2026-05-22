@@ -287,9 +287,7 @@ export default function LancamentoPage() {
   const [valor, setValor]           = useState('')
   const [descricao, setDescricao]   = useState('')
   const [categoria, setCategoria]   = useState('Alimentação')
-  const [categoriasCustom, setCategoriasCustom] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('categorias_custom') || '[]') } catch { return [] }
-  })
+  const [categoriasCustom, setCategoriasCustom] = useState<string[]>([])
   const [novaCategInput, setNovaCategInput] = useState('')
   const [adicionandoCateg, setAdicionandoCateg] = useState(false)
   const [dataHora, setDataHora]     = useState('')
@@ -409,6 +407,15 @@ export default function LancamentoPage() {
 
   useEffect(() => {
     fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/categorias')
+      .then(r => r.json())
+      .then(d => {
+        const nomes = (d.categorias || []).map((c: { nome: string }) => c.nome) as string[]
+        setCategoriasCustom(nomes)
+      })
   }, [])
 
   const carregarHistorico = useCallback(async (contaFiltro?: string) => {
@@ -805,12 +812,17 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     carregarHistorico()
   }
 
-  function salvarNovaCategoria() {
+  async function salvarNovaCategoria() {
     const nova = novaCategInput.trim()
     if (!nova || nova.length < 2) return
-    const novas = categoriasCustom.includes(nova) ? categoriasCustom : [...categoriasCustom, nova]
-    setCategoriasCustom(novas)
-    localStorage.setItem('categorias_custom', JSON.stringify(novas))
+    if (!categoriasCustom.includes(nova)) {
+      await fetch('/api/categorias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nova, cor: '#6b7280', icone: '📌', tipo: 'ambos' }),
+      })
+      setCategoriasCustom(prev => [...prev, nova])
+    }
     setCategoria(nova)
     setNovaCategInput('')
     setAdicionandoCateg(false)

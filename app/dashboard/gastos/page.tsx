@@ -51,6 +51,7 @@ export default function GastosPage() {
   const [transacoes, setTransacoes]   = useState<Transacao[]>([])
   const [loading, setLoading]         = useState(true)
   const [isMobile, setIsMobile]       = useState(false)
+  const [categoriasExtra, setCategoriasExtra] = useState<string[]>([])
   const [catFiltro, setCatFiltro]     = useState('Todas')
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
   const [busca, setBusca]             = useState('')
@@ -116,6 +117,12 @@ export default function GastosPage() {
 
   useEffect(() => {
     fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/categorias')
+      .then(r => r.json())
+      .then(d => setCategoriasExtra((d.categorias || []).map((c: { nome: string }) => c.nome)))
   }, [])
 
   useEffect(() => {
@@ -686,7 +693,7 @@ export default function GastosPage() {
               borderRadius: 8, color: catFiltro === 'Todas' ? 'rgba(255,255,255,.5)' : '#fff',
               fontSize: 12, outline: 'none', cursor: 'pointer',
             }}>
-              {CATEGORIAS.map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
+              {['Todas', ...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
             </select>
             {contas.length > 0 && (
               <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
@@ -865,7 +872,7 @@ export default function GastosPage() {
             <div>
               <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Categoria</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {TODAS_CATEGORIAS.map(c => (
+                {[...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => (
                   <button key={c} type="button" onClick={() => setEditCategoria(c)} style={{
                     padding: '4px 10px', borderRadius: 20,
                     border: `1px solid ${editCategoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
