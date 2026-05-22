@@ -43,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             .mobile-bottom-nav { display: flex !important; align-items: stretch; }
             [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }
             .dashboard-content { padding-bottom: 5rem !important; }
+            .dashboard-layout { padding-bottom: 5rem; }
             body { font-size: 15px; }
             input, select, textarea { font-size: 16px !important; min-height: 44px; }
           }
