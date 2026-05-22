@@ -35,6 +35,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+        {/* Critical mobile layout — inline so it applies before any HTML renders, no flash */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .mobile-bottom-nav { display: none !important; }
+          @media (max-width: 767px) {
+            aside[data-tour="tour-sidebar"] { display: none !important; width: 0 !important; min-width: 0 !important; }
+            .mobile-bottom-nav { display: flex !important; align-items: stretch; }
+            [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }
+            .dashboard-content { padding-bottom: 5rem !important; }
+            body { font-size: 15px; }
+            input, select, textarea { font-size: 16px !important; min-height: 44px; }
+          }
+        `}} />
         {/* Aplica o tema antes do render para evitar flash */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
