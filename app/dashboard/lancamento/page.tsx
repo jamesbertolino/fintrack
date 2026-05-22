@@ -499,6 +499,11 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     setContas(contasDados.contas || [])
     setContaUpload(data.conta.id)
     setModalContaNaoEncontrada(false)
+    // Auto-categoriza não categorizados como Outros e avança direto para confirmação
+    setTransacoesDetectadas(prev => prev.map(t =>
+      t.nao_categorizado ? { ...t, categoria: 'Outros', nao_categorizado: false } : t
+    ))
+    setEtapaConfirmacao(true)
   }
 
   async function salvarNovaConta(e: React.FormEvent) {
