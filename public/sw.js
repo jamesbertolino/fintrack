@@ -1,5 +1,5 @@
-const CACHE_STATIC  = 'poupaup-static-v2'
-const CACHE_PAGES   = 'poupaup-pages-v2'
+const CACHE_STATIC  = 'poupaup-static-v4'
+const CACHE_PAGES   = 'poupaup-pages-v4'
 const STATIC_ASSETS = ['/', '/dashboard', '/login', '/logo.png', '/velocimetro.png', '/manifest.json']
 
 // ── Install: pré-cacheia assets estáticos ────────────────────────────────────
