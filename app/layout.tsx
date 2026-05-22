@@ -42,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Critical mobile layout — inline so it applies before any HTML renders, no flash */}
         <style dangerouslySetInnerHTML={{ __html: `
+          html, body { overscroll-behavior-y: none; }
           .mobile-bottom-nav { display: none !important; }
           @media (max-width: 767px) {
             aside[data-tour="tour-sidebar"] { display: none !important; width: 0 !important; min-width: 0 !important; }
