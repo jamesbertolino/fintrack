@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Cinzel, Crimson_Text } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
@@ -14,6 +14,12 @@ const crimsonText = Crimson_Text({
   weight: ['400', '600', '700'],
   style: ['normal', 'italic'],
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+}
 
 export const metadata: Metadata = {
   title: 'PoupaUp — Poupe. Evolua. Conquiste.',
@@ -34,7 +40,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         {/* Critical mobile layout — inline so it applies before any HTML renders, no flash */}
         <style dangerouslySetInnerHTML={{ __html: `
           .mobile-bottom-nav { display: none !important; }
