@@ -1286,7 +1286,7 @@ useEffect(() => {
                     </div>
                     <div style={{ fontSize: isMobile ? 20 : 18, fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
                     {card.label === tx.metLabels[3] && (
-                      <div style={{ fontSize: 9, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
+                      <div style={{ fontSize: 11, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
                   </div>
                 ))}
@@ -1325,7 +1325,7 @@ useEffect(() => {
                         {sc.dimensoes.map(d => {
                           const p = d.pontos / d.maximo
                           const c = p >= 0.80 ? '#4ade80' : p >= 0.55 ? '#fbbf24' : '#f87171'
-                          return <span key={d.id} title={`${d.nome}: ${d.pontos}/${d.maximo}`} style={{ fontSize: 9, background: `${c}18`, border: `1px solid ${c}33`, borderRadius: 4, padding: '1px 5px', color: c }}>{d.emoji} {d.pontos}</span>
+                          return <span key={d.id} title={`${d.nome}: ${d.pontos}/${d.maximo}`} style={{ fontSize: 11, background: `${c}18`, border: `1px solid ${c}33`, borderRadius: 4, padding: '2px 6px', color: c }}>{d.emoji} {d.pontos}</span>
                         })}
                       </div>
                     </div>

@@ -394,11 +394,14 @@ export default function MetasPage() {
         {abaSel === 'metas' && (
           <>
             {metas.length === 0 ? (
-              <div style={{ background: '#111', border: '1px dashed #1a3a1a', borderRadius: 12, padding: '3rem', textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 12 }}>🎯</div>
-                <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>Nenhuma meta ainda</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 20 }}>Crie sua primeira meta e comece a acumular XP</div>
-                <button onClick={() => { resetForm(); setShowForm(true) }} style={{ padding: '9px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+              <div style={{ background: '#111', border: '1px dashed #1a3a1a', borderRadius: 12, padding: '3rem', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Nenhuma meta ainda</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: 8, lineHeight: 1.6 }}>Crie sua primeira meta e comece a acumular XP</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.25)', marginBottom: 24, lineHeight: 1.6 }}>
+                  Exemplos: Reserva de emergência, Viagem, Novo celular, Aposentadoria.
+                </div>
+                <button onClick={() => { resetForm(); setShowForm(true) }} style={{ padding: '12px 28px', minHeight: 44, background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                   Criar primeira meta
                 </button>
               </div>

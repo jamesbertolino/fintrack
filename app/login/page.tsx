@@ -230,7 +230,7 @@ function LoginContent() {
             </div>
           ))}
           <div style={{ textAlign: 'right', marginBottom: 12 }}>
-            <span style={{ fontSize: 11, color: cores.accent, cursor: 'pointer', opacity: 0.8 }}>Esqueci minha senha</span>
+            <button type="button" style={{ fontSize: 13, color: cores.accent, cursor: 'pointer', background: 'none', border: 'none', padding: '10px 4px', minHeight: 44, opacity: 0.8 }}>Esqueci minha senha</button>
           </div>
           <button type="submit" disabled={loading} style={{
             width: '100%', padding: isMobile ? '15px' : '12px',

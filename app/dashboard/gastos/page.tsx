@@ -335,7 +335,7 @@ export default function GastosPage() {
         <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
           {[['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1 ano']].map(([v, l]) => (
             <button key={v} onClick={() => setPeriodo(v)} style={{
-              padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 500,
+              padding: '8px 12px', minHeight: 38, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
               background: periodo === v ? '#16a34a' : 'transparent',
               color: periodo === v ? '#fff' : 'rgba(255,255,255,.4)',
             }}>{l}</button>
@@ -830,7 +830,7 @@ export default function GastosPage() {
             <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descrição</label>
+              <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Descrição</label>
               <input value={editDescricao} onChange={e => setEditDescricao(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
@@ -838,7 +838,7 @@ export default function GastosPage() {
             {/* Valor + Tipo */}
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Valor (R$)</label>
+                <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Valor (R$)</label>
                 <input
                   value={editValor}
                   onChange={e => setEditValor(e.target.value.replace(/[^0-9,]/g, ''))}
@@ -847,7 +847,7 @@ export default function GastosPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Tipo</label>
+                <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Tipo</label>
                 <div style={{ display: 'flex', gap: 4, height: 38 }}>
                   {(['debito', 'credito'] as const).map(tipo => (
                     <button key={tipo} type="button" onClick={() => setEditTipo(tipo)} style={{
@@ -864,7 +864,7 @@ export default function GastosPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Categoria</label>
+              <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Categoria</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {[...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => (
                   <button key={c} type="button" onClick={() => setEditCategoria(c)} style={{
@@ -880,7 +880,7 @@ export default function GastosPage() {
 
             {contas.length > 0 && (
               <div>
-                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Conta</label>
+                <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Conta</label>
                 <select value={editContaId} onChange={e => setEditContaId(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', cursor: 'pointer' }}>
                   <option value="">Sem conta específica</option>
@@ -890,7 +890,7 @@ export default function GastosPage() {
             )}
 
             <div>
-              <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Data e hora</label>
+              <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 5 }}>Data e hora</label>
               <input type="datetime-local" value={editDataHora} onChange={e => setEditDataHora(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>

@@ -54,7 +54,7 @@ export default function MobileBottomNav() {
               border: 'none',
               cursor: 'pointer',
               color: active ? '#4ade80' : 'rgba(255,255,255,.45)',
-              fontSize: 10,
+              fontSize: 12,
               fontFamily: 'system-ui, sans-serif',
               minHeight: 56,
               borderTop: active ? '2px solid #4ade80' : '2px solid transparent',
