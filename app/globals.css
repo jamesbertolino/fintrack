@@ -709,11 +709,30 @@ body {
 
 
 /* ─── Mobile app experience ─────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  input, select, textarea, button {
-    font-size: 16px !important;
+/* These CSS rules apply BEFORE any JavaScript runs, eliminating the desktop flash on refresh */
+@media (max-width: 767px) {
+  /* Sidebar: zero layout width — shown as overlay via JS when opened */
+  aside[data-tour="tour-sidebar"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    border-right: none !important;
   }
-  input[style*="fontSize"], select[style*="fontSize"], textarea[style*="fontSize"] {
+
+  /* Metric cards: single column */
+  [data-tour="tour-metricas"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Base font size for the app shell */
+  body {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Prevent iOS Safari auto-zoom on focused inputs */
+  input, select, textarea {
     font-size: 16px !important;
+    min-height: 44px;
   }
 }
