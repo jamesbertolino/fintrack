@@ -1179,7 +1179,7 @@ useEffect(() => {
         </div>
 
         {/* Conteúdo das páginas */}
-        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem', paddingBottom: isMobile ? '5rem' : undefined }}>
+        <div className="dashboard-content" style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
 
           {/* Banner offline */}
           {isOffline && (() => {
@@ -1650,8 +1650,8 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* Bottom navigation — mobile only */}
-      {isMobile && (() => {
+      {/* Bottom navigation — rendered always, hidden on desktop via CSS class .mobile-bottom-nav */}
+      {(() => {
         const bottomItems = [
           { id: 'inicio',     label: m ? 'Salão' : 'Início',    icon: m ? '🏰' : '🏠', href: undefined },
           { id: 'lancamento', label: m ? 'Tesouro' : 'Lançar',  icon: m ? '📜' : '📝', href: '/dashboard/lancamento' },
@@ -1660,15 +1660,15 @@ useEffect(() => {
           { id: 'mais',       label: 'Mais',                     icon: '☰',              href: 'sidebar' },
         ]
         return (
-          <nav style={{
+          <nav className="mobile-bottom-nav" style={{
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-            display: 'flex', alignItems: 'stretch',
+            alignItems: 'stretch',
             background: cores.topbarBg,
             borderTop: `1px solid ${cores.border}`,
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           }}>
             {bottomItems.map(item => {
-              const active = item.id === paginaAtiva || (item.id === 'mais' && false)
+              const active = item.id === paginaAtiva
               return (
                 <button
                   key={item.id}

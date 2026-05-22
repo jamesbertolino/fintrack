@@ -709,13 +709,22 @@ body {
 
 
 /* ─── Mobile app experience ─────────────────────────────────────────────────── */
-/* These CSS rules apply BEFORE any JavaScript runs, eliminating the desktop flash on refresh */
+/* CSS-only rules — apply before JS runs, no hydration flash */
+
+/* Desktop: hide bottom nav */
+.mobile-bottom-nav {
+  display: none !important;
+}
+
 @media (max-width: 767px) {
-  /* Sidebar: zero layout width — shown as overlay via JS when opened */
+  /* Show bottom nav */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  /* Sidebar: hidden from layout (shows as overlay when JS opens it) */
   aside[data-tour="tour-sidebar"] {
-    width: 0 !important;
-    min-width: 0 !important;
-    border-right: none !important;
+    display: none !important;
   }
 
   /* Metric cards: single column */
@@ -723,7 +732,12 @@ body {
     grid-template-columns: 1fr !important;
   }
 
-  /* Base font size for the app shell */
+  /* Content area: pad bottom to clear the fixed bottom nav */
+  .dashboard-content {
+    padding-bottom: 5rem !important;
+  }
+
+  /* Base font size */
   body {
     font-size: 15px;
   }
