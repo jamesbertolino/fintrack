@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import Avatar from '@/components/Avatar'
@@ -120,13 +121,7 @@ export default function FamiliaPage() {
   const [salvandoMov,    setSalvandoMov]    = useState(false)
   const [erroMov,        setErroMov]        = useState('')
   const [filtroOrigem,   setFiltroOrigem]   = useState('')
-  const [isMobile,       setIsMobile]       = useState(false)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const isMobile = useIsMobile(640)
 
   useEffect(() => {
     fetch('/api/familia/dashboard')

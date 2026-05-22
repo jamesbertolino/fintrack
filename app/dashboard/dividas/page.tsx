@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { useCores, useTema } from '@/components/ThemeProvider'
@@ -99,17 +100,11 @@ export default function DividasPage() {
   const [metodo,    setMetodo]    = useState<Metodo>('neve')
   const [extra,     setExtra]     = useState(0)
   const [form,      setForm]      = useState({ nome: '', saldo: '', taxa: '', minimo: '' })
-  const [isMobile,  setIsMobile]  = useState(false)
+  const isMobile = useIsMobile(640)
   const [adicionando, setAdd]     = useState(false)
   const [salvando,  setSalvando]  = useState(false)
   const [erro,      setErro]      = useState('')
   const [tabAberta, setTabAberta] = useState<string | null>(null)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   useEffect(() => {
     fetch('/api/dividas')

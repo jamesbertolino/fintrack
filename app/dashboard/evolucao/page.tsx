@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { calcularXP, calcularNivel, NIVEIS } from '@/lib/calcularXP'
@@ -54,7 +55,7 @@ export default function EvolucaoPage() {
   const [metas, setMetas]           = useState<Meta[]>([])
   const [nome, setNome]             = useState('')
   const [loading, setLoading]       = useState(true)
-  const [isMobile, setIsMobile]     = useState(false)
+  const isMobile = useIsMobile(640)
   const [abaSel, setAbaSel]         = useState<'visao' | 'conquistas' | 'ranking'>('visao')
   const [ranking, setRanking]       = useState<MembroRanking[]>([])
   const [rankingLoading, setRankingLoading] = useState(false)
@@ -87,13 +88,6 @@ export default function EvolucaoPage() {
     } finally {
       setRankingLoading(false)
     }
-  }, [])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {

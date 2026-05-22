@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -50,7 +51,7 @@ export default function GastosPage() {
 
   const [transacoes, setTransacoes]   = useState<Transacao[]>([])
   const [loading, setLoading]         = useState(true)
-  const [isMobile, setIsMobile]       = useState(false)
+  const isMobile = useIsMobile(640)
   const [categoriasExtra, setCategoriasExtra] = useState<string[]>([])
   const [catFiltro, setCatFiltro]     = useState('Todas')
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
@@ -123,13 +124,6 @@ export default function GastosPage() {
     fetch('/api/categorias')
       .then(r => r.json())
       .then(d => setCategoriasExtra((d.categorias || []).map((c: { nome: string }) => c.nome)))
-  }, [])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {

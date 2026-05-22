@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { LIMITES_TOKENS } from '@/lib/iaUsage'
@@ -122,12 +123,7 @@ const COR_ACTION: Record<string, string> = {
 function AbaOverview({ stats, carregar }: { stats: Stats; carregar: () => void }) {
   const [reconfigurando, setReconf] = useState(false)
   const [reconfMsg, setReconfMsg]   = useState('')
-  const [isMobile, setIsMobile]     = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const isMobile = useIsMobile(640)
 
   const { resumo, planos, ia_por_endpoint, ia_tokens_por_dia, top_users_ia, tx_por_dia, cad_por_dia, referral } = stats
   const totalIA = Object.values(ia_por_endpoint).reduce((s, v) => s + v.total, 0)

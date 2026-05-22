@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { usePerfil } from '@/hooks/usePerfil'
@@ -376,7 +377,7 @@ export default function LancamentoPage() {
   // ─── histórico de importações ───
   const [importacoes, setImportacoes] = useState<ImportacaoItem[]>([])
   const [loadingImportacoes, setLoadingImportacoes] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const isMobile = useIsMobile(640)
 
   const carregarImportacoes = useCallback(async () => {
     setLoadingImportacoes(true)
@@ -384,13 +385,6 @@ export default function LancamentoPage() {
     const d = await res.json()
     setImportacoes(d.importacoes || [])
     setLoadingImportacoes(false)
-  }, [])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
   }, [])
 
   useEffect(() => {

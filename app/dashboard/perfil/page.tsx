@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, Suspense, lazy } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import Avatar from '@/components/Avatar'
@@ -81,7 +82,7 @@ export default function PerfilPage() {
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
   const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades'>('perfil')
-  const [isMobile, setIsMobile]     = useState(false)
+  const isMobile = useIsMobile(640)
 
   // Família app
   const [, setFamiliaGrupo]                   = useState<{ id: string } | null>(null)
@@ -291,12 +292,6 @@ export default function PerfilPage() {
     if (totp) { setMfaAtivo(true); setMfaFactorId(totp.id) }
     else { setMfaAtivo(false); setMfaFactorId('') }
   }, [supabase])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -42,13 +43,7 @@ export default function PlanejamentoPage() {
   const [saldoAtual, setSaldoAtual] = useState(0)
   const [cenario,    setCenario]    = useState<Cenario>('realista')
   const [loading,    setLoading]    = useState(true)
-  const [isMobile,   setIsMobile]   = useState(false)
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
+  const isMobile = useIsMobile(640)
 
   useEffect(() => {
     async function init() {

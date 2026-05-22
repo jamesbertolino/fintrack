@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import { useCores } from '@/components/ThemeProvider'
 
@@ -137,7 +138,7 @@ export default function RelatorioPage() {
   const [dados, setDados]     = useState<Dados | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro]       = useState('')
-  const [isMobile, setIsMobile] = useState(false)
+  const isMobile = useIsMobile(640)
 
   const buscar = useCallback(async () => {
     setLoading(true); setErro('')
@@ -148,12 +149,6 @@ export default function RelatorioPage() {
     } catch { setErro('Erro de conexão') }
     finally { setLoading(false) }
   }, [ano, mes])
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check(); window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   useEffect(() => { buscar() }, [buscar]) // eslint-disable-line react-hooks/set-state-in-effect
 

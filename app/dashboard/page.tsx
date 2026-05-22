@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useState, useLayoutEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -428,8 +428,10 @@ function useOffline() {
 
 // Hook simples para detectar largura da tela
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  )
+  useLayoutEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
     check()
     window.addEventListener('resize', check)
