@@ -1746,9 +1746,9 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
       {/* ─── Modal edição ─── */}
       {modalAberto && transacaoEditando && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '0 1rem' }}
           onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
               {transacaoEditando?.origem && (
@@ -1833,9 +1833,9 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
       {/* ─── Modal nova conta ─── */}
       {modalNovaConta && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60 }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '0 1rem' }}
           onClick={e => { if (e.target === e.currentTarget) setModalNovaConta(false) }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 460, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 15, fontWeight: 600 }}>Cadastrar nova conta</div>
               <button onClick={() => setModalNovaConta(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 20, lineHeight: 1 }}>×</button>
@@ -1852,7 +1852,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   placeholder="Buscar banco pelo nome ou código..."
                   style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none', marginBottom: 8 }}
                 />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 6, maxHeight: 160, overflowY: 'auto' }}>
                   {bancosLista
                     .filter(b =>
                       !buscaBancoModal ||

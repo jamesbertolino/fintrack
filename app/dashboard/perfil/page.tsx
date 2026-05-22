@@ -1640,7 +1640,7 @@ export default function PerfilPage() {
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', wordBreak: 'break-all', marginBottom: 14, fontFamily: 'monospace' }}>
                     Chave: {mfaSecretKey}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <input
                       type="text" maxLength={6} placeholder="Código de 6 dígitos"
                       value={mfaCodigo} onChange={e => setMfaCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}

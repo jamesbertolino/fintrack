@@ -815,9 +815,9 @@ export default function GastosPage() {
 
       {/* ─── Modal edição ─── */}
       {modalAberto && transacaoEditando && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '0 1rem' }}
           onClick={e => { if (e.target === e.currentTarget) setModalAberto(false) }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: 420, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontSize: 15, fontWeight: 600 }}>Editar lançamento</div>
 
             <div>
