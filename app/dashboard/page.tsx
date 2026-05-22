@@ -697,7 +697,7 @@ useEffect(() => {
   const collapsed    = !isMobile && !sidebarAberta
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, position: 'relative', color: cores.text }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: isMobile ? 15 : 13, position: 'relative', color: cores.text }}>
 
       {/* Overlay IA analisando */}
       {iaAnalisando && (
@@ -1127,8 +1127,8 @@ useEffect(() => {
         {/* Topbar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg, gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 4, flexShrink: 0 }}>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+            <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: isMobile ? 12 : 4, flexShrink: 0, minWidth: isMobile ? 44 : undefined, minHeight: isMobile ? 44 : undefined, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width={isMobile ? 22 : 16} height={isMobile ? 22 : 16} viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
             </button>
             <div>
               <span style={{ fontSize: 15, fontWeight: 600, color: m ? '#F5E6C8' : cores.text, fontFamily: tx.fontDisplay, letterSpacing: m ? '0.04em' : 0 }}>
@@ -1176,7 +1176,7 @@ useEffect(() => {
         </div>
 
         {/* Conteúdo das páginas */}
-        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem', paddingBottom: isMobile ? '5rem' : undefined }}>
 
           {/* Banner offline */}
           {isOffline && (() => {
@@ -1643,6 +1643,50 @@ useEffect(() => {
 
         </div>
       </main>
+
+      {/* Bottom navigation — mobile only */}
+      {isMobile && (() => {
+        const bottomItems = [
+          { id: 'inicio',     label: m ? 'Salão' : 'Início',    icon: m ? '🏰' : '🏠', href: undefined },
+          { id: 'lancamento', label: m ? 'Tesouro' : 'Lançar',  icon: m ? '📜' : '📝', href: '/dashboard/lancamento' },
+          { id: 'gastos',     label: m ? 'Batalhas' : 'Gastos', icon: m ? '⚔️' : '💸', href: '/dashboard/gastos' },
+          { id: 'metas',      label: m ? 'Quests' : 'Metas',    icon: m ? '🎯' : '🎯', href: '/dashboard/metas' },
+          { id: 'mais',       label: 'Mais',                     icon: '☰',              href: 'sidebar' },
+        ]
+        return (
+          <nav style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
+            display: 'flex', alignItems: 'stretch',
+            background: cores.topbarBg,
+            borderTop: `1px solid ${cores.border}`,
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          }}>
+            {bottomItems.map(item => {
+              const active = item.id === paginaAtiva || (item.id === 'mais' && false)
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === 'mais') { setSidebar(true); return }
+                    if (item.href) router.push(item.href)
+                    else setPagina(item.id)
+                  }}
+                  style={{
+                    flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: 3, padding: '8px 4px', background: 'none', border: 'none', cursor: 'pointer',
+                    color: active ? tx.accentColor : 'rgba(255,255,255,.45)',
+                    fontSize: 10, fontFamily: 'system-ui, sans-serif', minHeight: 56,
+                    borderTop: active ? `2px solid ${tx.accentColor}` : '2px solid transparent',
+                  }}
+                >
+                  <span style={{ fontSize: 20, lineHeight: 1 }}>{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        )
+      })()}
 
       {/* Widget de prioridades — flutua sobre tudo */}
       {profile?.prioridades && profile.prioridades.length > 0 && (() => {
