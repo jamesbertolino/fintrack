@@ -870,7 +870,7 @@ useEffect(() => {
       {isMobile && sidebarAberta && (
         <div
           onClick={() => setSidebar(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 40 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 140 }}
         />
       )}
 
@@ -894,20 +894,21 @@ useEffect(() => {
 
       {/* ── Sidebar ── */}
       <aside data-tour="tour-sidebar" style={{
-        width: sidebarWidth,
+        width: isMobile ? 0 : sidebarWidth,
         background: cores.sidebarBg,
-        borderRight: `1px solid ${cores.border}`,
+        borderRight: isMobile ? 'none' : `1px solid ${cores.border}`,
         display: 'flex',
         flexDirection: 'column',
         transition: 'width .2s, transform .2s',
         flexShrink: 0,
+        overflow: isMobile ? 'visible' : undefined,
         ...(isMobile ? {
           position: 'fixed',
           top: 0, left: 0,
           height: '100vh',
-          zIndex: 50,
+          zIndex: 150,
+          width: 260,
           transform: sidebarAberta ? 'translateX(0)' : 'translateX(-100%)',
-          width: 200,
         } : {}),
       }}>
         {/* Logo */}
@@ -1255,8 +1256,8 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Cards métricas — 2 colunas em mobile, 4 em desktop */}
-              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,minmax(0,1fr))', gap: 8, marginBottom: '1rem' }}>
+              {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
+              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 8, marginBottom: '1rem' }}>
                 {([
                   { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0] },
                   { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1] },
@@ -1268,17 +1269,20 @@ useEffect(() => {
                     style={{
                       background: cores.cardBg,
                       border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : cores.cardBorder}`,
-                      borderRadius: 10,
-                      padding: '10px 12px',
+                      borderRadius: isMobile ? 14 : 10,
+                      padding: isMobile ? '16px 18px' : '10px 12px',
                       boxShadow: cores.cardShadow,
                       cursor: card.label === tx.metLabels[3] ? 'pointer' : 'default',
                       transition: 'border-color .2s',
+                      display: isMobile ? 'flex' : undefined,
+                      alignItems: isMobile ? 'center' : undefined,
+                      justifyContent: isMobile ? 'space-between' : undefined,
                     }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 9, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
-                      <span style={{ fontSize: 12 }}>{card.icone}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'space-between', gap: isMobile ? 10 : 0, marginBottom: isMobile ? 0 : 5 }}>
+                      <span style={{ fontSize: isMobile ? 22 : 12 }}>{card.icone}</span>
+                      <span style={{ fontSize: isMobile ? 13 : 9, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
                     </div>
-                    <div style={{ fontSize: isMobile ? 14 : 18, fontWeight: 600, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums' }}>{card.val}</div>
+                    <div style={{ fontSize: isMobile ? 20 : 18, fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
                     {card.label === tx.metLabels[3] && (
                       <div style={{ fontSize: 9, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
