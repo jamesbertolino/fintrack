@@ -16,11 +16,12 @@ function LoginContent() {
   const { tema } = useTema()
   const isClaro = tema === 'claro'
 
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  )
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
-    check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [])
@@ -126,8 +127,10 @@ function LoginContent() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', fontSize: 13, padding: '9px 12px',
-    borderRadius: 8, border: `1px solid ${cores.inputBorder}`,
+    width: '100%', fontSize: isMobile ? 16 : 13,
+    padding: isMobile ? '13px 14px' : '9px 12px',
+    minHeight: isMobile ? 48 : undefined,
+    borderRadius: 10, border: `1px solid ${cores.inputBorder}`,
     background: cores.inputBg, color: cores.text, outline: 'none',
     boxSizing: 'border-box',
   }
@@ -157,11 +160,12 @@ function LoginContent() {
   const formulario = (
     <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 320 }}>
 
-      <div style={{ display: 'flex', background: cores.surfaceDark, border: `1px solid ${cores.borderMid}`, borderRadius: 8, padding: 3, marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', background: cores.surfaceDark, border: `1px solid ${cores.borderMid}`, borderRadius: 10, padding: 3, marginBottom: '1.5rem' }}>
         {(['login', 'cadastro'] as const).map(t => (
           <button key={t} onClick={() => { setTab(t); setErro(''); setEstado('form') }} style={{
-            flex: 1, padding: '8px', textAlign: 'center', fontSize: 13, fontWeight: 500,
-            borderRadius: 6, cursor: 'pointer', border: 'none',
+            flex: 1, padding: isMobile ? '11px' : '8px', textAlign: 'center',
+            fontSize: isMobile ? 15 : 13, fontWeight: 500,
+            borderRadius: 8, cursor: 'pointer', border: 'none',
             background: tab === t ? (isClaro ? '#2563EB' : '#16a34a') : 'transparent',
             color: tab === t ? '#fff' : cores.textMuted,
             transition: 'all .15s',
@@ -186,10 +190,11 @@ function LoginContent() {
           <div style={{ fontSize: 17, fontWeight: 500, color: cores.text, marginBottom: 3 }}>Bem-vindo de volta</div>
           <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem' }}>Continue subindo de nível</div>
           <button type="button" onClick={loginGoogle} style={{
-            width: '100%', padding: '11px', marginBottom: 16, boxSizing: 'border-box',
+            width: '100%', padding: isMobile ? '13px' : '11px', marginBottom: 16, boxSizing: 'border-box',
             background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: 14, fontWeight: 500, color: '#374151',
+            fontSize: isMobile ? 15 : 14, fontWeight: 500, color: '#374151',
+            minHeight: isMobile ? 50 : undefined,
           }}>
             <svg width="18" height="18" viewBox="0 0 18 18">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -228,9 +233,11 @@ function LoginContent() {
             <span style={{ fontSize: 11, color: cores.accent, cursor: 'pointer', opacity: 0.8 }}>Esqueci minha senha</span>
           </div>
           <button type="submit" disabled={loading} style={{
-            width: '100%', padding: 12, background: cores.accent, color: '#fff', border: 'none',
-            borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer',
-            opacity: loading ? 0.6 : 1,
+            width: '100%', padding: isMobile ? '15px' : '12px',
+            background: cores.accent, color: '#fff', border: 'none',
+            borderRadius: 10, fontSize: isMobile ? 16 : 14, fontWeight: 600,
+            cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1,
+            minHeight: isMobile ? 52 : undefined,
           }}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
@@ -243,10 +250,11 @@ function LoginContent() {
           <div style={{ fontSize: 17, fontWeight: 500, color: cores.text, marginBottom: 3 }}>Criar sua conta</div>
           <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem' }}>7 dias grátis no plano Pro</div>
           <button type="button" onClick={loginGoogle} style={{
-            width: '100%', padding: '11px', marginBottom: 16, boxSizing: 'border-box',
+            width: '100%', padding: isMobile ? '13px' : '11px', marginBottom: 16, boxSizing: 'border-box',
             background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: 14, fontWeight: 500, color: '#374151',
+            fontSize: isMobile ? 15 : 14, fontWeight: 500, color: '#374151',
+            minHeight: isMobile ? 50 : undefined,
           }}>
             <svg width="18" height="18" viewBox="0 0 18 18">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -309,9 +317,12 @@ function LoginContent() {
             </span>
           </label>
           <button type="submit" disabled={loading || !lgpdAceito} style={{
-            width: '100%', padding: 12, background: cores.accent, color: '#fff', border: 'none',
-            borderRadius: 8, fontSize: 14, fontWeight: 500, cursor: (loading || !lgpdAceito) ? 'default' : 'pointer',
+            width: '100%', padding: isMobile ? '15px' : '12px',
+            background: cores.accent, color: '#fff', border: 'none',
+            borderRadius: 10, fontSize: isMobile ? 16 : 14, fontWeight: 600,
+            cursor: (loading || !lgpdAceito) ? 'default' : 'pointer',
             opacity: (loading || !lgpdAceito) ? 0.6 : 1,
+            minHeight: isMobile ? 52 : undefined,
           }}>
             {loading ? 'Criando conta...' : 'Criar conta grátis'}
           </button>
@@ -343,28 +354,20 @@ function LoginContent() {
 
   // ── MOBILE: coluna única ─────────────────────────────────────────────────
   if (isMobile) return (
-    <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100dvh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Hero compacto — sidebar color para contraste */}
-      <div style={{ background: cores.sidebarBg, borderBottom: `1px solid ${cores.borderMid}`, padding: '1.5rem' }}>
-        <div style={{ marginBottom: '1rem' }}>
+      {/* Hero compacto */}
+      <div style={{ background: cores.sidebarBg, padding: '1.25rem 1.5rem 1.5rem' }}>
+        <div style={{ marginBottom: '0.75rem' }}>
           <PoupaUpLogo mode="full" />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 500, color: '#fff', lineHeight: 1.3, marginBottom: '1rem' }}>
+        <p style={{ fontSize: 16, fontWeight: 500, color: '#fff', lineHeight: 1.35, margin: 0 }}>
           Seu dinheiro subindo de <span style={{ color: '#4ade80' }}>nível</span> todo mês.
-        </div>
-        <div style={{ display: 'flex', gap: '1.5rem' }}>
-          {[['847', 'usuários'], ['R$ 2.4M', 'economizados'], ['4.9★', 'avaliação']].map(([val, lbl]) => (
-            <div key={lbl}>
-              <div style={{ fontSize: 15, fontWeight: 500, color: '#4ade80' }}>{val}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.55)' }}>{lbl}</div>
-            </div>
-          ))}
-        </div>
+        </p>
       </div>
 
-      {/* Formulário */}
-      <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto' }}>
+      {/* Formulário com scroll */}
+      <div style={{ flex: 1, padding: '1.5rem 1.25rem', overflowY: 'auto', paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
         {formulario}
       </div>
     </div>
