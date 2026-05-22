@@ -54,7 +54,7 @@ function TipCard({ id, icon, text, tips, accent = '#4ade80' }: {
         dangerouslySetInnerHTML={{ __html: text }} />
       <button
         onClick={() => tips.dismiss(id)}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 16, lineHeight: 1, flexShrink: 0, padding: '0 0 0 4px' }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 16, lineHeight: 1, flexShrink: 0, padding: '8px', margin: '-8px -8px -8px 0', minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         title="Dispensar dica"
       >×</button>
       <style>{`@keyframes tipFadeIn { from { opacity:0; transform:translateY(-4px) } to { opacity:1; transform:translateY(0) } }`}</style>
@@ -887,7 +887,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a', gap: 12 }}>
-        <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+        <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44, padding: '0 8px', margin: '0 -8px' }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
           Dashboard
         </button>
@@ -903,7 +903,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
           <div style={{ display: 'flex', background: 'rgba(0,0,0,.4)', border: '1px solid #1a3a1a', borderRadius: 12, padding: 4, marginBottom: '1.5rem' }}>
             {(['debito', 'credito'] as const).map(t => (
               <button key={t} onClick={() => handleSetTipo(t)} style={{
-                flex: 1, padding: '10px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                flex: 1, padding: '10px', minHeight: 44, borderRadius: 9, border: 'none', cursor: 'pointer',
                 fontWeight: 600, fontSize: 13, transition: 'all .2s',
                 background: tipo === t ? (t === 'debito' ? 'rgba(239,68,68,.2)' : 'rgba(22,163,74,.2)') : 'transparent',
                 color: tipo === t ? (t === 'debito' ? '#f87171' : '#4ade80') : 'rgba(255,255,255,.3)',
@@ -944,20 +944,20 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
           <form onSubmit={salvar}>
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Descrição</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Descrição</label>
               <input value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Almoço, Gasolina, Netflix..." required
                 style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Categoria</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Categoria</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 {categorias.map(c => (
                   <button key={c} type="button" onClick={() => setCategoria(c)} style={{
-                    padding: '5px 12px', borderRadius: 20, border: `1px solid ${categoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
+                    padding: '8px 14px', minHeight: 40, borderRadius: 20, border: `1px solid ${categoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
                     background: categoria === c ? `${CORES[c] || '#4ade80'}18` : 'transparent',
                     color: categoria === c ? CORES[c] || '#4ade80' : 'rgba(255,255,255,.4)',
-                    fontSize: 11, cursor: 'pointer', transition: 'all .15s', fontWeight: categoria === c ? 500 : 400,
+                    fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontWeight: categoria === c ? 500 : 400,
                   }}>{c}</button>
                 ))}
                 {adicionandoCateg ? (
@@ -984,7 +984,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
             {contas.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conta (opcional)</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conta (opcional)</label>
                 <TipCard id="tip-conta-manual" icon="🏦" tips={tips} accent="#22d3ee"
                   text="Vincule o lançamento a uma conta para manter os <strong>saldos sempre atualizados</strong>. Sem vínculo, a transação fica no histórico geral." />
                 <select value={contaSelecionada} onChange={e => setConta(e.target.value)}
@@ -998,7 +998,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
             )}
 
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data e hora</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data e hora</label>
               <input type="datetime-local" value={dataHora} onChange={e => setDataHora(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', background: '#111', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
@@ -1616,8 +1616,8 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
           </div>
         </div>
 
-        {/* ─── Histórico ─── */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
+        {/* ─── Histórico — oculto no mobile (nav bottom já tem atalho para Gastos) ─── */}
+        {!isMobile && <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
 
           {/* ── Histórico de importações ── */}
           {(importacoes.length > 0 || loadingImportacoes) && (
@@ -1755,7 +1755,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               </div>
             </>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* ─── Modal edição ─── */}

@@ -291,7 +291,7 @@ export default function TourGuiado({ onConcluido }: Props) {
             <div style={{ height: '100%', width: `${progresso}%`, background: accentColor, borderRadius: 2, transition: 'width .4s' }} />
           </div>
           <span style={{ fontSize: 10, color: cores.textFaint, whiteSpace: 'nowrap' }}>{passo + 1}/{PASSOS.length}</span>
-          <button onClick={pular} style={{ background: 'none', border: `1px solid ${cores.border}`, cursor: 'pointer', color: cores.textMuted, fontSize: 11, lineHeight: 1, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+          <button onClick={pular} style={{ background: 'none', border: `1px solid ${cores.border}`, cursor: 'pointer', color: cores.textMuted, fontSize: 12, lineHeight: 1, padding: '10px 14px', minHeight: 44, borderRadius: 20, whiteSpace: 'nowrap' }}>
             Pular tour
           </button>
         </div>
@@ -335,8 +335,8 @@ export default function TourGuiado({ onConcluido }: Props) {
             onClick={voltar}
             disabled={passo === 0}
             style={{
-              padding: '8px 16px', borderRadius: 8, border: `1px solid ${cores.border}`,
-              background: 'transparent', color: cores.textMuted, fontSize: 12,
+              padding: '10px 16px', minHeight: 44, borderRadius: 8, border: `1px solid ${cores.border}`,
+              background: 'transparent', color: cores.textMuted, fontSize: 13,
               cursor: passo === 0 ? 'default' : 'pointer', opacity: passo === 0 ? 0 : 1,
               transition: 'opacity .2s',
             }}
@@ -358,7 +358,7 @@ export default function TourGuiado({ onConcluido }: Props) {
           <button
             onClick={avancar}
             style={{
-              padding: '8px 20px', borderRadius: 8, border: 'none',
+              padding: '10px 20px', minHeight: 44, borderRadius: 8, border: 'none',
               background: eUltimo ? accentColor : `${accentColor}18`,
               borderColor: `${accentColor}55`,
               color: eUltimo ? (m ? '#000' : '#fff') : accentColor,
