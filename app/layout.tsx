@@ -40,10 +40,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        {/* Critical mobile layout — inline so it applies before any HTML renders, no flash */}
+        {/* Critical layout — inline so it applies before any HTML renders, zero flash */}
         <style dangerouslySetInnerHTML={{ __html: `
           html, body { overscroll-behavior-y: none; }
           .mobile-bottom-nav { display: none !important; }
+
+          /* CSS media query — aplica antes do JS, cobre SSR + navegação */
           @media (max-width: 767px) {
             aside[data-tour="tour-sidebar"] { display: none !important; width: 0 !important; min-width: 0 !important; }
             .mobile-bottom-nav { display: flex !important; align-items: stretch; }
@@ -52,11 +54,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             .dashboard-layout { padding-bottom: 5rem; }
             body { font-size: 15px; }
             input, select, textarea { font-size: 16px !important; min-height: 44px; }
+            /* Lancamento: colapsa grid e esconde coluna direita */
+            .lancamento-grid { grid-template-columns: 1fr !important; }
+            .lancamento-right-col { display: none !important; }
+            /* Login: esconde coluna esquerda desktop, mostra hero mobile */
+            .login-desktop-col { display: none !important; }
+            .login-mobile-hero { display: flex !important; }
           }
         `}} />
-        {/* Aplica o tema antes do render para evitar flash */}
+        {/* Detecta mobile e aplica classe + tema antes do primeiro render */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
+            if (window.innerWidth < 768) document.documentElement.classList.add('is-mobile');
             var t = localStorage.getItem('poupaup_tema');
             if (t) document.documentElement.setAttribute('data-tema', t);
           } catch(e) {}

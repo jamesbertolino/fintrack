@@ -895,7 +895,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
         <span style={{ fontSize: 15, fontWeight: 500 }}>Lançamento</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '420px 1fr', minHeight: 'calc(100vh - 53px)' }}>
+      <div className="lancamento-grid" style={{ display: 'grid', gridTemplateColumns: '420px 1fr', minHeight: 'calc(100vh - 53px)' }}>
 
         {/* ─── Formulário ─── */}
         <div style={{ borderRight: '1px solid #1a3a1a', padding: '1.5rem', overflowY: 'auto' }}>
@@ -1616,8 +1616,8 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
           </div>
         </div>
 
-        {/* ─── Histórico — oculto no mobile (nav bottom já tem atalho para Gastos) ─── */}
-        {!isMobile && <div style={{ padding: '1.5rem', overflowY: 'auto' }}>
+        {/* ─── Histórico — oculto no mobile via CSS (.lancamento-right-col) ─── */}
+        <div className="lancamento-right-col" style={{ padding: '1.5rem', overflowY: 'auto' }}>
 
           {/* ── Histórico de importações ── */}
           {(importacoes.length > 0 || loadingImportacoes) && (
@@ -1755,7 +1755,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               </div>
             </>
           )}
-        </div>}
+        </div>
       </div>
 
       {/* ─── Modal edição ─── */}

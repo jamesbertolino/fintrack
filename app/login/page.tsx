@@ -352,69 +352,71 @@ function LoginContent() {
     </div>
   )
 
-  // ── MOBILE: coluna única ─────────────────────────────────────────────────
-  if (isMobile) return (
-    <div style={{ minHeight: '100dvh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column' }}>
-
-      {/* Hero compacto */}
-      <div style={{ background: cores.sidebarBg, padding: '1.25rem 1.5rem 1.5rem' }}>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <PoupaUpLogo mode="full" />
-        </div>
-        <p style={{ fontSize: 16, fontWeight: 500, color: '#fff', lineHeight: 1.35, margin: 0 }}>
-          Seu dinheiro subindo de <span style={{ color: '#4ade80' }}>nível</span> todo mês.
-        </p>
-      </div>
-
-      {/* Formulário com scroll */}
-      <div style={{ flex: 1, padding: '1.5rem 1.25rem', overflowY: 'auto', paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
-        {formulario}
-      </div>
-    </div>
-  )
-
-  // ── DESKTOP: duas colunas ────────────────────────────────────────────────
+  // ── Layout unificado — CSS controla mobile vs desktop, sem depender de JS ──
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <>
+      <style>{`
+        .login-wrapper { display: grid; grid-template-columns: 1fr 1fr; min-height: 100dvh; font-family: system-ui, sans-serif; }
+        .login-mobile-hero { display: none; background: ${cores.sidebarBg}; padding: 1.25rem 1.5rem 1.5rem; flex-direction: column; }
+        .login-desktop-col { background: ${cores.sidebarBg}; display: flex; flex-direction: column; justify-content: space-between; padding: 2.5rem; }
+        .login-form-col { background: ${cores.surface}; display: flex; align-items: center; justify-content: center; padding: 2rem; border-left: 1px solid ${cores.border}; }
+        @media (max-width: 767px) {
+          .login-wrapper { grid-template-columns: 1fr; }
+          .login-desktop-col { display: none !important; }
+          .login-mobile-hero { display: flex !important; }
+          .login-form-col { border-left: none; align-items: flex-start; padding: 1.5rem 1.25rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+        }
+      `}</style>
 
-      {/* Lado esquerdo — sempre escuro para contraste */}
-      <div style={{ background: cores.sidebarBg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2.5rem' }}>
-        <div><PoupaUpLogo mode="full" /></div>
-        <div>
-          <div style={{ fontSize: 28, fontWeight: 500, color: '#fff', lineHeight: 1.3, marginBottom: '1.5rem' }}>
-            Seu dinheiro<br />subindo de <span style={{ color: '#4ade80' }}>nível</span><br />todo mês.
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              ['IA que categoriza', 'gastos automaticamente via webhook'],
-              ['Detecta padrões', '"você gasta R$ 54 em delivery às sextas"'],
-              ['Gamificação real', 'níveis, conquistas e XP financeiro'],
-              ['Assistente IA', '"posso comprar isso agora?"'],
-            ].map(([bold, rest]) => (
-              <div key={bold} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>
-                  <strong style={{ color: '#fff', fontWeight: 500 }}>{bold}</strong> {rest}
+      <div className="login-wrapper">
+
+        {/* Hero mobile — visível só em telas pequenas via CSS */}
+        <div className="login-mobile-hero">
+          <div style={{ marginBottom: '0.75rem' }}><PoupaUpLogo mode="full" /></div>
+          <p style={{ fontSize: 16, fontWeight: 500, color: '#fff', lineHeight: 1.35, margin: 0 }}>
+            Seu dinheiro subindo de <span style={{ color: '#4ade80' }}>nível</span> todo mês.
+          </p>
+        </div>
+
+        {/* Coluna esquerda desktop — oculta no mobile via CSS */}
+        <div className="login-desktop-col">
+          <div><PoupaUpLogo mode="full" /></div>
+          <div>
+            <div style={{ fontSize: 28, fontWeight: 500, color: '#fff', lineHeight: 1.3, marginBottom: '1.5rem' }}>
+              Seu dinheiro<br />subindo de <span style={{ color: '#4ade80' }}>nível</span><br />todo mês.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                ['IA que categoriza', 'gastos automaticamente via webhook'],
+                ['Detecta padrões', '"você gasta R$ 54 em delivery às sextas"'],
+                ['Gamificação real', 'níveis, conquistas e XP financeiro'],
+                ['Assistente IA', '"posso comprar isso agora?"'],
+              ].map(([bold, rest]) => (
+                <div key={bold} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>
+                    <strong style={{ color: '#fff', fontWeight: 500 }}>{bold}</strong> {rest}
+                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '2rem' }}>
+            {[['847', 'usuários ativos'], ['R$ 2.4M', 'economizados'], ['4.9★', 'avaliação']].map(([val, lbl]) => (
+              <div key={lbl}>
+                <div style={{ fontSize: 18, fontWeight: 500, color: '#4ade80' }}>{val}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{lbl}</div>
               </div>
             ))}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '2rem' }}>
-          {[['847', 'usuários ativos'], ['R$ 2.4M', 'economizados'], ['4.9★', 'avaliação']].map(([val, lbl]) => (
-            <div key={lbl}>
-              <div style={{ fontSize: 18, fontWeight: 500, color: '#4ade80' }}>{val}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{lbl}</div>
-            </div>
-          ))}
+
+        {/* Formulário — ocupa 100% no mobile, metade no desktop */}
+        <div className="login-form-col">
+          {formulario}
         </div>
       </div>
-
-      {/* Lado direito — fundo do tema */}
-      <div style={{ background: cores.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', borderLeft: `1px solid ${cores.border}` }}>
-        {formulario}
-      </div>
-    </div>
+    </>
   )
 }
 
