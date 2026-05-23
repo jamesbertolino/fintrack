@@ -90,7 +90,8 @@ function WeeklyChart({ transacoes, ano, mes }: { transacoes: Transacao[]; ano: n
   })
 
   const maxVal = Math.max(...dados.flatMap(d => [d.receitas, d.despesas]), 1)
-  const W = 340, H = 120, padB = 22, barW = 24, gap = 18
+  const W = typeof window !== 'undefined' ? Math.min(340, window.innerWidth - 80) : 340
+  const H = 120, padB = 22, barW = 24, gap = 18
   const groupW = barW * 2 + 6
   const totalW = semanas.length * (groupW + gap)
   const startX  = (W - totalW) / 2
@@ -180,24 +181,30 @@ export default function RelatorioPage() {
       <div className="print-page" style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: cores.text }}>
 
         {/* Topbar */}
-        <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '.875rem 1.5rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Dashboard
-          </button>
-          <span style={{ color: cores.textFaint }}>/</span>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>📄 Relatório mensal</span>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-            <select value={mes} onChange={e => setMes(+e.target.value)} style={{ padding: '5px 8px', borderRadius: 7, border: `1px solid ${cores.border}`, background: cores.surface, color: cores.text, fontSize: 12 }}>
+        <div className="no-print" style={{ borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg }}>
+          {/* Linha 1: breadcrumb + título */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '.875rem 1rem' }}>
+            <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, minHeight: 44, padding: '0 4px' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Dashboard
+            </button>
+            <span style={{ color: cores.textFaint }}>/</span>
+            <span style={{ fontSize: 13, fontWeight: 600 }}>📄 Relatório</span>
+          </div>
+          {/* Linha 2: filtros — empilha no mobile */}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '0 1rem .875rem', flexWrap: 'wrap' }}>
+            <select value={mes} onChange={e => setMes(+e.target.value)} style={{ flex: 1, minWidth: 100, padding: '8px', borderRadius: 7, border: `1px solid ${cores.border}`, background: cores.surface, color: cores.text, fontSize: 14 }}>
               {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
-            <select value={ano} onChange={e => setAno(+e.target.value)} style={{ padding: '5px 8px', borderRadius: 7, border: `1px solid ${cores.border}`, background: cores.surface, color: cores.text, fontSize: 12 }}>
+            <select value={ano} onChange={e => setAno(+e.target.value)} style={{ width: 90, padding: '8px', borderRadius: 7, border: `1px solid ${cores.border}`, background: cores.surface, color: cores.text, fontSize: 14 }}>
               {[now.getFullYear() - 1, now.getFullYear()].map(a => <option key={a} value={a}>{a}</option>)}
             </select>
-            <button onClick={() => window.print()} style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: cores.accent, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Baixar PDF
-            </button>
+            {!isMobile && (
+              <button onClick={() => window.print()} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: cores.accent, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Baixar PDF
+              </button>
+            )}
           </div>
         </div>
 
@@ -205,21 +212,21 @@ export default function RelatorioPage() {
         {erro    && <div style={{ textAlign: 'center', padding: '4rem', color: '#f87171' }}>{erro}</div>}
 
         {dados && !loading && (
-          <div style={{ maxWidth: 860, margin: '0 auto', padding: '2rem 1.5rem' }}>
+          <div style={{ maxWidth: 860, margin: '0 auto', padding: isMobile ? '1rem' : '2rem 1.5rem' }}>
 
             {/* ── Cabeçalho ── */}
             <div className="print-header" style={{ background: 'linear-gradient(135deg, #16a34a, #4ade80)', borderRadius: 14, padding: '1.75rem 2rem', marginBottom: '1.5rem', color: '#fff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 600, opacity: .75, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 4 }}>Relatório Financeiro Mensal</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.5 }}>{MESES[dados.periodo.mes - 1]} {dados.periodo.ano}</div>
+                  <div style={{ fontSize: isMobile ? 20 : 28, fontWeight: 800, letterSpacing: -0.5 }}>{MESES[dados.periodo.mes - 1]} {dados.periodo.ano}</div>
                   <div style={{ fontSize: 13, opacity: .8, marginTop: 4 }}>{dados.usuario.nome}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 10, opacity: .65 }}>Saldo do período</div>
-                  <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1.1 }}>{fmt(dados.resumo.saldo)}</div>
+                  <div style={{ fontSize: isMobile ? 22 : 34, fontWeight: 800, lineHeight: 1.1 }}>{fmt(dados.resumo.saldo)}</div>
                   <div style={{ fontSize: 11, opacity: .75, marginTop: 4 }}>
-                    {dados.resumo.saldo >= 0 ? '✅ Resultado positivo' : '⚠️ Resultado negativo'}
+                    {dados.resumo.saldo >= 0 ? '✅ Positivo' : '⚠️ Negativo'}
                   </div>
                 </div>
               </div>
@@ -244,10 +251,10 @@ export default function RelatorioPage() {
 
             {/* ── Gráficos lado a lado ── */}
             {dados.categorias.length > 0 && (
-              <div className="print-2col print-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 12, marginBottom: '1.5rem', overflow: 'hidden' }}>
+              <div className="print-2col print-card" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 0, background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 12, marginBottom: '1.5rem', overflow: 'hidden' }}>
 
                 {/* Donut */}
-                <div style={{ padding: '1.25rem', borderRight: `1px solid ${cores.border}` }}>
+                <div style={{ padding: '1.25rem', borderRight: isMobile ? 'none' : `1px solid ${cores.border}`, borderBottom: isMobile ? `1px solid ${cores.border}` : 'none' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: '1rem' }}>🍩 Distribuição por categoria</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <DonutChart categorias={dados.categorias} total={totalDes} />
@@ -355,29 +362,46 @@ export default function RelatorioPage() {
             {dados.transacoes.length > 0 && (
               <div className="print-card" style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: '1rem' }}>📋 Extrato do período ({dados.transacoes.length} lançamentos)</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '5px 12px', alignItems: 'center' }}>
-                  {['Descrição','Categoria','Data','Valor'].map(h => (
-                    <div key={h} style={{ fontSize: 9, fontWeight: 700, color: cores.textFaint, textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: `1px solid ${cores.border}`, paddingBottom: 5, marginBottom: 2 }}>{h}</div>
-                  ))}
-                  {dados.transacoes.map((t, i) => (
-                    <>
-                      <div key={`d${i}`} style={{ fontSize: 11, color: cores.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>{t.descricao || '—'}</div>
-                      <div key={`c${i}`} style={{ fontSize: 10, color: cores.textMuted, borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>{t.categoria || '—'}</div>
-                      <div key={`dt${i}`} style={{ fontSize: 10, color: cores.textMuted, whiteSpace: 'nowrap', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</div>
-                      <div key={`v${i}`} className={t.tipo === 'credito' ? 'print-valor-pos' : 'print-valor-neg'} style={{ fontSize: 11, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>
-                        {t.tipo === 'credito' ? '+' : '-'}{fmt(Math.abs(t.valor))}
+                {isMobile ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {dados.transacoes.map((t, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.tipo === 'credito' ? '#4ade80' : '#f87171', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, color: cores.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao || '—'}</div>
+                          <div style={{ fontSize: 10, color: cores.textMuted }}>{t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}</div>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
+                          {t.tipo === 'credito' ? '+' : '-'}{fmt(Math.abs(t.valor))}
+                        </div>
                       </div>
-                    </>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: '5px 12px', alignItems: 'center' }}>
+                    {['Descrição','Categoria','Data','Valor'].map(h => (
+                      <div key={h} style={{ fontSize: 9, fontWeight: 700, color: cores.textFaint, textTransform: 'uppercase', letterSpacing: '.06em', borderBottom: `1px solid ${cores.border}`, paddingBottom: 5, marginBottom: 2 }}>{h}</div>
+                    ))}
+                    {dados.transacoes.map((t, i) => (
+                      <>
+                        <div key={`d${i}`} style={{ fontSize: 11, color: cores.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>{t.descricao || '—'}</div>
+                        <div key={`c${i}`} style={{ fontSize: 10, color: cores.textMuted, borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>{t.categoria || '—'}</div>
+                        <div key={`dt${i}`} style={{ fontSize: 10, color: cores.textMuted, whiteSpace: 'nowrap', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>{new Date(t.data_hora).toLocaleDateString('pt-BR')}</div>
+                        <div key={`v${i}`} className={t.tipo === 'credito' ? 'print-valor-pos' : 'print-valor-neg'} style={{ fontSize: 11, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', whiteSpace: 'nowrap', borderBottom: i < dados.transacoes.length - 1 ? `1px solid ${cores.border}33` : 'none', paddingBottom: 4 }}>
+                          {t.tipo === 'credito' ? '+' : '-'}{fmt(Math.abs(t.valor))}
+                        </div>
+                      </>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* ── Rodapé ── */}
-            <div className="print-divider" style={{ textAlign: 'center', fontSize: 11, color: cores.textFaint, marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${cores.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="print-divider" style={{ textAlign: 'center', fontSize: 11, color: cores.textFaint, marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${cores.border}`, display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
               <span>PoupaUp · poupaup.com.br</span>
-              <span>Gerado em {new Date().toLocaleDateString('pt-BR', { dateStyle: 'long' })}</span>
-              <span>📊 Relatório de {MESES[dados.periodo.mes - 1]} {dados.periodo.ano}</span>
+              {!isMobile && <span>Gerado em {new Date().toLocaleDateString('pt-BR', { dateStyle: 'long' })}</span>}
+              <span>📊 {MESES[dados.periodo.mes - 1]} {dados.periodo.ano}</span>
             </div>
 
           </div>
