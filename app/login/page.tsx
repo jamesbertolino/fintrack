@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
@@ -15,16 +15,6 @@ function LoginContent() {
   const cores = useCores()
   const { tema } = useTema()
   const isClaro = tema === 'claro'
-
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  )
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
 
   const [tab, setTab] = useState<'login' | 'cadastro'>('login')
   const [estado, setEstado] = useState<'form' | 'sucesso' | 'aguardando_email'>('form')
@@ -127,9 +117,9 @@ function LoginContent() {
   }
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', fontSize: isMobile ? 16 : 13,
-    padding: isMobile ? '13px 14px' : '9px 12px',
-    minHeight: isMobile ? 48 : undefined,
+    width: '100%', fontSize: 16,
+    padding: '13px 14px',
+    minHeight: 48,
     borderRadius: 10, border: `1px solid ${cores.inputBorder}`,
     background: cores.inputBg, color: cores.text, outline: 'none',
     boxSizing: 'border-box',
@@ -158,13 +148,13 @@ function LoginContent() {
 
   // ── Formulário compartilhado (login + cadastro) ──────────────────────────
   const formulario = (
-    <div style={{ width: '100%', maxWidth: isMobile ? '100%' : 320 }}>
+    <div style={{ width: '100%', maxWidth: 400 }}>
 
       <div style={{ display: 'flex', background: cores.surfaceDark, border: `1px solid ${cores.borderMid}`, borderRadius: 10, padding: 3, marginBottom: '1.5rem' }}>
         {(['login', 'cadastro'] as const).map(t => (
           <button key={t} onClick={() => { setTab(t); setErro(''); setEstado('form') }} style={{
-            flex: 1, padding: isMobile ? '11px' : '8px', textAlign: 'center',
-            fontSize: isMobile ? 15 : 13, fontWeight: 500,
+            flex: 1, padding: '11px', textAlign: 'center',
+            fontSize: 15, fontWeight: 500,
             borderRadius: 8, cursor: 'pointer', border: 'none',
             background: tab === t ? (isClaro ? '#2563EB' : '#16a34a') : 'transparent',
             color: tab === t ? '#fff' : cores.textMuted,
@@ -190,11 +180,11 @@ function LoginContent() {
           <div style={{ fontSize: 17, fontWeight: 500, color: cores.text, marginBottom: 3 }}>Bem-vindo de volta</div>
           <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem' }}>Continue subindo de nível</div>
           <button type="button" onClick={loginGoogle} style={{
-            width: '100%', padding: isMobile ? '13px' : '11px', marginBottom: 16, boxSizing: 'border-box',
+            width: '100%', padding: '13px', marginBottom: 16, boxSizing: 'border-box',
             background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: isMobile ? 15 : 14, fontWeight: 500, color: '#374151',
-            minHeight: isMobile ? 50 : undefined,
+            fontSize: 15, fontWeight: 500, color: '#374151',
+            minHeight: 50,
           }}>
             <svg width="18" height="18" viewBox="0 0 18 18">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -233,11 +223,11 @@ function LoginContent() {
             <button type="button" style={{ fontSize: 13, color: cores.accent, cursor: 'pointer', background: 'none', border: 'none', padding: '10px 4px', minHeight: 44, opacity: 0.8 }}>Esqueci minha senha</button>
           </div>
           <button type="submit" disabled={loading} style={{
-            width: '100%', padding: isMobile ? '15px' : '12px',
+            width: '100%', padding: '15px',
             background: cores.accent, color: '#fff', border: 'none',
-            borderRadius: 10, fontSize: isMobile ? 16 : 14, fontWeight: 600,
+            borderRadius: 10, fontSize: 16, fontWeight: 600,
             cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1,
-            minHeight: isMobile ? 52 : undefined,
+            minHeight: 52,
           }}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
@@ -250,11 +240,11 @@ function LoginContent() {
           <div style={{ fontSize: 17, fontWeight: 500, color: cores.text, marginBottom: 3 }}>Criar sua conta</div>
           <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: '1.25rem' }}>7 dias grátis no plano Pro</div>
           <button type="button" onClick={loginGoogle} style={{
-            width: '100%', padding: isMobile ? '13px' : '11px', marginBottom: 16, boxSizing: 'border-box',
+            width: '100%', padding: '13px', marginBottom: 16, boxSizing: 'border-box',
             background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            fontSize: isMobile ? 15 : 14, fontWeight: 500, color: '#374151',
-            minHeight: isMobile ? 50 : undefined,
+            fontSize: 15, fontWeight: 500, color: '#374151',
+            minHeight: 50,
           }}>
             <svg width="18" height="18" viewBox="0 0 18 18">
               <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
@@ -317,12 +307,12 @@ function LoginContent() {
             </span>
           </label>
           <button type="submit" disabled={loading || !lgpdAceito} style={{
-            width: '100%', padding: isMobile ? '15px' : '12px',
+            width: '100%', padding: '15px',
             background: cores.accent, color: '#fff', border: 'none',
-            borderRadius: 10, fontSize: isMobile ? 16 : 14, fontWeight: 600,
+            borderRadius: 10, fontSize: 16, fontWeight: 600,
             cursor: (loading || !lgpdAceito) ? 'default' : 'pointer',
             opacity: (loading || !lgpdAceito) ? 0.6 : 1,
-            minHeight: isMobile ? 52 : undefined,
+            minHeight: 52,
           }}>
             {loading ? 'Criando conta...' : 'Criar conta grátis'}
           </button>
@@ -352,34 +342,98 @@ function LoginContent() {
     </div>
   )
 
-  // ── Layout unificado — CSS controla mobile vs desktop, sem depender de JS ──
+  // ── Layout mobile-first — coluna única por padrão, duas colunas só ≥768px ──
   return (
     <>
       <style>{`
-        .login-wrapper { display: grid; grid-template-columns: 1fr 1fr; min-height: 100dvh; font-family: system-ui, sans-serif; }
-        .login-mobile-hero { display: none; background: ${cores.sidebarBg}; padding: 1.25rem 1.5rem 1.5rem; flex-direction: column; }
-        .login-desktop-col { background: ${cores.sidebarBg}; display: flex; flex-direction: column; justify-content: space-between; padding: 2.5rem; }
-        .login-form-col { background: ${cores.surface}; display: flex; align-items: center; justify-content: center; padding: 2rem; border-left: 1px solid ${cores.border}; }
-        @media (max-width: 767px) {
-          .login-wrapper { grid-template-columns: 1fr; }
-          .login-desktop-col { display: none !important; }
-          .login-mobile-hero { display: flex !important; }
-          .login-form-col { border-left: none; align-items: flex-start; padding: 1.5rem 1.25rem; padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+        /* ── Mobile (base) ── */
+        .login-page {
+          min-height: 100dvh;
+          display: flex;
+          flex-direction: column;
+          font-family: system-ui, sans-serif;
+          background: ${cores.pageBg};
+        }
+        .login-hero-mobile {
+          background: ${cores.sidebarBg};
+          padding: 2rem 1.5rem 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .login-hero-mobile-tagline {
+          font-size: 20px;
+          font-weight: 600;
+          color: #fff;
+          line-height: 1.35;
+          margin: 0;
+        }
+        .login-pills {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .login-pill {
+          font-size: 11px;
+          color: rgba(255,255,255,.6);
+          background: rgba(74,222,128,.08);
+          border: 1px solid rgba(74,222,128,.2);
+          border-radius: 20px;
+          padding: 4px 10px;
+        }
+        .login-form-area {
+          flex: 1;
+          padding: 2rem 1.25rem;
+          padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+        }
+        .login-desktop-left { display: none; }
+
+        /* ── Desktop (≥768px) ── */
+        @media (min-width: 768px) {
+          .login-page {
+            flex-direction: row;
+          }
+          .login-hero-mobile { display: none; }
+          .login-desktop-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2.5rem;
+            background: ${cores.sidebarBg};
+            flex: 1;
+          }
+          .login-form-area {
+            flex: 1;
+            background: ${cores.surface};
+            border-left: 1px solid ${cores.border};
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+          }
         }
       `}</style>
 
-      <div className="login-wrapper">
+      <div className="login-page">
 
-        {/* Hero mobile — visível só em telas pequenas via CSS */}
-        <div className="login-mobile-hero">
-          <div style={{ marginBottom: '0.75rem' }}><PoupaUpLogo mode="full" /></div>
-          <p style={{ fontSize: 16, fontWeight: 500, color: '#fff', lineHeight: 1.35, margin: 0 }}>
-            Seu dinheiro subindo de <span style={{ color: '#4ade80' }}>nível</span> todo mês.
+        {/* Hero mobile — visível apenas em telas pequenas */}
+        <div className="login-hero-mobile">
+          <PoupaUpLogo mode="full" />
+          <p className="login-hero-mobile-tagline">
+            Seu dinheiro subindo de{' '}
+            <span style={{ color: '#4ade80' }}>nível</span> todo mês.
           </p>
+          <div className="login-pills">
+            {['IA que categoriza', 'Metas automáticas', 'XP financeiro', 'WhatsApp'].map(p => (
+              <span key={p} className="login-pill">✓ {p}</span>
+            ))}
+          </div>
         </div>
 
-        {/* Coluna esquerda desktop — oculta no mobile via CSS */}
-        <div className="login-desktop-col">
+        {/* Coluna esquerda — visível apenas no desktop */}
+        <div className="login-desktop-left">
           <div><PoupaUpLogo mode="full" /></div>
           <div>
             <div style={{ fontSize: 28, fontWeight: 500, color: '#fff', lineHeight: 1.3, marginBottom: '1.5rem' }}>
@@ -387,9 +441,9 @@ function LoginContent() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[
-                ['IA que categoriza', 'gastos automaticamente via webhook'],
-                ['Detecta padrões', '"você gasta R$ 54 em delivery às sextas"'],
-                ['Gamificação real', 'níveis, conquistas e XP financeiro'],
+                ['IA que categoriza', 'gastos automaticamente'],
+                ['Detecta padrões', '"R$ 54 em delivery às sextas"'],
+                ['Gamificação real', 'níveis, conquistas e XP'],
                 ['Assistente IA', '"posso comprar isso agora?"'],
               ].map(([bold, rest]) => (
                 <div key={bold} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -411,8 +465,8 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Formulário — ocupa 100% no mobile, metade no desktop */}
-        <div className="login-form-col">
+        {/* Formulário — ocupa tela inteira no mobile */}
+        <div className="login-form-area">
           {formulario}
         </div>
       </div>
