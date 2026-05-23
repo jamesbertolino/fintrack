@@ -31,7 +31,10 @@ export default function MobileBottomNav() {
   const path    = usePathname()
   const [maisAberto, setMaisAberto] = useState(false)
 
+  // A dashboard root page has its own bottom nav — MobileBottomNav only shows on sub-pages
   if (path === '/dashboard') return null
+
+  // "Início" navigates to /dashboard where the built-in nav takes over — no issue
 
   function isActive(href: string) {
     if (!href) return false
