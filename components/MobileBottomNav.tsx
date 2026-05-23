@@ -109,7 +109,8 @@ export default function MobileBottomNav() {
 
       {/* ── Barra de navegação inferior ── */}
       <nav className="mobile-bottom-nav" style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        zIndex: 200,
         background: '#0a1205',
         borderTop: '1px solid #1a3a1a',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -139,8 +140,8 @@ export default function MobileBottomNav() {
                 borderTop: active ? '2px solid #4ade80' : '2px solid transparent',
               }}
             >
-              <span style={{ fontSize: 20, lineHeight: 1 }}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ fontSize: 20, lineHeight: 1, pointerEvents: 'none' }}>{item.icon}</span>
+              <span style={{ pointerEvents: 'none' }}>{item.label}</span>
             </button>
           )
         })}

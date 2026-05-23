@@ -18,6 +18,9 @@ export function useIsMobile(breakpoint = 768): boolean {
         document.documentElement.classList.toggle('is-mobile', mobile)
       }
     }
+    // Run immediately on mount to catch cases where the viewport wasn't
+    // stable when the inline <head> script ran (e.g. Android WebView resume)
+    check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
   }, [breakpoint])

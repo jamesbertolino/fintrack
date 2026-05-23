@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useLayoutEffect, useCallback, Suspense } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -12,6 +12,7 @@ import PushManager from '@/components/PushManager'
 import ExtratoXP from '@/components/ExtratoXP'
 import PrioridadeWidget, { type PrioridadeComMetrica } from '@/components/PrioridadeWidget'
 import { usePerfil } from '@/hooks/usePerfil'
+import { useIsMobile as useIsMobileHook } from '@/hooks/useIsMobile'
 import { calcularXP, calcularNivel, getNomeNivel } from '@/lib/calcularXP'
 import { calcularScore } from '@/lib/calcularScore'
 import { useCores, useTema } from '@/components/ThemeProvider'
@@ -426,19 +427,8 @@ function useOffline() {
   return offline
 }
 
-// Hook simples para detectar largura da tela
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  )
-  useLayoutEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
-  return isMobile
-}
+// Alias do hook global — lê a classe is-mobile do DOM, sem flash
+const useIsMobile = useIsMobileHook
 
 // Componente isolado para usar useSearchParams dentro de Suspense
 function UpgradeBanner({ onDetect }: { onDetect: (v: 'success' | 'cancelled' | null) => void }) {
