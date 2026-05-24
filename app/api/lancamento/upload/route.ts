@@ -155,18 +155,29 @@ function processarCSV(texto: string): TransacaoDetectada[] {
     let valor: number
 
     if (iValor !== -1) {
-      // Formato com coluna única de valor (pode ter sinal negativo = débito)
-      const raw = (cols[iValor] || '').replace(',', '.')
-      const num = parseFloat(raw) || 0
+      // Usa parseBRL para tratar separador de milhar BR (1.000,00 → 1000)
+      // e também testa formato EN (1,000.00 → 1000)
+      const rawStr = cols[iValor] || ''
+      // Detecta formato EN (ex: 1,234.56): tem ponto decimal E vírgula antes
+      const isEN = /\d,\d{3}\./.test(rawStr) || (/\.\d{2}$/.test(rawStr) && !rawStr.includes(','))
+      const num = isEN
+        ? parseFloat(rawStr.replace(/,/g, '')) || 0
+        : (() => {
+            // Remove sinal para calcular, preserva para tipo
+            const s = rawStr.replace(/\s/g, '')
+            const neg = s.startsWith('-') || s.startsWith('(')
+            const abs = parseBRL(s.replace(/[()]/g, '').replace(/^-/, ''))
+            return neg ? -abs : abs
+          })()
       if (num === 0) continue
-      // Nubank: negativo = despesa, positivo = receita
+      // Sinal do valor define tipo inicial; coluna tipo tem precedência
       tipo  = num < 0 ? 'debito' : 'credito'
       valor = Math.abs(num)
-      // Se houver coluna tipo ("tipo" ou "type"), usa ela para confirmar
+      // Coluna tipo/type: aceita D/C, Deb/Cre, Débito/Crédito, Saída/Entrada, S/E
       if (iTipo !== -1) {
-        const t = (cols[iTipo] || '').toLowerCase()
-        if (t === 'debit' || t === 'debito' || t === 'saida' || t === 'saída') tipo = 'debito'
-        if (t === 'credit' || t === 'credito' || t === 'entrada') tipo = 'credito'
+        const t = (cols[iTipo] || '').trim().toLowerCase()
+        if (/^d$|^deb|^déb|^saí|^sai|^out/.test(t)) tipo = 'debito'
+        if (/^c$|^cre|^cré|^ent|^rec|^in$/.test(t)) tipo = 'credito'
       }
     } else {
       // Formato com colunas separadas de crédito/débito

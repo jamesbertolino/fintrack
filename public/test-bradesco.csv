@@ -1,0 +1,9 @@
+Data;Histórico;Documento;Valor;Tipo
+03/05/2026;Pagamento Cartão de Crédito;000123;2.350,00;D
+06/05/2026;Depósito em Dinheiro;;800,00;C
+09/05/2026;Compra Online - Amazon;000456;459,90;D
+13/05/2026;PIX Recebido - Carlos Lima;;1.000,00;C
+17/05/2026;Saque ATM;;300,00;D
+21/05/2026;Juros sobre Saldo Devedor;;85,30;D
+24/05/2026;Crédito de Estorno;;120,00;C
+29/05/2026;IOF Operação de Crédito;;12,40;D
