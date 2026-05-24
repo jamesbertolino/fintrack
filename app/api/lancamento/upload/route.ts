@@ -965,11 +965,25 @@ export async function POST(request: NextRequest) {
     const { data: aprendidas } = await supabase.from('categoria_aprendida').select('chave, categoria').eq('user_id', user.id)
     const learnedMap = new Map<string, string>((aprendidas || []).map(a => [a.chave, a.categoria]))
 
-    const formData = await request.formData()
+    // Verifica tamanho antes de ler o body (Vercel limita a 4.5MB em funções serverless)
+    const contentLength = Number(request.headers.get('content-length') || 0)
+    if (contentLength > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Arquivo muito grande. Máx 10MB (limite do servidor).' }, { status: 413 })
+    }
+
+    let formData: FormData
+    try {
+      formData = await request.formData()
+    } catch {
+      return NextResponse.json({ error: 'Falha ao receber o arquivo. Tente novamente ou use um arquivo menor.' }, { status: 400 })
+    }
     const arquivo = formData.get('arquivo') as File | null
     if (!arquivo) return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
 
     const nome = arquivo.name.toLowerCase()
+    if (arquivo.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Arquivo muito grande. Máx 10MB.' }, { status: 413 })
+    }
     const bytes = await arquivo.arrayBuffer()
 
     // ── OFX ──────────────────────────────────────────────────────────────────
