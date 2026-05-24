@@ -585,12 +585,24 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     let data: any
     try {
       setEtapa(isPDF ? '📄 Enviando PDF para a IA...' : isOFX ? '🏦 Lendo arquivo OFX...' : '🤖 Analisando com IA...')
-      const res = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm })
-      data = await res.json()
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 90_000) // 90s timeout cliente
+      try {
+        const res = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm, signal: ctrl.signal })
+        clearTimeout(timer)
+        data = await res.json()
+      } finally {
+        clearTimeout(timer)
+      }
     } catch (err) {
       setProcessan(false)
       setEtapa('')
-      setErro(`Erro ao enviar arquivo: ${err instanceof Error ? err.message : 'falha na conexão'}`)
+      const msg = err instanceof Error ? err.message : 'falha na conexão'
+      if (msg.includes('abort') || msg.includes('timeout')) {
+        setErro('O processamento demorou muito. Tente um arquivo menor ou aguarde e tente novamente.')
+      } else {
+        setErro(`Erro ao enviar arquivo: ${msg}`)
+      }
       return
     }
     setProcessan(false)
