@@ -581,9 +581,18 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     const uploadForm = new FormData()
     uploadForm.append('arquivo', arquivo)
 
-    setEtapa(isPDF ? '📄 Enviando PDF para a IA...' : isOFX ? '🏦 Lendo arquivo OFX...' : '🤖 Analisando com IA...')
-    const res  = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm })
-    const data = await res.json()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: any
+    try {
+      setEtapa(isPDF ? '📄 Enviando PDF para a IA...' : isOFX ? '🏦 Lendo arquivo OFX...' : '🤖 Analisando com IA...')
+      const res = await fetch('/api/lancamento/upload', { method: 'POST', body: uploadForm })
+      data = await res.json()
+    } catch (err) {
+      setProcessan(false)
+      setEtapa('')
+      setErro(`Erro ao enviar arquivo: ${err instanceof Error ? err.message : 'falha na conexão'}`)
+      return
+    }
     setProcessan(false)
     setEtapa('')
     setCsvDebug(data._csv_debug || '')
@@ -1172,6 +1181,13 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   <div style={{ height: '100%', background: 'linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed)', backgroundSize: '200% 100%', animation: 'slide 1.8s linear infinite', borderRadius: 2 }} />
                 </div>
                 <style>{`@keyframes slide { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }`}</style>
+              </div>
+            )}
+
+            {/* Erro de upload — exibido diretamente na área de upload */}
+            {erro && !processando && transacoesDetectadas.length === 0 && (
+              <div style={{ marginTop: 10, background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#f87171' }}>
+                ⚠️ {erro}
               </div>
             )}
 

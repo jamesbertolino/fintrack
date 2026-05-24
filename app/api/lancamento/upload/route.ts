@@ -81,47 +81,104 @@ function parseData(val: string): string {
   return new Date().toISOString()
 }
 
-// ─── Processa CSV ─────────────────────────────────────────────────────────────
+// ─── Detecta separador de CSV ────────────────────────────────────────────────
+function detectarSep(linha: string): string {
+  if (linha.includes(';')) return ';'
+  if (linha.includes('\t')) return '\t'
+  return ','
+}
+
+// ─── Converte data ISO (YYYY-MM-DD) para ISO 8601 ────────────────────────────
+function parseDataISO(val: string): string {
+  const m = val.trim().match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return new Date().toISOString()
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString()
+}
+
+// ─── Processa CSV — detecta múltiplos formatos de banco ──────────────────────
 function processarCSV(texto: string): TransacaoDetectada[] {
-  const linhas = texto.split('\n').map(l => l.trim())
+  const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean)
   const resultado: TransacaoDetectada[] = []
 
+  // Encontra a primeira linha que parece um cabeçalho (contém pelo menos 2 campos não-numéricos)
   let idxCabecalho = -1
-  for (let i = 0; i < linhas.length; i++) {
+  for (let i = 0; i < Math.min(linhas.length, 20); i++) {
     const l = linhas[i].toLowerCase()
+    // Cabeçalho típico de bancos BR: tem "data" + "hist" (Bradesco, BB, Itaú CSV)
     if (l.includes('data') && l.includes('hist')) { idxCabecalho = i; break }
+    // Cabeçalho Nubank/Inter/C6: tem "date" ou "data" + "title"/"descrição"/"memo"
+    if ((l.includes('date') || l.includes('data')) && (l.includes('title') || l.includes('descri') || l.includes('memo'))) { idxCabecalho = i; break }
+    // Cabeçalho Nubank v2: "date,title,amount"
+    if (l.includes('amount') && l.includes('title')) { idxCabecalho = i; break }
+    // Cabeçalho genérico com "valor" e qualquer coluna de data
+    if ((l.includes('data') || l.includes('date')) && l.includes('valor')) { idxCabecalho = i; break }
   }
   if (idxCabecalho === -1) return []
 
-  // Detecta separador a partir do cabeçalho (suporte a ; | \t | ,)
   const linhaCab = linhas[idxCabecalho]
-  const sep = linhaCab.includes(';') ? ';' : linhaCab.includes('\t') ? '\t' : ','
+  const sep = detectarSep(linhaCab)
+  const cabecalho = linhaCab.split(sep).map(c => c.toLowerCase().trim().replace(/"/g, '').replace(/﻿/g, ''))
 
-  const cabecalho = linhaCab.split(sep).map(c => c.toLowerCase().trim().replace(/"/g, ''))
-  const iData    = cabecalho.findIndex(c => c === 'data')
-  const iHist    = cabecalho.findIndex(c => c.includes('hist'))
-  const iCredito = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred'))
-  const iDebito  = cabecalho.findIndex(c => c.includes('déb') || c.includes('deb'))
+  // Detecta índices de colunas para múltiplos formatos
+  const iData    = cabecalho.findIndex(c => c === 'data' || c === 'date' || c.startsWith('data '))
+  const iHist    = cabecalho.findIndex(c => c.includes('hist') || c === 'title' || c.includes('descri') || c.includes('memo') || c.includes('lançamento'))
+  const iCredito = cabecalho.findIndex(c => c.includes('créd') || c.includes('cred') || c === 'entrada')
+  const iDebito  = cabecalho.findIndex(c => c.includes('déb') || c.includes('deb') || c === 'saída' || c === 'saida')
+  // Coluna única de valor (Nubank usa "amount" ou "valor" com sinal)
+  const iValor   = cabecalho.findIndex(c => c === 'amount' || c === 'valor' || c === 'value')
+  const iTipo    = cabecalho.findIndex(c => c === 'type' || c === 'tipo')
 
   if (iData === -1 || iHist === -1) return []
 
+  // Detecta se data está no formato ISO (YYYY-MM-DD) ou BR (DD/MM/YYYY)
+  const primeiraLinhaDados = linhas[idxCabecalho + 1] || ''
+  const primeirasCols = primeiraLinhaDados.split(sep)
+  const dataExemplo = (primeirasCols[iData] || '').trim().replace(/"/g, '')
+  const isISO = /^\d{4}-\d{2}-\d{2}/.test(dataExemplo)
+
   for (let i = idxCabecalho + 1; i < linhas.length; i++) {
     const linha = linhas[i]
-    if (!linha || linha.startsWith(sep) || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos') || linha.startsWith(`${sep}${sep}Total`)) continue
+    if (!linha || linha.startsWith('Filtro') || linha.startsWith('Os dados') || linha.startsWith('Últimos')) continue
     const cols = linha.split(sep).map(c => c.trim().replace(/"/g, ''))
     const dataVal = cols[iData] || ''
     const hist    = cols[iHist] || ''
-    if (!dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || !hist) continue
+    // Aceita DD/MM/YYYY ou YYYY-MM-DD
+    const dataOK = dataVal.match(/\d{2}\/\d{2}\/\d{4}/) || dataVal.match(/\d{4}-\d{2}-\d{2}/)
+    if (!dataOK || !hist) continue
     if (hist.includes('COD. LANC')) continue
-    const credito = iCredito !== -1 ? parseBRL(cols[iCredito]) : 0
-    const debito  = iDebito  !== -1 ? parseBRL(cols[iDebito])  : 0
-    if (credito === 0 && debito === 0) continue
-    const tipo  = credito > 0 ? 'credito' : 'debito'
-    const valor = credito > 0 ? credito : debito
+
+    let tipo: string
+    let valor: number
+
+    if (iValor !== -1) {
+      // Formato com coluna única de valor (pode ter sinal negativo = débito)
+      const raw = (cols[iValor] || '').replace(',', '.')
+      const num = parseFloat(raw) || 0
+      if (num === 0) continue
+      // Nubank: negativo = despesa, positivo = receita
+      tipo  = num < 0 ? 'debito' : 'credito'
+      valor = Math.abs(num)
+      // Se houver coluna tipo ("tipo" ou "type"), usa ela para confirmar
+      if (iTipo !== -1) {
+        const t = (cols[iTipo] || '').toLowerCase()
+        if (t === 'debit' || t === 'debito' || t === 'saida' || t === 'saída') tipo = 'debito'
+        if (t === 'credit' || t === 'credito' || t === 'entrada') tipo = 'credito'
+      }
+    } else {
+      // Formato com colunas separadas de crédito/débito
+      const credito = iCredito !== -1 ? parseBRL(cols[iCredito]) : 0
+      const debito  = iDebito  !== -1 ? parseBRL(cols[iDebito])  : 0
+      if (credito === 0 && debito === 0) continue
+      tipo  = credito > 0 ? 'credito' : 'debito'
+      valor = credito > 0 ? credito : debito
+    }
+
     const { categoria, nao_categorizado } = detectarCategoria(hist)
     const desc = hist.trim().toUpperCase()
+    const dtISO = isISO ? parseDataISO(dataVal) : parseData(dataVal)
     const ref_externa = `csv:${dataVal}:${valor}:${desc.slice(0, 40)}`
-    resultado.push({ descricao: desc, valor, tipo, categoria, data_hora: parseData(dataVal), nao_categorizado, ref_externa })
+    resultado.push({ descricao: desc, valor, tipo, categoria, data_hora: dtISO, nao_categorizado, ref_externa })
   }
   return resultado
 }
