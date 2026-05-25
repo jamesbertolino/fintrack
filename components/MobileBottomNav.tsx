@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase-browser'
+import pkg from '../package.json'
 
 const NAV_ITEMS = [
   { id: 'inicio',     label: 'Início',   icon: '🏠', href: '/dashboard' },
