@@ -2,7 +2,7 @@
   "name": "PoupaUp",
   "short_name": "PoupaUp",
   "description": "Controle financeiro com IA e WhatsApp",
-  "version": "2.28.5",
+  "version": "2.28.6",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0a0a0a",

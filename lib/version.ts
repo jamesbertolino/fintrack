@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.28.5'
+export const APP_VERSION = '2.28.6'
 export const APP_BUILD   = '2026.05.25'
 
 /**
