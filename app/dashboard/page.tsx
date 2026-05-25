@@ -637,7 +637,9 @@ useEffect(() => {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
       <PoupaUpLogo mode="compact" />
-      <div style={{ fontSize: 13, color: 'rgba(212,175,55,.5)', fontFamily: 'var(--font-cinzel, Georgia, serif)', letterSpacing: '0.1em' }}>Convocando o Reino...</div>
+      <div style={{ fontSize: 13, color: m ? 'rgba(212,175,55,.5)' : cores.textMuted, fontFamily: m ? 'var(--font-cinzel, Georgia, serif)' : 'system-ui, sans-serif', letterSpacing: m ? '0.1em' : 0 }}>
+        {m ? 'Convocando o Reino...' : 'Carregando seu painel...'}
+      </div>
     </div>
   )
 
