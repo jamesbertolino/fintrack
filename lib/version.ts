@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.29.7'
+export const APP_VERSION = '2.29.8'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -69,4 +69,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.29.5 · 2026.05.25 — Fix: barra branca no fundo do mobile — body sem background herdava branco do browser
  * 2.29.6 · 2026.05.25 — Fix: mobile-bottom-nav some no mobile — display:none global sobrescrevia o @media; invertido para min-width
  * 2.29.7 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
+ * 2.29.8 · 2026.05.25 — Fix: orçamentos mobile — layout em card com 3 colunas de valores, barra de progresso e botões largos
  */

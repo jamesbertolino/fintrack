@@ -190,31 +190,27 @@ export default function OrcamentoPage() {
   return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: cores.text }}>
       <style>{`
+        .orc-row-mobile { display: none !important; }
+        .orc-row-desktop { display: grid !important; }
+
         @media (max-width: 640px) {
-          .orc-header { padding: .75rem 1rem !important; }
+          .orc-header { padding: .75rem 1rem !important; gap: 6px !important; }
           .orc-header-title { font-size: 13px !important; }
-          .orc-body { padding: .875rem 1rem !important; }
-          .orc-cards { grid-template-columns: 1fr 1fr !important; }
+          .orc-body { padding: .875rem .875rem !important; }
+          .orc-cards { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
           .orc-card3 { grid-column: 1 / -1 !important; }
           .orc-table-header { display: none !important; }
-          .orc-row { display: flex !important; flex-direction: column !important; gap: 0 !important; padding: 12px 14px !important; }
-          .orc-row-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-          .orc-row-mid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-          .orc-row-bar { margin-bottom: 6px; }
-          .orc-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
-          .orc-col-planejado::before { content: 'Planejado '; font-size: 10px; color: #888; display: block; margin-bottom: 1px; }
-          .orc-col-realizado::before { content: 'Realizado '; font-size: 10px; color: #888; display: block; margin-bottom: 1px; }
-          .orc-col-diff::before { content: 'Saldo '; font-size: 10px; color: #888; display: block; margin-bottom: 1px; }
-          .orc-footer { display: flex !important; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+          .orc-row-desktop { display: none !important; }
+          .orc-row-mobile { display: block !important; }
           .orc-ia-btn span.ia-label { display: none; }
           .orc-actions-row { flex-direction: column !important; }
-          .orc-actions-row button { width: 100% !important; justify-content: center !important; }
-          .orc-add-form { flex-direction: column !important; }
+          .orc-actions-row > button { width: 100% !important; justify-content: center !important; }
+          .orc-add-form { flex-direction: column !important; gap: 10px !important; }
           .orc-add-form select, .orc-add-form input { width: 100% !important; }
-        }
-        @media (max-width: 380px) {
-          .orc-cards { grid-template-columns: 1fr !important; }
-          .orc-card3 { grid-column: 1 !important; }
+          .orc-footer { display: flex !important; gap: 6px; padding: 12px 14px !important; }
+          .orc-footer > div:nth-child(5),
+          .orc-footer > div:nth-child(6),
+          .orc-footer > div:nth-child(7) { display: none !important; }
         }
       `}</style>
 
@@ -371,81 +367,128 @@ export default function OrcamentoPage() {
 
               return (
                 <div key={o.id} className="orc-row"
-                  style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px 100px 120px 80px 80px', padding: '10px 16px', borderBottom: `1px solid ${cores.border}`, alignItems: 'center', transition: 'background .15s' }}
+                  style={{ padding: '12px 16px', borderBottom: `1px solid ${cores.border}`, transition: 'background .15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = `${cores.accent}05`)}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
 
-                  {/* Desktop: células da grid | Mobile: layout flexível via CSS classes */}
-
-                  {/* Categoria + status (mobile: topo) */}
-                  <div className="orc-row-top" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: corCategoria(o.categoria), flexShrink: 0 }} />
-                    <span style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{o.categoria}</span>
-                    {/* Status badge — visível só no mobile dentro deste div */}
-                    <span className="orc-status-mobile" style={{ display: 'none', fontSize: 10, padding: '2px 7px', borderRadius: 20, fontWeight: 600, background: st.bg, color: st.cor, marginLeft: 'auto' }}>{st.label}</span>
-                  </div>
-
-                  {/* Planejado */}
-                  <div className="orc-col-planejado">
-                    {editando ? (
-                      <input type="number" value={editValor} onChange={e => setEditValor(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') salvarEdicao(o.id); if (e.key === 'Escape') setEditandoId(null) }}
-                        autoFocus style={{ ...inp, width: 110 }} />
-                    ) : (
-                      <span style={{ fontSize: 13, fontWeight: 600, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>{fmtBRL(o.valor_planejado)}</span>
-                    )}
-                  </div>
-
-                  {/* Realizado */}
-                  <div className="orc-col-realizado">
-                    <span style={{ fontSize: 13, color: real > o.valor_planejado ? '#f87171' : cores.text, fontVariantNumeric: 'tabular-nums' }}>{fmtBRL(real)}</span>
-                  </div>
-
-                  {/* Diferença */}
-                  <div className="orc-col-diff">
-                    <span style={{ fontSize: 13, fontWeight: 500, color: diff >= 0 ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>
-                      {diff >= 0 ? '+' : ''}{fmtBRL(diff)}
-                    </span>
-                  </div>
-
-                  {/* Progresso */}
-                  <div className="orc-row-bar">
-                    <div style={{ height: 6, background: cores.border, borderRadius: 3, overflow: 'hidden', marginBottom: 3 }}>
-                      <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pctReal >= 100 ? '#f87171' : pctReal >= 80 ? '#fbbf24' : '#4ade80', transition: 'width .4s' }} />
+                  {/* Desktop layout (grid) */}
+                  <div className="orc-row-desktop" style={{ display: 'grid', gridTemplateColumns: '1fr 130px 130px 100px 120px 80px 80px', alignItems: 'center', gap: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: corCategoria(o.categoria), flexShrink: 0 }} />
+                      <span style={{ fontSize: 13, fontWeight: 500, color: cores.text }}>{o.categoria}</span>
                     </div>
-                    <div style={{ fontSize: 9, color: cores.textFaint }}>{pct}%</div>
+                    <div>
+                      {editando ? (
+                        <input type="number" value={editValor} onChange={e => setEditValor(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') salvarEdicao(o.id); if (e.key === 'Escape') setEditandoId(null) }}
+                          autoFocus style={{ ...inp, width: 110 }} />
+                      ) : (
+                        <span style={{ fontSize: 13, fontWeight: 600, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>{fmtBRL(o.valor_planejado)}</span>
+                      )}
+                    </div>
+                    <div><span style={{ fontSize: 13, color: real > o.valor_planejado ? '#f87171' : cores.text, fontVariantNumeric: 'tabular-nums' }}>{fmtBRL(real)}</span></div>
+                    <div><span style={{ fontSize: 13, fontWeight: 500, color: diff >= 0 ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>{diff >= 0 ? '+' : ''}{fmtBRL(diff)}</span></div>
+                    <div>
+                      <div style={{ height: 6, background: cores.border, borderRadius: 3, overflow: 'hidden', marginBottom: 3 }}>
+                        <div style={{ height: '100%', borderRadius: 3, width: `${pct}%`, background: pctReal >= 100 ? '#f87171' : pctReal >= 80 ? '#fbbf24' : '#4ade80', transition: 'width .4s' }} />
+                      </div>
+                      <div style={{ fontSize: 9, color: cores.textFaint }}>{pct}%</div>
+                    </div>
+                    <div><span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: st.bg, color: st.cor }}>{st.label}</span></div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {editando ? (
+                        <>
+                          <button onClick={() => salvarEdicao(o.id)} disabled={salvando === o.id}
+                            style={{ padding: '4px 10px', background: '#16a34a', border: 'none', borderRadius: 5, color: '#fff', fontSize: 12, cursor: 'pointer' }}>
+                            {salvando === o.id ? '...' : '✓'}
+                          </button>
+                          <button onClick={() => setEditandoId(null)}
+                            style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 5, color: cores.textMuted, fontSize: 12, cursor: 'pointer' }}>
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button title="Editar" onClick={() => { setEditandoId(o.id); setEditValor(String(o.valor_planejado)) }}
+                            style={{ padding: '5px 10px', background: `${accentColor}14`, border: `1px solid ${accentColor}30`, borderRadius: 5, color: accentColor, fontSize: 12, cursor: 'pointer' }}>✏</button>
+                          <button title="Excluir" onClick={() => excluir(o.id)} disabled={deletando === o.id}
+                            style={{ padding: '5px 10px', background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.25)', borderRadius: 5, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>
+                            {deletando === o.id ? '...' : '🗑'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Status — desktop */}
-                  <div>
-                    <span style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, fontWeight: 600, background: st.bg, color: st.cor }}>{st.label}</span>
-                  </div>
+                  {/* Mobile layout (card) */}
+                  <div className="orc-row-mobile" style={{ display: 'none' }}>
+                    {/* Linha 1: categoria + badge status */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: corCategoria(o.categoria), flexShrink: 0 }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: cores.text }}>{o.categoria}</span>
+                      </div>
+                      <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 20, fontWeight: 600, background: st.bg, color: st.cor }}>{st.label}</span>
+                    </div>
 
-                  {/* Ações */}
-                  <div className="orc-row-actions" style={{ display: 'flex', gap: 4 }}>
-                    {editando ? (
-                      <>
-                        <button onClick={() => salvarEdicao(o.id)} disabled={salvando === o.id}
-                          style={{ padding: '4px 10px', background: '#16a34a', border: 'none', borderRadius: 5, color: '#fff', fontSize: 12, cursor: 'pointer' }}>
-                          {salvando === o.id ? '...' : '✓ Salvar'}
-                        </button>
-                        <button onClick={() => setEditandoId(null)}
-                          style={{ padding: '4px 10px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 5, color: cores.textMuted, fontSize: 12, cursor: 'pointer' }}>
-                          ✕
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button title="Editar" onClick={() => { setEditandoId(o.id); setEditValor(String(o.valor_planejado)) }}
-                          style={{ padding: '5px 10px', background: `${accentColor}14`, border: `1px solid ${accentColor}30`, borderRadius: 5, color: accentColor, fontSize: 12, cursor: 'pointer' }}>
-                          ✏
-                        </button>
-                        <button title="Excluir" onClick={() => excluir(o.id)} disabled={deletando === o.id}
-                          style={{ padding: '5px 10px', background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.25)', borderRadius: 5, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>
-                          {deletando === o.id ? '...' : '🗑'}
-                        </button>
-                      </>
-                    )}
+                    {/* Linha 2: barra de progresso */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 10, color: cores.textFaint }}>
+                        <span>Progresso</span><span>{pct}%</span>
+                      </div>
+                      <div style={{ height: 7, background: cores.border, borderRadius: 4, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: 4, width: `${pct}%`, background: pctReal >= 100 ? '#f87171' : pctReal >= 80 ? '#fbbf24' : '#4ade80', transition: 'width .4s' }} />
+                      </div>
+                    </div>
+
+                    {/* Linha 3: 3 valores em colunas */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+                      <div style={{ background: cores.surface, borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 9, color: cores.textFaint, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>Planejado</div>
+                        {editando ? (
+                          <input type="number" value={editValor} onChange={e => setEditValor(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') salvarEdicao(o.id); if (e.key === 'Escape') setEditandoId(null) }}
+                            autoFocus style={{ ...inp, fontSize: 12, padding: '4px 6px' }} />
+                        ) : (
+                          <div style={{ fontSize: 13, fontWeight: 700, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>{fmtBRL(o.valor_planejado)}</div>
+                        )}
+                      </div>
+                      <div style={{ background: cores.surface, borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 9, color: cores.textFaint, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>Realizado</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: real > o.valor_planejado ? '#f87171' : cores.text, fontVariantNumeric: 'tabular-nums' }}>{fmtBRL(real)}</div>
+                      </div>
+                      <div style={{ background: cores.surface, borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 9, color: cores.textFaint, textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>Saldo</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: diff >= 0 ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>{diff >= 0 ? '+' : ''}{fmtBRL(diff)}</div>
+                      </div>
+                    </div>
+
+                    {/* Linha 4: ações */}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {editando ? (
+                        <>
+                          <button onClick={() => salvarEdicao(o.id)} disabled={salvando === o.id}
+                            style={{ flex: 1, padding: '9px', background: '#16a34a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                            {salvando === o.id ? '...' : '✓ Salvar'}
+                          </button>
+                          <button onClick={() => setEditandoId(null)}
+                            style={{ padding: '9px 14px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 7, color: cores.textMuted, fontSize: 13, cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => { setEditandoId(o.id); setEditValor(String(o.valor_planejado)) }}
+                            style={{ flex: 1, padding: '9px', background: `${accentColor}14`, border: `1px solid ${accentColor}30`, borderRadius: 7, color: accentColor, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                            ✏ Editar
+                          </button>
+                          <button onClick={() => excluir(o.id)} disabled={deletando === o.id}
+                            style={{ flex: 1, padding: '9px', background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.25)', borderRadius: 7, color: '#f87171', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                            {deletando === o.id ? '...' : '🗑 Remover'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
