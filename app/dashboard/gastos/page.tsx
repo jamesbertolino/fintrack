@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, useMemo } from 'react'
+import { useCallback, useEffect, useState, useMemo, Suspense } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -44,9 +44,8 @@ function labelPeriodo(p: string) {
   return p === '7' ? 'últimos 7 dias' : p === '30' ? 'últimos 30 dias' : p === '90' ? 'últimos 90 dias' : 'último ano'
 }
 
-export default function GastosPage() {
+function GastosPageInner({ tipoInicial }: { tipoInicial: 'todos' | 'debito' | 'credito' }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = createClient()
   const { fmtData, fmtMes } = usePerfil()
 
@@ -55,8 +54,7 @@ export default function GastosPage() {
   const isMobile = useIsMobile(640)
   const [categoriasExtra, setCategoriasExtra] = useState<string[]>([])
   const [catFiltro, setCatFiltro]     = useState('Todas')
-  const tipoParam = searchParams.get('tipo') as 'debito' | 'credito' | null
-  const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>(tipoParam ?? 'todos')
+  const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>(tipoInicial)
   const [busca, setBusca]             = useState('')
   const [contaFiltro, setContaFiltro] = useState('')
   const [periodo, setPeriodo]         = useState('30')
@@ -1038,5 +1036,19 @@ export default function GastosPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function GastosPageSearchParams() {
+  const searchParams = useSearchParams()
+  const tipoParam = searchParams.get('tipo') as 'debito' | 'credito' | null
+  return <GastosPageInner tipoInicial={tipoParam ?? 'todos'} />
+}
+
+export default function GastosPage() {
+  return (
+    <Suspense fallback={null}>
+      <GastosPageSearchParams />
+    </Suspense>
   )
 }

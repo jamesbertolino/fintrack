@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.32.0'
+export const APP_VERSION = '2.32.1'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -88,4 +88,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.31.4 · 2026.05.25 — Fix: aside do dashboard some no mobile via display:none inline (sem depender de transform ou CSS externo)
  * 2.31.5 · 2026.05.25 — Fix: useIsMobile usa matchMedia em vez de innerWidth — funciona corretamente no Android WebView/TWA
  * 2.32.0 · 2026.05.25 — Fix: aside oculto por CSS global (mobile-first, show só no desktop); cards Receitas/Gastos navegam para gastos?tipo=credito/debito
+ * 2.32.1 · 2026.05.25 — Fix: useSearchParams envolto em Suspense — corrige erro de build no /dashboard/gastos
  */
