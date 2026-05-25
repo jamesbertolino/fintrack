@@ -9,8 +9,8 @@
   "theme_color": "#16a34a",
   "orientation": "portrait-primary",
   "icons": [
-    { "src": "/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/velocimetro.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/velocimetro.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ],
   "categories": ["finance", "productivity"],
   "lang": "pt-BR"

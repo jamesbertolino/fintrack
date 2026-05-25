@@ -1,7 +1,7 @@
 const VERSION       = '2.28.2'
 const CACHE_STATIC  = `poupaup-static-${VERSION}`
 const CACHE_PAGES   = `poupaup-pages-${VERSION}`
-const STATIC_ASSETS = ['/', '/dashboard', '/login', '/logo.png', '/velocimetro.png', '/manifest.json']
+const STATIC_ASSETS = ['/', '/dashboard', '/login', '/logo.png', '/logo.png', '/manifest.json']
 
 // ── Install: pré-cacheia assets estáticos ────────────────────────────────────
 self.addEventListener('install', e => {
