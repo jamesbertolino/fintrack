@@ -29,9 +29,16 @@ const MAIS_ITEMS = [
 ]
 
 export default function MobileBottomNav() {
-  const router  = useRouter()
-  const path    = usePathname()
+  const router   = useRouter()
+  const path     = usePathname()
+  const supabase = createClient()
   const [maisAberto, setMaisAberto] = useState(false)
+
+  async function handleSair() {
+    setMaisAberto(false)
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   // A dashboard root page has its own bottom nav — MobileBottomNav only shows on sub-pages
   if (path === '/dashboard') return null
