@@ -48,24 +48,41 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           html, body { overscroll-behavior: none; touch-action: pan-x pan-y; background: #071a07; }
           .mobile-nav-spacer { display: none; }
 
-          /* Desktop: esconde nav mobile e sidebar não se aplica */
+          /* Desktop: esconde nav mobile */
           @media (min-width: 768px) {
             .mobile-bottom-nav { display: none !important; }
           }
 
-          /* CSS media query — aplica antes do JS, cobre SSR + navegação */
+          /* Mobile: layout flex — scroll interno, nav sempre visível no rodapé */
           @media (max-width: 767px) {
+            html, body { height: 100%; overflow: hidden; }
+            .dashboard-layout {
+              display: flex !important;
+              flex-direction: column !important;
+              height: 100dvh !important;
+              overflow: hidden !important;
+            }
+            .dashboard-scroll-area {
+              flex: 1 !important;
+              overflow-y: auto !important;
+              overflow-x: hidden !important;
+              -webkit-overflow-scrolling: touch !important;
+            }
+            .dashboard-scroll-area > * { min-height: unset !important; }
+            .mobile-bottom-nav {
+              display: flex !important;
+              align-items: stretch !important;
+              position: static !important;
+              transform: none !important;
+              flex-shrink: 0 !important;
+            }
             aside[data-tour="tour-sidebar"] { display: none !important; width: 0 !important; min-width: 0 !important; }
-            .mobile-bottom-nav { display: flex; align-items: stretch; }
             [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }
-            .dashboard-content { padding-bottom: 5rem !important; }
-            .mobile-nav-spacer { display: block; height: 5rem; }
+            .dashboard-content { padding-bottom: 1rem !important; }
             body { font-size: 15px; }
             input, select, textarea { font-size: 16px !important; min-height: 44px; }
-            /* Lancamento: colapsa grid e esconde coluna direita */
             .lancamento-grid { grid-template-columns: 1fr !important; }
             .lancamento-right-col { display: none !important; }
-            /* Login: esconde coluna esquerda desktop, mostra hero mobile */
             .login-desktop-col { display: none !important; }
             .login-mobile-hero { display: flex !important; }
           }

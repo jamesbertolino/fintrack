@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.30.8'
+export const APP_VERSION = '2.30.9'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -80,4 +80,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.30.6 · 2026.05.25 — Fix: mensagem de loading do dashboard respeita tema — medieval "Convocando o Reino..." / padrão "Carregando seu painel..."
  * 2.30.7 · 2026.05.25 — UX: tema escuro — textMuted .4→.65, textFaint .25→.45, cards mais brilhantes para melhor legibilidade
  * 2.30.8 · 2026.05.25 — Fix: gastos mobile — layout em lista com descrição grande na linha 1, categoria+data pequenos na linha 2
+ * 2.30.9 · 2026.05.25 — Fix: MobileBottomNav sempre visível no APK — layout flex com scroll interno, nav estático no rodapé
  */
