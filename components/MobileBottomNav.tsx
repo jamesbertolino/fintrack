@@ -114,6 +114,24 @@ export default function MobileBottomNav() {
                   )
                 })}
               </div>
+
+              {/* Sair + versão */}
+              <div style={{ marginTop: 16, borderTop: '1px solid rgba(255,255,255,.07)', paddingTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <button
+                  onClick={handleSair}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)',
+                    borderRadius: 10, padding: '10px 16px', cursor: 'pointer',
+                    color: '#f87171', fontSize: 14, fontWeight: 600, fontFamily: 'system-ui',
+                  }}
+                >
+                  🚪 Sair
+                </button>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: 'system-ui' }}>
+                  v{pkg.version}
+                </span>
+              </div>
             </div>
           </div>
         </>
