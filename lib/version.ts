@@ -56,4 +56,9 @@ export const APP_BUILD   = '2026.05.25'
  * 2.28.2 · 2026.05.24 — Fix: SW auto-reload na atualização, botão Sair visível, manifest version
  * 2.28.3 · 2026.05.24 — Fix: banner instalar PWA no mobile, ícone velocímetro na tela inicial
  * 2.28.4 · 2026.05.25 — Fix: SW registro global, MobileBottomNav em todas as páginas
+ * 2.28.5 · 2026.05.25 — Fix: captura beforeinstallprompt antes do React montar (banner PWA Android)
+ * 2.28.6 · 2026.05.25 — Fix: lint InstallPWA — useRef para prompt evita setState síncrono no effect
+ * 2.28.7 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
+ * 2.28.8 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
+ * 2.28.9 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
  */
