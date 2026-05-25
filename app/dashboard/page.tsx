@@ -907,7 +907,7 @@ useEffect(() => {
       )}
 
       {/* ── Sidebar — só renderiza no desktop (após mount para evitar SSR mismatch) ── */}
-      {(mounted && !isMobile) || (mounted && isMobile && sidebarAberta) ? <aside data-tour="tour-sidebar" style={{
+      {mounted && !isMobile ? <aside data-tour="tour-sidebar" style={{
         width: sidebarWidth,
         background: cores.sidebarBg,
         borderRight: `1px solid ${cores.border}`,
@@ -915,13 +915,6 @@ useEffect(() => {
         flexDirection: 'column',
         transition: 'width .2s',
         flexShrink: 0,
-        ...(isMobile ? {
-          position: 'fixed',
-          top: 0, left: 0,
-          height: '100vh',
-          zIndex: 150,
-          width: 260,
-        } : {}),
       }}>
         {/* Logo */}
         <div style={{ padding: '1rem', borderBottom: `1px solid ${cores.sidebarBorder}`, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
