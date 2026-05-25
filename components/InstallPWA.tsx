@@ -20,36 +20,31 @@ export default function InstallPWA() {
   )
 
   useEffect(() => {
+    // Já instalado como PWA — não mostrar
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || (navigator as Navigator & { standalone?: boolean }).standalone === true
+    if (standalone) return
+
+    // Só mobile
     const mobile = window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent)
-    if (standalone || !mobile) return
+    if (!mobile) return
+
+    // Já dispensou nesta sessão
     if (sessionStorage.getItem('pwa_dismiss')) return
 
-    if (isIOS) {
-      const t = setTimeout(() => setVisivel(true), 3000)
-      return () => clearTimeout(t)
-    }
+    // Captura o prompt nativo se disponível (Android Chrome)
+    if (window.__pwaPrompt) promptRef.current = window.__pwaPrompt
 
-    // Lê evento já capturado antes do React montar
-    const already = window.__pwaPrompt
-    if (already) {
-      promptRef.current = already
-      const t = setTimeout(() => setVisivel(true), 3000)
-      return () => clearTimeout(t)
-    }
-
-    // Ainda não disparou — escuta normalmente
-    const handler = (e: Event) => {
+    window.addEventListener('beforeinstallprompt', (e: Event) => {
       e.preventDefault()
-      const evt = e as BeforeInstallPromptEvent
-      window.__pwaPrompt = evt
-      promptRef.current = evt
-      setTimeout(() => setVisivel(true), 3000)
-    }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [isIOS])
+      promptRef.current = e as BeforeInstallPromptEvent
+      window.__pwaPrompt = promptRef.current
+    })
+
+    // Mostra após 4s independente de ter ou não o prompt nativo
+    const t = setTimeout(() => setVisivel(true), 4000)
+    return () => clearTimeout(t)
+  }, [])
 
   function dispensar() {
     sessionStorage.setItem('pwa_dismiss', '1')
@@ -57,17 +52,25 @@ export default function InstallPWA() {
   }
 
   async function instalar() {
-    if (!promptRef.current) return
-    await promptRef.current.prompt()
-    const { outcome } = await promptRef.current.userChoice
-    if (outcome === 'accepted') setVisivel(false)
+    if (promptRef.current) {
+      await promptRef.current.prompt()
+      const { outcome } = await promptRef.current.userChoice
+      if (outcome === 'accepted') { setVisivel(false); return }
+    }
+    // Sem prompt nativo — mostra instrução manual
+    alert(isIOS
+      ? 'Toque em Compartilhar (ícone de seta) → "Adicionar à Tela de Início"'
+      : 'No Chrome: toque no menu (⋮) → "Adicionar à tela inicial"'
+    )
+    dispensar()
   }
 
   if (!visivel) return null
 
   return (
     <div style={{
-      position: 'fixed', bottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
+      position: 'fixed',
+      bottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
       left: 12, right: 12, zIndex: 999,
       background: '#0d2e0d',
       border: '1px solid rgba(74,222,128,.3)',
@@ -81,7 +84,7 @@ export default function InstallPWA() {
       <style>{`
         @keyframes slideUp {
           from { transform: translateY(20px); opacity: 0 }
-          to   { transform: translateY(0);    opacity: 1 }
+          to   { transform: translateY(0); opacity: 1 }
         }
       `}</style>
 
@@ -94,25 +97,21 @@ export default function InstallPWA() {
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.4 }}>
           {isIOS
-            ? 'Toque em Compartilhar → "Adicionar à Tela de Início"'
+            ? 'Compartilhar → "Adicionar à Tela de Início"'
             : 'Adicione à tela inicial para acesso rápido'}
         </div>
       </div>
 
-      {isIOS ? (
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
         <button onClick={dispensar} style={btnClose}>✕</button>
-      ) : (
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button onClick={dispensar} style={btnClose}>✕</button>
-          <button onClick={instalar} style={{
-            background: '#16a34a', border: 'none', borderRadius: 10,
-            color: '#fff', fontSize: 13, fontWeight: 700,
-            padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap',
-          }}>
-            Instalar
-          </button>
-        </div>
-      )}
+        <button onClick={instalar} style={{
+          background: '#16a34a', border: 'none', borderRadius: 10,
+          color: '#fff', fontSize: 13, fontWeight: 700,
+          padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap',
+        }}>
+          Instalar
+        </button>
+      </div>
     </div>
   )
 }

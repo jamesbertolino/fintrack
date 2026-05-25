@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Critical layout — inline so it applies before any HTML renders, zero flash */}
         <style dangerouslySetInnerHTML={{ __html: `
-          html, body { overscroll-behavior-y: none; }
+          html, body { overscroll-behavior: none; touch-action: pan-x pan-y; }
           .mobile-bottom-nav { display: none !important; }
 
           /* CSS media query — aplica antes do JS, cobre SSR + navegação */
