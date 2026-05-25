@@ -662,61 +662,126 @@ export default function GastosPage() {
         <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
 
           {/* Filtros */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.3)' }}>
-                <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2"/>
-                <path d="M9 9l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              </svg>
-              <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar transação..."
-                style={{ width: '100%', padding: '7px 10px 7px 28px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
-              {(['todos', 'debito', 'credito'] as const).map(t => (
-                <button key={t} onClick={() => setTipoFiltro(t)} style={{
-                  padding: '5px 10px', borderRadius: 5, border: 'none', cursor: 'pointer', fontSize: 11,
-                  background: tipoFiltro === t ? (t === 'credito' ? '#16a34a' : t === 'debito' ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)') : 'transparent',
-                  color: tipoFiltro === t ? '#fff' : 'rgba(255,255,255,.4)',
+          {isMobile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: '1rem' }}>
+              {/* Linha 1: busca */}
+              <div style={{ position: 'relative' }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.3)' }}>
+                  <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M9 9l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar transação..."
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '9px 10px 9px 30px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
+              </div>
+              {/* Linha 2: tipo + categoria */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 3, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3, flexShrink: 0 }}>
+                  {(['todos', 'debito', 'credito'] as const).map(t => (
+                    <button key={t} onClick={() => setTipoFiltro(t)} style={{
+                      padding: '5px 8px', borderRadius: 5, border: 'none', cursor: 'pointer', fontSize: 11,
+                      background: tipoFiltro === t ? (t === 'credito' ? '#16a34a' : t === 'debito' ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)') : 'transparent',
+                      color: tipoFiltro === t ? '#fff' : 'rgba(255,255,255,.4)',
+                    }}>
+                      {t === 'todos' ? 'Todos' : t === 'debito' ? 'Desp.' : 'Rec.'}
+                    </button>
+                  ))}
+                </div>
+                <select value={catFiltro} onChange={e => setCatFiltro(e.target.value)} style={{
+                  flex: 1, padding: '7px 8px', background: '#0a1a0a', border: '1px solid #1a3a1a',
+                  borderRadius: 8, color: catFiltro === 'Todas' ? 'rgba(255,255,255,.5)' : '#fff',
+                  fontSize: 12, outline: 'none', cursor: 'pointer', minWidth: 0,
                 }}>
-                  {t === 'todos' ? 'Todos' : t === 'debito' ? 'Despesas' : 'Receitas'}
+                  {['Todas', ...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
+                </select>
+              </div>
+              {/* Linha 3: conta + ações */}
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {contas.length > 0 && (
+                  <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
+                    flex: 1, padding: '7px 8px', background: '#0a1a0a', border: '1px solid #1a3a1a',
+                    borderRadius: 8, color: contaFiltro ? '#fff' : 'rgba(255,255,255,.5)',
+                    fontSize: 12, outline: 'none', cursor: 'pointer', minWidth: 0,
+                  }}>
+                    <option value="">Todas as contas</option>
+                    {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+                  </select>
+                )}
+                <span style={{ fontSize: 11, color: filtroAtivo ? '#818cf8' : 'rgba(255,255,255,.35)', whiteSpace: 'nowrap' }}>
+                  {filtradas.length}/{transacoes.length}
+                </span>
+                {filtroAtivo && (
+                  <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }} style={{
+                    padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
+                    borderRadius: 8, color: '#f87171', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}>✕ Limpar</button>
+                )}
+                <button onClick={exportarCSV} title="Exportar CSV" style={{
+                  display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px',
+                  background: 'rgba(129,140,248,.1)', border: '1px solid rgba(129,140,248,.25)',
+                  borderRadius: 8, color: '#818cf8', fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  CSV
                 </button>
-              ))}
+              </div>
             </div>
-            <select value={catFiltro} onChange={e => setCatFiltro(e.target.value)} style={{
-              padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
-              borderRadius: 8, color: catFiltro === 'Todas' ? 'rgba(255,255,255,.5)' : '#fff',
-              fontSize: 12, outline: 'none', cursor: 'pointer',
-            }}>
-              {['Todas', ...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
-            </select>
-            {contas.length > 0 && (
-              <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
+          ) : (
+            <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.3)' }}>
+                  <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M9 9l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar transação..."
+                  style={{ width: '100%', padding: '7px 10px 7px 28px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
+                {(['todos', 'debito', 'credito'] as const).map(t => (
+                  <button key={t} onClick={() => setTipoFiltro(t)} style={{
+                    padding: '5px 10px', borderRadius: 5, border: 'none', cursor: 'pointer', fontSize: 11,
+                    background: tipoFiltro === t ? (t === 'credito' ? '#16a34a' : t === 'debito' ? 'rgba(239,68,68,.3)' : 'rgba(255,255,255,.1)') : 'transparent',
+                    color: tipoFiltro === t ? '#fff' : 'rgba(255,255,255,.4)',
+                  }}>
+                    {t === 'todos' ? 'Todos' : t === 'debito' ? 'Despesas' : 'Receitas'}
+                  </button>
+                ))}
+              </div>
+              <select value={catFiltro} onChange={e => setCatFiltro(e.target.value)} style={{
                 padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
-                borderRadius: 8, color: contaFiltro ? '#fff' : 'rgba(255,255,255,.5)',
+                borderRadius: 8, color: catFiltro === 'Todas' ? 'rgba(255,255,255,.5)' : '#fff',
                 fontSize: 12, outline: 'none', cursor: 'pointer',
               }}>
-                <option value="">Todas as contas</option>
-                {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+                {['Todas', ...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
               </select>
-            )}
-            {filtroAtivo && (
-              <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }} style={{
-                padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
-                borderRadius: 8, color: '#f87171', fontSize: 11, cursor: 'pointer',
-              }}>Limpar filtros</button>
-            )}
-            <div style={{ marginLeft: 'auto', fontSize: 11, color: filtroAtivo ? '#818cf8' : 'rgba(255,255,255,.35)', fontWeight: filtroAtivo ? 500 : 400 }}>
-              {filtradas.length} de {transacoes.length} transações
+              {contas.length > 0 && (
+                <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
+                  padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
+                  borderRadius: 8, color: contaFiltro ? '#fff' : 'rgba(255,255,255,.5)',
+                  fontSize: 12, outline: 'none', cursor: 'pointer',
+                }}>
+                  <option value="">Todas as contas</option>
+                  {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
+                </select>
+              )}
+              {filtroAtivo && (
+                <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }} style={{
+                  padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
+                  borderRadius: 8, color: '#f87171', fontSize: 11, cursor: 'pointer',
+                }}>Limpar filtros</button>
+              )}
+              <div style={{ marginLeft: 'auto', fontSize: 11, color: filtroAtivo ? '#818cf8' : 'rgba(255,255,255,.35)', fontWeight: filtroAtivo ? 500 : 400 }}>
+                {filtradas.length} de {transacoes.length} transações
+              </div>
+              <button onClick={exportarCSV} title="Exportar CSV" style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+                background: 'rgba(129,140,248,.1)', border: '1px solid rgba(129,140,248,.25)',
+                borderRadius: 8, color: '#818cf8', fontSize: 11, cursor: 'pointer',
+              }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Exportar CSV
+              </button>
             </div>
-            <button onClick={exportarCSV} title="Exportar CSV" style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-              background: 'rgba(129,140,248,.1)', border: '1px solid rgba(129,140,248,.25)',
-              borderRadius: 8, color: '#818cf8', fontSize: 11, cursor: 'pointer',
-            }}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              Exportar CSV
-            </button>
-          </div>
+          )}
 
           {/* Barra de ações em lote */}
           {selecionados.length > 0 && (
