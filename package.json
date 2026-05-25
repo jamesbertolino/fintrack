@@ -1,6 +1,6 @@
 {
   "name": "poupaup",
-  "version": "2.28.7",
+  "version": "2.28.8",
   "private": true,
   "scripts": {
     "dev": "next dev",
