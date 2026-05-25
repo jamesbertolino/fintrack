@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Cinzel, Crimson_Text } from 'next/font/google'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import InstallPWA from '@/components/InstallPWA'
 
 const cinzel = Cinzel({
   subsets: ['latin'],
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${cinzel.variable} ${crimsonText.variable}`} style={{ margin: 0, padding: 0 }}>
         <ThemeProvider>{children}</ThemeProvider>
+        <InstallPWA />
       </body>
     </html>
   )

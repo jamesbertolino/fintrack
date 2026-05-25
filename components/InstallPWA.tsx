@@ -1,0 +1,117 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
+export default function InstallPWA() {
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [visivel, setVisivel] = useState(false)
+  const [isIOS, setIsIOS] = useState(false)
+
+  useEffect(() => {
+    // Não mostrar se já está instalado (standalone) ou em desktop
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (navigator as Navigator & { standalone?: boolean }).standalone === true
+    const mobile = window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent)
+    if (standalone || !mobile) return
+
+    // Já dispensou antes
+    if (sessionStorage.getItem('pwa_dismiss')) return
+
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    setIsIOS(ios)
+
+    if (ios) {
+      // iOS não tem beforeinstallprompt — mostra banner manual após 3s
+      const t = setTimeout(() => setVisivel(true), 3000)
+      return () => clearTimeout(t)
+    }
+
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setPrompt(e as BeforeInstallPromptEvent)
+      setTimeout(() => setVisivel(true), 3000)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  function dispensar() {
+    sessionStorage.setItem('pwa_dismiss', '1')
+    setVisivel(false)
+  }
+
+  async function instalar() {
+    if (!prompt) return
+    await prompt.prompt()
+    const { outcome } = await prompt.userChoice
+    if (outcome === 'accepted') setVisivel(false)
+  }
+
+  if (!visivel) return null
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 'calc(70px + env(safe-area-inset-bottom, 0px))',
+      left: 12, right: 12, zIndex: 999,
+      background: '#0d2e0d',
+      border: '1px solid rgba(74,222,128,.3)',
+      borderRadius: 16,
+      padding: '14px 16px',
+      display: 'flex', alignItems: 'center', gap: 12,
+      boxShadow: '0 8px 32px rgba(0,0,0,.5)',
+      fontFamily: 'system-ui, sans-serif',
+      animation: 'slideUp .3s ease',
+    }}>
+      <style>{`
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0 }
+          to   { transform: translateY(0);    opacity: 1 }
+        }
+      `}</style>
+
+      {/* Ícone */}
+      <img src="/logo.png" width={44} height={44} alt="PoupaUp"
+        style={{ borderRadius: 10, flexShrink: 0 }} />
+
+      {/* Texto */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+          Instalar PoupaUp
+        </div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.4 }}>
+          {isIOS
+            ? 'Toque em Compartilhar → "Adicionar à Tela de Início"'
+            : 'Adicione à tela inicial para acesso rápido'}
+        </div>
+      </div>
+
+      {/* Ações */}
+      {isIOS ? (
+        <button onClick={dispensar} style={btnClose}>✕</button>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button onClick={dispensar} style={btnClose}>✕</button>
+          <button onClick={instalar} style={{
+            background: '#16a34a', border: 'none', borderRadius: 10,
+            color: '#fff', fontSize: 13, fontWeight: 700,
+            padding: '8px 14px', cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>
+            Instalar
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const btnClose: React.CSSProperties = {
+  background: 'rgba(255,255,255,.08)', border: 'none', borderRadius: 8,
+  color: 'rgba(255,255,255,.5)', fontSize: 14, cursor: 'pointer',
+  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  flexShrink: 0,
+}
