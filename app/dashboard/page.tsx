@@ -477,6 +477,9 @@ export default function Dashboard() {
   const [maisSheetAberto, setMaisSheet] = useState(false)
   const [openGroups,   setOpenGroups] = useState<Set<string>>(new Set(['principal']))
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+useEffect(() => { setMounted(true) }, [])
 
 useEffect(() => {
   setSidebar(!isMobile) // eslint-disable-line react-hooks/set-state-in-effect
@@ -887,12 +890,12 @@ useEffect(() => {
         />
       )}
 
-      {/* ── Sidebar ── */}
-      <aside data-tour="tour-sidebar" style={{
+      {/* ── Sidebar — só renderiza no desktop (após mount para evitar SSR mismatch) ── */}
+      {(mounted && !isMobile) || (mounted && isMobile && sidebarAberta) ? <aside data-tour="tour-sidebar" style={{
         width: sidebarWidth,
         background: cores.sidebarBg,
         borderRight: `1px solid ${cores.border}`,
-        display: isMobile ? (sidebarAberta ? 'flex' : 'none') : 'flex',
+        display: 'flex',
         flexDirection: 'column',
         transition: 'width .2s',
         flexShrink: 0,
@@ -1092,7 +1095,7 @@ useEffect(() => {
           </svg>
           {!collapsed && 'Sair'}
         </button>
-      </aside>
+      </aside> : null}
 
       {/* ── Conteúdo principal ── */}
       <main style={{
