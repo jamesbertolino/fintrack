@@ -507,6 +507,22 @@ useEffect(() => {
 
   const xp           = calcularXP({ transacoes, metas, xpBonus: profile?.xp_bonus || 0 })
   const { receitas, despesas, saldo } = xp
+
+  // Range de datas para link do card (primeira e última transação)
+  const gastosHref = (() => {
+    if (!transacoes.length) return '/dashboard/gastos'
+    const datas = transacoes.map(t => t.data_hora).sort()
+    const de  = datas[0].slice(0, 10)
+    const ate = new Date().toISOString().slice(0, 10)
+    return `/dashboard/gastos?tipo=debito&de=${de}&ate=${ate}`
+  })()
+  const receitasHref = (() => {
+    if (!transacoes.length) return '/dashboard/gastos'
+    const datas = transacoes.map(t => t.data_hora).sort()
+    const de  = datas[0].slice(0, 10)
+    const ate = new Date().toISOString().slice(0, 10)
+    return `/dashboard/gastos?tipo=credito&de=${de}&ate=${ate}`
+  })()
   const xpTotal      = xp.xpTotal
   const nivel        = calcularNivel(xpTotal)
   const nomeNivel    = getNomeNivel(nivel, m)
@@ -1245,8 +1261,8 @@ useEffect(() => {
               <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 8, marginBottom: '1rem' }}>
                 {([
                   { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined },
-                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: '/dashboard/gastos?tipo=credito' },
-                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: '/dashboard/gastos?tipo=debito' },
+                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref },
+                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref },
                   { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,           icone: tx.metIcones[3], href: undefined },
                 ] as const).map(card => (
                   <div key={card.label}

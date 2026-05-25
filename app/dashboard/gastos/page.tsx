@@ -41,10 +41,10 @@ function fmtBRL(v: number) {
 }
 
 function labelPeriodo(p: string) {
-  return p === '7' ? 'últimos 7 dias' : p === '30' ? 'últimos 30 dias' : p === '90' ? 'últimos 90 dias' : 'último ano'
+  return p === '7' ? 'últimos 7 dias' : p === '30' ? 'últimos 30 dias' : p === '90' ? 'últimos 90 dias' : p === '365' ? 'último ano' : 'período personalizado'
 }
 
-function GastosPageInner({ tipoInicial }: { tipoInicial: 'todos' | 'debito' | 'credito' }) {
+function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 'todos' | 'debito' | 'credito'; deInicial?: string; ateInicial?: string }) {
   const router = useRouter()
   const supabase = createClient()
   const { fmtData, fmtMes } = usePerfil()
@@ -57,7 +57,9 @@ function GastosPageInner({ tipoInicial }: { tipoInicial: 'todos' | 'debito' | 'c
   const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>(tipoInicial)
   const [busca, setBusca]             = useState('')
   const [contaFiltro, setContaFiltro] = useState('')
-  const [periodo, setPeriodo]         = useState('30')
+  const [periodo, setPeriodo]         = useState(deInicial ? 'custom' : '30')
+  const [dataInicio, setDataInicio]   = useState(deInicial ?? '')
+  const [dataFim, setDataFim]         = useState(ateInicial ?? '')
   const [abaGrafico, setAbaGrafico]   = useState<'categoria' | 'evolucao' | 'comparativo'>('categoria')
   const [catDrilldown, setCatDrilldown] = useState<string | null>(null)
   const [userId, setUserId]           = useState('')
@@ -89,27 +91,49 @@ function GastosPageInner({ tipoInicial }: { tipoInicial: 'todos' | 'debito' | 'c
     if (!user) { router.push('/login'); return }
     setUserId(user.id)
 
-    const dias = parseInt(periodo)
-    // Busca 2× o período para calcular comparativo com o período anterior
-    const desde = new Date()
-    desde.setDate(desde.getDate() - dias * 2)
-    const corte = new Date()
-    corte.setDate(corte.getDate() - dias)
+    let desde: Date, corte: Date
 
-    const { data } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('data_hora', desde.toISOString())
-      .order('data_hora', { ascending: false })
+    if (periodo === 'custom' && dataInicio && dataFim) {
+      corte = new Date(dataInicio + 'T00:00:00')
+      const fim = new Date(dataFim + 'T23:59:59')
+      const duracao = fim.getTime() - corte.getTime()
+      desde = new Date(corte.getTime() - duracao)
 
-    if (data) {
-      const corteISO = corte.toISOString()
-      setTransacoes(data.filter(t => t.data_hora >= corteISO))
-      setTransacoesAnt(data.filter(t => t.data_hora < corteISO))
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('data_hora', desde.toISOString())
+        .lte('data_hora', fim.toISOString())
+        .order('data_hora', { ascending: false })
+
+      if (data) {
+        const corteISO = corte.toISOString()
+        setTransacoes(data.filter(t => t.data_hora >= corteISO))
+        setTransacoesAnt(data.filter(t => t.data_hora < corteISO))
+      }
+    } else {
+      const dias = parseInt(periodo) || 30
+      desde = new Date()
+      desde.setDate(desde.getDate() - dias * 2)
+      corte = new Date()
+      corte.setDate(corte.getDate() - dias)
+
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('data_hora', desde.toISOString())
+        .order('data_hora', { ascending: false })
+
+      if (data) {
+        const corteISO = corte.toISOString()
+        setTransacoes(data.filter(t => t.data_hora >= corteISO))
+        setTransacoesAnt(data.filter(t => t.data_hora < corteISO))
+      }
     }
     setLoading(false)
-  }, [supabase, router, periodo])
+  }, [supabase, router, periodo, dataInicio, dataFim])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -332,14 +356,28 @@ function GastosPageInner({ tipoInicial }: { tipoInicial: 'todos' | 'debito' | 'c
           <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
           <span style={{ fontSize: 15, fontWeight: 500 }}>Gastos</span>
         </div>
-        <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
-          {[['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1 ano']].map(([v, l]) => (
-            <button key={v} onClick={() => setPeriodo(v)} style={{
-              padding: '8px 12px', minHeight: 38, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-              background: periodo === v ? '#16a34a' : 'transparent',
-              color: periodo === v ? '#fff' : 'rgba(255,255,255,.4)',
-            }}>{l}</button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 6, alignItems: isMobile ? 'stretch' : 'center' }}>
+          <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
+            {[['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1 ano']].map(([v, l]) => (
+              <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim('') }} style={{
+                padding: '8px 12px', minHeight: 38, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                background: periodo === v ? '#16a34a' : 'transparent',
+                color: periodo === v ? '#fff' : 'rgba(255,255,255,.4)',
+              }}>{l}</button>
+            ))}
+          </div>
+          {/* Filtro por data personalizada */}
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
+              style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.2)' : 'rgba(0,0,0,.3)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
+            <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11 }}>até</span>
+            <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) setPeriodo('custom') }}
+              style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.2)' : 'rgba(0,0,0,.3)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
+            {periodo === 'custom' && (
+              <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim('') }}
+                style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 11, cursor: 'pointer', minHeight: 38 }}>✕</button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1042,7 +1080,9 @@ function GastosPageInner({ tipoInicial }: { tipoInicial: 'todos' | 'debito' | 'c
 function GastosPageSearchParams() {
   const searchParams = useSearchParams()
   const tipoParam = searchParams.get('tipo') as 'debito' | 'credito' | null
-  return <GastosPageInner tipoInicial={tipoParam ?? 'todos'} />
+  const de = searchParams.get('de') ?? undefined
+  const ate = searchParams.get('ate') ?? undefined
+  return <GastosPageInner tipoInicial={tipoParam ?? 'todos'} deInicial={de} ateInicial={ate} />
 }
 
 export default function GastosPage() {
