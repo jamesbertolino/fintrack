@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "git add -A && (git diff --cached --quiet || git commit -m 'chore: auto-save') && git push",
+            "command": "FILE=$(jq -r '.tool_input.file_path // .tool_input.path // \"\"' 2>/dev/null); BASENAME=$(basename \"${FILE:-}\"); MSG=${BASENAME:+\"chore: update $BASENAME\"}; MSG=${MSG:-\"chore: auto-save\"}; git add -A && (git diff --cached --quiet || git commit -m \"$MSG\") && git push",
             "shell": "bash",
             "statusMessage": "Salvando e enviando para o GitHub...",
             "async": true
