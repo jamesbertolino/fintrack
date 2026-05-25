@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.31.1'
+export const APP_VERSION = '2.31.2'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -83,4 +83,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.30.9 · 2026.05.25 — Fix: MobileBottomNav sempre visível no APK — layout flex com scroll interno, nav estático no rodapé
  * 2.31.0 · 2026.05.25 — Fix: filtros de gastos mobile — 3 linhas organizadas (busca / tipo+categoria / conta+ações) em vez de flex-wrap descontrolado
  * 2.31.1 · 2026.05.25 — Fix: dashboard home mobile — aside oculto + layout flex corrigido via dashboard-page-root; nav sempre visível
+ * 2.31.2 · 2026.05.25 — Fix: nav mobile volta a position:fixed; remove flex-layout que causava 2 colunas no APK; padding-bottom no conteúdo
  */
