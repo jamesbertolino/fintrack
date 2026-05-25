@@ -26,7 +26,10 @@ export const metadata: Metadata = {
   title: 'PoupaUp — Poupe. Evolua. Conquiste.',
   description: 'Controle financeiro familiar com IA e WhatsApp',
   icons: {
-    icon: '/logo.png',
+    icon: [
+      { url: '/logo.png' },
+      { url: '/launchericon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
     apple: '/logo.png',
   },
   openGraph: {

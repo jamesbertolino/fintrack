@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.30.2'
+export const APP_VERSION = '2.30.3'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -74,4 +74,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.30.0 · 2026.05.25 — Fix: metadataBase corrige URLs localhost no HTML; manifest aponta para launchericon-512x512.png
  * 2.30.1 · 2026.05.25 — Fix: manifest via app/manifest.ts (Next.js nativo) resolve redirect 307 do Vercel no /manifest.json
  * 2.30.2 · 2026.05.25 — Fix: remove manifest link manual do metadata; app/manifest.ts gera /manifest.webmanifest com ícone 512x512 correto
+ * 2.30.3 · 2026.05.25 — Fix: adiciona launchericon-512x512.png como link icon no HTML para PWABuilder detectar
  */
