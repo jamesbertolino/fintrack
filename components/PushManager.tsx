@@ -29,8 +29,16 @@ export default function PushManager({ inline = false }: Props) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) { setEstado('unsupported'); return }
     setEstado(Notification.permission as Estado)
 
-    // Registra o SW silenciosamente
-    navigator.serviceWorker.register('/sw.js').catch(() => null)
+    // Registra o SW e recarrega automaticamente quando nova versão ativar
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newSw = reg.installing
+        if (!newSw) return
+        newSw.addEventListener('statechange', () => {
+          if (newSw.state === 'activated') window.location.reload()
+        })
+      })
+    }).catch(() => null)
   }, [])
 
   async function ativar() {

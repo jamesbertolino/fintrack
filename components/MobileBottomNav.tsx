@@ -72,6 +72,8 @@ export default function MobileBottomNav() {
             background: '#0d1f0d',
             borderTop: '1px solid #2a4a2a',
             borderRadius: '20px 20px 0 0',
+            maxHeight: '80dvh',
+            overflowY: 'auto',
             paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
             animation: 'sheetUp .22s ease',
           }}>
