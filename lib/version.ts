@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.30.0'
+export const APP_VERSION = '2.30.1'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -72,4 +72,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.29.8 · 2026.05.25 — Fix: orçamentos mobile — layout em card com 3 colunas de valores, barra de progresso e botões largos
  * 2.29.9 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
  * 2.30.0 · 2026.05.25 — Fix: metadataBase corrige URLs localhost no HTML; manifest aponta para launchericon-512x512.png
+ * 2.30.1 · 2026.05.25 — Fix: manifest via app/manifest.ts (Next.js nativo) resolve redirect 307 do Vercel no /manifest.json
  */
