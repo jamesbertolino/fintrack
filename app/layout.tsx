@@ -71,6 +71,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             if (t) document.documentElement.setAttribute('data-tema', t);
           } catch(e) {}
         ` }} />
+        {/* Captura beforeinstallprompt antes do React montar */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.__pwaPrompt = null;
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__pwaPrompt = e;
+          });
+        ` }} />
         {/* Registro global do SW com auto-reload na atualização */}
         <script dangerouslySetInnerHTML={{ __html: `
           if ('serviceWorker' in navigator) {

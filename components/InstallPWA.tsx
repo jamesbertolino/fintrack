@@ -8,6 +8,10 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+declare global {
+  interface Window { __pwaPrompt?: BeforeInstallPromptEvent | null }
+}
+
 export default function InstallPWA() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [visivel, setVisivel] = useState(false)
@@ -16,24 +20,31 @@ export default function InstallPWA() {
   )
 
   useEffect(() => {
-    // Não mostrar se já está instalado (standalone) ou em desktop
     const standalone = window.matchMedia('(display-mode: standalone)').matches
       || (navigator as Navigator & { standalone?: boolean }).standalone === true
     const mobile = window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent)
     if (standalone || !mobile) return
-
-    // Já dispensou antes
     if (sessionStorage.getItem('pwa_dismiss')) return
 
     if (isIOS) {
-      // iOS não tem beforeinstallprompt — mostra banner manual após 3s
       const t = setTimeout(() => setVisivel(true), 3000)
       return () => clearTimeout(t)
     }
 
+    // Lê evento já capturado antes do React montar
+    const already = window.__pwaPrompt
+    if (already) {
+      setPrompt(already)
+      const t = setTimeout(() => setVisivel(true), 3000)
+      return () => clearTimeout(t)
+    }
+
+    // Ainda não disparou — escuta normalmente
     const handler = (e: Event) => {
       e.preventDefault()
-      setPrompt(e as BeforeInstallPromptEvent)
+      const evt = e as BeforeInstallPromptEvent
+      window.__pwaPrompt = evt
+      setPrompt(evt)
       setTimeout(() => setVisivel(true), 3000)
     }
     window.addEventListener('beforeinstallprompt', handler)
@@ -74,11 +85,9 @@ export default function InstallPWA() {
         }
       `}</style>
 
-      {/* Ícone */}
       <Image src="/logo.png" width={44} height={44} alt="PoupaUp"
         style={{ borderRadius: 10, flexShrink: 0 }} />
 
-      {/* Texto */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
           Instalar PoupaUp
@@ -90,7 +99,6 @@ export default function InstallPWA() {
         </div>
       </div>
 
-      {/* Ações */}
       {isIOS ? (
         <button onClick={dispensar} style={btnClose}>✕</button>
       ) : (
