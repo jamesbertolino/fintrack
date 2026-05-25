@@ -1,19 +1,4 @@
 {
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "git add -A && (git diff --cached --quiet || git commit -m \"chore: auto-save\") && git push",
-            "shell": "bash",
-            "statusMessage": "Enviando para o GitHub...",
-            "async": true
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(git push *)",
