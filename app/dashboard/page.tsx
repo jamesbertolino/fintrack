@@ -909,19 +909,6 @@ useEffect(() => {
           <LogoPoupaUp collapsed={collapsed} />
         </div>
 
-        {/* Perfil resumido */}
-        {!collapsed && profile && (
-          <div
-            data-tour="tour-perfil"
-            onClick={() => router.push('/dashboard/perfil')}
-            style={{ padding: '10px 1rem', borderBottom: `1px solid ${cores.sidebarBorder}`, display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}
-          >
-            <Avatar url={profile.avatar_url} nome={profile.nome || 'U'} size={30} nivel={nivel.nivel} onClick={undefined} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: cores.sidebarText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.nome}</div>
-            </div>
-          </div>
-        )}
 
         <nav style={{ flex: 1, padding: '0.5rem 0', overflowY: 'auto' }}>
           {NAV_GROUPS.map(group => {

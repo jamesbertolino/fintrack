@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.29.1'
+export const APP_VERSION = '2.29.2'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -63,4 +63,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.28.9 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
  * 2.29.0 · 2026.05.25 — Fix: banner instalar PWA sempre aparece no mobile (sem depender de beforeinstallprompt); remove pull-to-refresh via overscroll-behavior:none
  * 2.29.1 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
+ * 2.29.2 · 2026.05.25 — Fix: remove avatar/perfil resumido da aside, mantém apenas no topo direito
  */
