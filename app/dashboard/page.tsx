@@ -889,21 +889,19 @@ useEffect(() => {
 
       {/* ── Sidebar ── */}
       <aside data-tour="tour-sidebar" style={{
-        width: isMobile ? 0 : sidebarWidth,
+        width: sidebarWidth,
         background: cores.sidebarBg,
-        borderRight: isMobile ? 'none' : `1px solid ${cores.border}`,
-        display: 'flex',
+        borderRight: `1px solid ${cores.border}`,
+        display: isMobile ? (sidebarAberta ? 'flex' : 'none') : 'flex',
         flexDirection: 'column',
-        transition: 'width .2s, transform .2s',
+        transition: 'width .2s',
         flexShrink: 0,
-        overflow: isMobile ? 'visible' : undefined,
         ...(isMobile ? {
           position: 'fixed',
           top: 0, left: 0,
           height: '100vh',
           zIndex: 150,
           width: 260,
-          transform: sidebarAberta ? 'translateX(0)' : 'translateX(-100%)',
         } : {}),
       }}>
         {/* Logo */}
