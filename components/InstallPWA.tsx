@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -10,7 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 export default function InstallPWA() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [visivel, setVisivel] = useState(false)
-  const [isIOS, setIsIOS] = useState(false)
+  const isIOSRef = useRef(false)
 
   useEffect(() => {
     // Não mostrar se já está instalado (standalone) ou em desktop
@@ -23,7 +24,7 @@ export default function InstallPWA() {
     if (sessionStorage.getItem('pwa_dismiss')) return
 
     const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    setIsIOS(ios)
+    isIOSRef.current = ios
 
     if (ios) {
       // iOS não tem beforeinstallprompt — mostra banner manual após 3s
@@ -75,7 +76,7 @@ export default function InstallPWA() {
       `}</style>
 
       {/* Ícone */}
-      <img src="/logo.png" width={44} height={44} alt="PoupaUp"
+      <Image src="/logo.png" width={44} height={44} alt="PoupaUp"
         style={{ borderRadius: 10, flexShrink: 0 }} />
 
       {/* Texto */}
@@ -84,14 +85,14 @@ export default function InstallPWA() {
           Instalar PoupaUp
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.4 }}>
-          {isIOS
+          {isIOSRef.current
             ? 'Toque em Compartilhar → "Adicionar à Tela de Início"'
             : 'Adicione à tela inicial para acesso rápido'}
         </div>
       </div>
 
       {/* Ações */}
-      {isIOS ? (
+      {isIOSRef.current ? (
         <button onClick={dispensar} style={btnClose}>✕</button>
       ) : (
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
