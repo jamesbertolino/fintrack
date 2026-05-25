@@ -755,7 +755,70 @@ export default function GastosPage() {
             <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
               Nenhuma transação encontrada com os filtros aplicados
             </div>
+          ) : isMobile ? (
+            /* ── Layout mobile: cards por transação ── */
+            <div>
+              {/* Header seleção */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: '1px solid #1a3a1a' }}>
+                <input type="checkbox"
+                  checked={selecionados.length === filtradas.length && filtradas.length > 0}
+                  onChange={toggleTodos}
+                  style={{ cursor: 'pointer', accentColor: '#4ade80', width: 15, height: 15 }} />
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                  {selecionados.length > 0 ? `${selecionados.length} selecionados` : `${filtradas.length} lançamentos`}
+                </span>
+              </div>
+
+              {filtradas.map(t => (
+                <div key={t.id} style={{
+                  padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,.04)',
+                  background: selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : 'transparent',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <input type="checkbox" checked={selecionados.includes(t.id)} onChange={() => toggleSelecionado(t.id)}
+                    onClick={e => e.stopPropagation()}
+                    style={{ cursor: 'pointer', accentColor: '#4ade80', width: 15, height: 15, flexShrink: 0 }} />
+
+                  <div onClick={() => abrirEdicao(t)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                    {/* Linha 1: descrição + valor */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</span>
+                        {t.origem === 'webhook' && (
+                          <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', flexShrink: 0 }}>
+                        {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
+                      </span>
+                    </div>
+                    {/* Linha 2: categoria + data */}
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', background: 'rgba(255,255,255,.06)', padding: '2px 7px', borderRadius: 10 }}>{t.categoria}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>{fmtData(t.data_hora)}</span>
+                    </div>
+                  </div>
+
+                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 6, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}>
+                    <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                </div>
+              ))}
+
+              {/* Rodapé mobile */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderTop: '1px solid #1a3a1a' }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
+                  {filtroAtivo ? 'Saldo da seleção' : 'Saldo do período'}
+                </span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: (filtroAtivo ? saldoFiltrado : saldoPeriodo) >= 0 ? '#4ade80' : '#f87171' }}>
+                  {(filtroAtivo ? saldoFiltrado : saldoPeriodo) >= 0 ? '+' : '-'}{fmtBRL(Math.abs(filtroAtivo ? saldoFiltrado : saldoPeriodo))}
+                </span>
+              </div>
+            </div>
           ) : (
+            /* ── Layout desktop: tabela ── */
             <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 520 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px 28px', gap: 10, padding: '6px 8px', borderBottom: '1px solid #1a3a1a', marginBottom: 4, alignItems: 'center' }}>
                 <input type="checkbox"
@@ -803,7 +866,6 @@ export default function GastosPage() {
                 </div>
               ))}
 
-              {/* Rodapé — mostra saldo do filtro quando filtro ativo, saldo do período quando não */}
               <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 110px 28px', gap: 10, padding: '10px 8px', borderTop: '1px solid #1a3a1a', marginTop: 4 }}>
                 <div />
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
