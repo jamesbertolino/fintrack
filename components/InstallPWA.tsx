@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -13,7 +13,7 @@ declare global {
 }
 
 export default function InstallPWA() {
-  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const promptRef = useRef<BeforeInstallPromptEvent | null>(null)
   const [visivel, setVisivel] = useState(false)
   const [isIOS] = useState(() =>
     typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -34,7 +34,7 @@ export default function InstallPWA() {
     // Lê evento já capturado antes do React montar
     const already = window.__pwaPrompt
     if (already) {
-      setPrompt(already)
+      promptRef.current = already
       const t = setTimeout(() => setVisivel(true), 3000)
       return () => clearTimeout(t)
     }
@@ -44,7 +44,7 @@ export default function InstallPWA() {
       e.preventDefault()
       const evt = e as BeforeInstallPromptEvent
       window.__pwaPrompt = evt
-      setPrompt(evt)
+      promptRef.current = evt
       setTimeout(() => setVisivel(true), 3000)
     }
     window.addEventListener('beforeinstallprompt', handler)
@@ -57,9 +57,9 @@ export default function InstallPWA() {
   }
 
   async function instalar() {
-    if (!prompt) return
-    await prompt.prompt()
-    const { outcome } = await prompt.userChoice
+    if (!promptRef.current) return
+    await promptRef.current.prompt()
+    const { outcome } = await promptRef.current.userChoice
     if (outcome === 'accepted') setVisivel(false)
   }
 
