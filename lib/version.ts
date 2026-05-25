@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.33.0'
+export const APP_VERSION = '2.33.1'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -91,4 +91,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.32.1 · 2026.05.25 — Fix: useSearchParams envolto em Suspense — corrige erro de build no /dashboard/gastos
  * 2.32.2 · 2026.05.25 — Fix: aside do dashboard não renderiza no servidor nem no mobile — elimina menu fantasma no APK
  * 2.33.0 · 2026.05.25 — Filtro de data livre em gastos (de/até com inputs date); cards dashboard passam período exato via URL
+ * 2.33.1 · 2026.05.25 — Fix: lint — eslint-disable no setMounted effect
  */
