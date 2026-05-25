@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.28.3'
-export const APP_BUILD   = '2026.05.24'
+export const APP_VERSION = '2.28.4'
+export const APP_BUILD   = '2026.05.25'
 
 /**
  * Histórico de versões
@@ -55,4 +55,5 @@ export const APP_BUILD   = '2026.05.24'
  * 2.28.1 · 2026.05.24 — Fix: login mobile coluna única, botão Sair + versão no menu mobile
  * 2.28.2 · 2026.05.24 — Fix: SW auto-reload na atualização, botão Sair visível, manifest version
  * 2.28.3 · 2026.05.24 — Fix: banner instalar PWA no mobile, ícone velocímetro na tela inicial
+ * 2.28.4 · 2026.05.25 — Fix: SW registro global, MobileBottomNav em todas as páginas
  */
