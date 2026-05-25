@@ -71,6 +71,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             if (t) document.documentElement.setAttribute('data-tema', t);
           } catch(e) {}
         ` }} />
+        {/* Registro global do SW com auto-reload na atualização */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                reg.addEventListener('updatefound', function() {
+                  var sw = reg.installing;
+                  if (!sw) return;
+                  sw.addEventListener('statechange', function() {
+                    if (sw.state === 'activated') window.location.reload();
+                  });
+                });
+              });
+            });
+          }
+        ` }} />
       </head>
       <body className={`${cinzel.variable} ${crimsonText.variable}`} style={{ margin: 0, padding: 0 }}>
         <ThemeProvider>{children}</ThemeProvider>

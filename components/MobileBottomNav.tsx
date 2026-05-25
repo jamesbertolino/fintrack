@@ -40,10 +40,7 @@ export default function MobileBottomNav() {
     router.push('/login')
   }
 
-  // A dashboard root page has its own bottom nav — MobileBottomNav only shows on sub-pages
-  if (path === '/dashboard') return null
-
-  // "Início" navigates to /dashboard where the built-in nav takes over — no issue
+  // "Início" navigates to /dashboard
 
   function isActive(href: string) {
     if (!href) return false
