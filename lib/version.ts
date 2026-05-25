@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.28.2'
+export const APP_VERSION = '2.28.3'
 export const APP_BUILD   = '2026.05.24'
 
 /**
@@ -54,4 +54,5 @@ export const APP_BUILD   = '2026.05.24'
  * 2.28.0 · 2026.05.15 — Correção de 12 bugs críticos: parsers de importação, score financeiro e segurança
  * 2.28.1 · 2026.05.24 — Fix: login mobile coluna única, botão Sair + versão no menu mobile
  * 2.28.2 · 2026.05.24 — Fix: SW auto-reload na atualização, botão Sair visível, manifest version
+ * 2.28.3 · 2026.05.24 — Fix: banner instalar PWA no mobile, ícone velocímetro na tela inicial
  */
