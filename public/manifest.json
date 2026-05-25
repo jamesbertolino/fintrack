@@ -2,7 +2,7 @@
   "name": "PoupaUp",
   "short_name": "PoupaUp",
   "description": "Controle financeiro familiar com IA e WhatsApp",
-  "version": "2.29.5",
+  "version": "2.29.6",
   "start_url": "https://www.poupaup.com.br/dashboard",
   "scope": "https://www.poupaup.com.br/",
   "display": "standalone",

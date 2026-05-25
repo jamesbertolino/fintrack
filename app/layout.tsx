@@ -43,13 +43,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Critical layout — inline so it applies before any HTML renders, zero flash */}
         <style dangerouslySetInnerHTML={{ __html: `
           html, body { overscroll-behavior: none; touch-action: pan-x pan-y; background: #071a07; }
-          .mobile-bottom-nav { display: none !important; }
           .mobile-nav-spacer { display: none; }
+
+          /* Desktop: esconde nav mobile e sidebar não se aplica */
+          @media (min-width: 768px) {
+            .mobile-bottom-nav { display: none !important; }
+          }
 
           /* CSS media query — aplica antes do JS, cobre SSR + navegação */
           @media (max-width: 767px) {
             aside[data-tour="tour-sidebar"] { display: none !important; width: 0 !important; min-width: 0 !important; }
-            .mobile-bottom-nav { display: flex !important; align-items: stretch; }
+            .mobile-bottom-nav { display: flex; align-items: stretch; }
             [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }
             .dashboard-content { padding-bottom: 5rem !important; }
             .mobile-nav-spacer { display: block; height: 5rem; }
