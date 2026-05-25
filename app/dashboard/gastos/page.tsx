@@ -358,43 +358,35 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
           <span style={{ fontSize: 15, fontWeight: 500 }}>Gastos</span>
         </div>
         {isMobile ? (
-          /* Mobile: botão compacto que expande o seletor */
+          /* Mobile: pills em linha + inputs de data abaixo quando 📅 ativo */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button onClick={() => setFiltroExpandido(o => !o)} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '8px 12px', borderRadius: 8, border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`,
-              background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(0,0,0,.3)',
-              color: '#fff', fontSize: 12, cursor: 'pointer', minHeight: 38,
-            }}>
-              <span style={{ color: 'rgba(255,255,255,.6)' }}>
-                📅 {periodo === 'custom' && dataInicio && dataFim
-                  ? `${dataInicio.slice(5)} → ${dataFim.slice(5)}`
-                  : labelPeriodo(periodo)}
-              </span>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{filtroExpandido ? '▲' : '▼'}</span>
-            </button>
+            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
+              {([['7','7d'],['30','30d'],['90','90d'],['365','1a']] as const).map(([v,l]) => (
+                <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }} style={{
+                  flexShrink: 0, padding: '7px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  background: periodo === v ? '#16a34a' : 'rgba(255,255,255,.08)',
+                  color: periodo === v ? '#fff' : 'rgba(255,255,255,.45)',
+                }}>{l}</button>
+              ))}
+              <button onClick={() => setFiltroExpandido(o => !o)} style={{
+                flexShrink: 0, padding: '7px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                background: periodo === 'custom' ? '#16a34a' : filtroExpandido ? 'rgba(22,163,74,.2)' : 'rgba(255,255,255,.08)',
+                color: periodo === 'custom' || filtroExpandido ? '#fff' : 'rgba(255,255,255,.45)',
+              }}>
+                {periodo === 'custom' && dataInicio && dataFim ? `${dataInicio.slice(5)}→${dataFim.slice(5)}` : '📅'}
+              </button>
+            </div>
             {filtroExpandido && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 10 }}>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {[['7', '7 dias'], ['30', '30 dias'], ['90', '90 dias'], ['365', '1 ano']].map(([v, l]) => (
-                    <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }} style={{
-                      flex: 1, padding: '8px 6px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                      background: periodo === v ? '#16a34a' : 'rgba(255,255,255,.06)',
-                      color: periodo === v ? '#fff' : 'rgba(255,255,255,.5)',
-                    }}>{l}</button>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
-                    style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
-                  <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, flexShrink: 0 }}>→</span>
-                  <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) { setPeriodo('custom'); setFiltroExpandido(false) } }}
-                    style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px 8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
-                  {periodo === 'custom' && (
-                    <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim('') }}
-                      style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 12, cursor: 'pointer', minHeight: 38, flexShrink: 0 }}>✕</button>
-                  )}
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) { setPeriodo('custom'); setFiltroExpandido(false) } }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
+                <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, flexShrink: 0 }}>→</span>
+                <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) { setPeriodo('custom'); setFiltroExpandido(false) } }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
+                {periodo === 'custom' && (
+                  <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: 'none', background: 'rgba(239,68,68,.15)', color: '#f87171', fontSize: 13, cursor: 'pointer', minHeight: 38, flexShrink: 0 }}>✕</button>
+                )}
               </div>
             )}
           </div>

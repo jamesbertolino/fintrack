@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.33.2'
+export const APP_VERSION = '2.33.3'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -93,4 +93,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.33.0 · 2026.05.25 — Filtro de data livre em gastos (de/até com inputs date); cards dashboard passam período exato via URL
  * 2.33.1 · 2026.05.25 — Fix: lint — eslint-disable no setMounted effect
  * 2.33.2 · 2026.05.25 — UX: filtro de período em gastos retraído no mobile — botão compacto que expande ao tocar
+ * 2.33.3 · 2026.05.25 — UX: filtro mobile vira pills horizontais (7d/30d/90d/1a/📅); inputs de data aparecem inline abaixo ao tocar 📅
  */
