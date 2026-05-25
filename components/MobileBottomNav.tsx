@@ -59,13 +59,13 @@ export default function MobileBottomNav() {
           <div
             onClick={() => setMaisAberto(false)}
             style={{
-              position: 'fixed', inset: 0, zIndex: 300,
+              position: 'fixed', inset: 0, zIndex: 9100,
               background: 'rgba(0,0,0,.6)',
             }}
           />
           {/* Sheet */}
           <div style={{
-            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 301,
+            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 9200,
             background: '#0d1f0d',
             borderTop: '1px solid #2a4a2a',
             borderRadius: '20px 20px 0 0',
@@ -139,10 +139,12 @@ export default function MobileBottomNav() {
       {/* ── Barra de navegação inferior ── */}
       <nav className="mobile-bottom-nav" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        zIndex: 200,
+        zIndex: 9000,
         background: '#0a1205',
         borderTop: '1px solid #1a3a1a',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        transform: 'translateZ(0)',
+        willChange: 'transform',
       }}>
         {NAV_ITEMS.map(item => {
           const active = item.id === 'mais' ? maisActive || maisAberto : isActive(item.href)

@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.30.4'
+export const APP_VERSION = '2.30.5'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -76,4 +76,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.30.2 · 2026.05.25 — Fix: remove manifest link manual do metadata; app/manifest.ts gera /manifest.webmanifest com ícone 512x512 correto
  * 2.30.3 · 2026.05.25 — Fix: adiciona launchericon-512x512.png como link icon no HTML para PWABuilder detectar
  * 2.30.4 · 2026.05.25 — Fix: middleware não intercepta mais sw.js e manifest.webmanifest (retornavam HTML para PWABuilder)
+ * 2.30.5 · 2026.05.25 — Fix: MobileBottomNav z-index 9000 + translateZ(0) para nunca sumir em modals ou APK
  */
