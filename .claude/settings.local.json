@@ -1,4 +1,20 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git add -A && (git diff --cached --quiet || git commit -m 'chore: auto-save') && git push",
+            "shell": "bash",
+            "statusMessage": "Salvando e enviando para o GitHub...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(git push *)",
@@ -41,7 +57,33 @@
       "Bash(npm list *)",
       "Bash(Get-ChildItem \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" -Filter \".env*\" -Force)",
       "Bash(Select-Object Name)",
-      "Bash(vercel --prod)"
+      "Bash(vercel --prod)",
+      "Bash(Get-ChildItem -Path \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(Get-Content *)",
+      "Bash(powershell -Command \"Get-ChildItem app\\\\dashboard -Name -Directory | Sort-Object\")",
+      "Bash(git -C \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" status)",
+      "Bash(git -C \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" diff)",
+      "Bash(git -C \"D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack\" add app/dashboard/lancamento/page.tsx)",
+      "Bash(git -C 'D:\\\\OneDrive - Jamil\\\\Documentos\\\\fintrack' commit -m ' *)",
+      "Bash(git *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npm *)",
+      "Bash(npx next *)",
+      "Bash(npx playwright *)",
+      "Bash(where playwright *)",
+      "Bash(npx --yes playwright@1.60.0 --version)",
+      "Bash(template\" 2>&1)",
+      "PowerShell(ls *)",
+      "PowerShell(node -e \"require\\('playwright'\\); console.log\\('playwright ok'\\)\" 2>&1)",
+      "PowerShell(node -e \"require\\('playwright'\\); console.log\\('ok'\\)\" 2>&1)",
+      "PowerShell(npx playwright install chromium 2>&1 | Select-Object -Last 5)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(netstat *)",
+      "Bash(npx vercel *)",
+      "Skill(update-config)"
     ]
   }
 }

@@ -138,17 +138,11 @@ function LoginContent() {
   if (estado === 'aguardando_email') return (
     <div className="login-root">
       <style>{loginStyles(cores, isClaro)}</style>
-      <div className="login-hero">
-        <div className="login-hero-inner">
-          <PoupaUpLogo mode="full" />
-        </div>
-      </div>
-      <div className="login-sheet">
-        <div className="login-sheet-handle" />
+      <div className="login-form-col">
         <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
-          <div style={{ fontSize: 52, marginBottom: 12 }}>📧</div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: cores.text, margin: '0 0 8px' }}>Confirme seu email</h2>
-          <p style={{ fontSize: 14, color: cores.textMuted, lineHeight: 1.65, margin: '0 0 24px' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📧</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: cores.text, margin: '0 0 8px' }}>Confirme seu email</h2>
+          <p style={{ fontSize: 14, color: cores.textMuted, lineHeight: 1.65, margin: '0 0 20px' }}>
             Enviamos um link para <strong style={{ color: '#4ade80' }}>{emailDigitado}</strong>.
             <br />Clique no link para ativar sua conta.
           </p>
@@ -324,10 +318,9 @@ function LoginContent() {
     <>
       <style>{loginStyles(cores, isClaro)}</style>
 
-      {/* ── Mobile: hero + sheet ── / ── Desktop: two columns ── */}
       <div className="login-root">
 
-        {/* Hero (mobile: top section; desktop: left column) */}
+        {/* Coluna esquerda: hero (só desktop) */}
         <div className="login-hero">
           <div className="login-hero-inner">
             <PoupaUpLogo mode="full" />
@@ -345,9 +338,12 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Sheet / form column */}
-        <div className="login-sheet">
-          <div className="login-sheet-handle" />
+        {/* Coluna direita: formulário (mobile: tela inteira) */}
+        <div className="login-form-col">
+          {/* Logo só aparece no mobile */}
+          <div className="login-mobile-logo">
+            <PoupaUpLogo mode="full" />
+          </div>
           {formulario}
         </div>
 
@@ -356,99 +352,41 @@ function LoginContent() {
   )
 }
 
-// ── Estilos em função para reutilizar cores dinâmicas ─────────────────────
+// ── Estilos ───────────────────────────────────────────────────────────────
 function loginStyles(cores: ReturnType<typeof useCores>, isClaro: boolean) {
   const accentBg = isClaro ? '#2563EB' : '#16a34a'
   return `
     * { box-sizing: border-box; }
 
+    /* ── ROOT: mobile = coluna única ── */
     .login-root {
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
       font-family: system-ui, -apple-system, sans-serif;
-      background: #071a07;
-    }
-
-    /* ── HERO ── */
-    .login-hero {
-      flex: none;
-      background: linear-gradient(160deg, #0d2e0d 0%, #071a07 60%, #030f03 100%);
-      padding: 3rem 2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .login-hero::before {
-      content: '';
-      position: absolute;
-      top: -60px; left: -60px;
-      width: 280px; height: 280px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(74,222,128,.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .login-hero-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 1.25rem;
-      position: relative;
-      z-index: 1;
-    }
-    .login-hero-tagline {
-      font-size: 26px;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1.3;
-      margin: 0;
-      letter-spacing: -.02em;
-    }
-    .login-hero-tagline em {
-      font-style: normal;
-      color: #4ade80;
-    }
-    .login-hero-stats {
-      display: flex;
-      gap: 1.75rem;
-      padding-top: 0.25rem;
-    }
-    .login-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-    }
-    .login-stat-val {
-      font-size: 16px;
-      font-weight: 700;
-      color: #4ade80;
-    }
-    .login-stat-lbl {
-      font-size: 10px;
-      color: rgba(255,255,255,.4);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-    }
-
-    /* ── SHEET (mobile) / form col (desktop) ── */
-    .login-sheet {
-      flex: 1;
       background: ${cores.surface};
-      border-radius: 24px 24px 0 0;
-      margin-top: -20px;
-      padding: 6px 1.5rem 2rem;
-      padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
-      overflow-y: auto;
     }
-    .login-sheet-handle {
-      width: 40px; height: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,.12);
-      margin: 10px auto 20px;
+
+    /* Hero oculto no mobile */
+    .login-hero { display: none; }
+
+    /* Logo mobile */
+    .login-mobile-logo {
+      display: flex;
+      justify-content: center;
+      padding: 2.5rem 0 1.75rem;
+    }
+
+    /* Coluna do form: ocupa tudo no mobile */
+    .login-form-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 1.5rem 2.5rem;
+      padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+      max-width: 480px;
+      width: 100%;
+      margin: 0 auto;
     }
 
     /* ── TABS ── */
@@ -630,42 +568,75 @@ function loginStyles(cores: ReturnType<typeof useCores>, isClaro: boolean) {
       line-height: 1.5;
     }
 
-    /* ── DESKTOP (≥768px) — two-column layout ── */
+    /* ── DESKTOP (≥768px): duas colunas ── */
     @media (min-width: 768px) {
       .login-root {
         flex-direction: row;
-        background: ${cores.pageBg};
+        background: #071a07;
       }
+
+      /* Hero: coluna esquerda */
       .login-hero {
+        display: flex;
         flex: 1;
-        padding: 3rem 3rem;
+        background: linear-gradient(160deg, #0d2e0d 0%, #071a07 60%, #030f03 100%);
+        padding: 3rem;
         min-height: 100dvh;
-        border-radius: 0;
-        margin: 0;
         align-items: center;
         justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .login-hero::before {
+        content: '';
+        position: absolute;
+        top: -60px; left: -60px;
+        width: 280px; height: 280px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(74,222,128,.12) 0%, transparent 70%);
+        pointer-events: none;
       }
       .login-hero-inner {
-        max-width: 380px;
-        align-items: flex-start;
-        text-align: left;
-      }
-      .login-hero-tagline { font-size: 36px; }
-      .login-sheet {
-        flex: none;
-        width: 440px;
-        border-radius: 0;
-        margin-top: 0;
-        padding: 0 3rem;
         display: flex;
         flex-direction: column;
+        align-items: flex-start;
+        gap: 1.25rem;
+        max-width: 380px;
+        position: relative;
+        z-index: 1;
+      }
+      .login-hero-tagline {
+        font-size: 36px;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.3;
+        margin: 0;
+        letter-spacing: -.02em;
+      }
+      .login-hero-tagline em { font-style: normal; color: #4ade80; }
+      .login-hero-stats {
+        display: flex;
+        gap: 1.75rem;
+        padding-top: 0.25rem;
+      }
+      .login-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+      .login-stat-val { font-size: 16px; font-weight: 700; color: #4ade80; }
+      .login-stat-lbl { font-size: 10px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .05em; }
+
+      /* Form: coluna direita */
+      .login-mobile-logo { display: none; }
+      .login-form-col {
+        flex: none;
+        width: 440px;
+        min-height: 100dvh;
+        padding: 0 3rem;
         justify-content: center;
         border-left: 1px solid ${cores.border};
         background: ${cores.surface};
-        min-height: 100dvh;
+        margin: 0;
+        max-width: none;
         overflow-y: auto;
       }
-      .login-sheet-handle { display: none; }
     }
   `
 }
