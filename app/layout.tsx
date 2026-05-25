@@ -68,7 +68,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               overflow-x: hidden !important;
               -webkit-overflow-scrolling: touch !important;
             }
-            .dashboard-scroll-area > * { min-height: unset !important; }
+            .dashboard-scroll-area > * { min-height: 100% !important; }
+            /* dashboard home tem layout próprio (aside+main) — ocupa 100% do scroll area */
+            .dashboard-page-root { display: flex !important; height: 100% !important; min-height: 100% !important; }
+            .dashboard-page-root > aside { display: none !important; width: 0 !important; }
+            .dashboard-page-root > main { flex: 1 !important; min-width: 0 !important; overflow: hidden !important; }
             .mobile-bottom-nav {
               display: flex !important;
               align-items: stretch !important;
