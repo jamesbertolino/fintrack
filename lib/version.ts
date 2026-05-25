@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.29.3'
+export const APP_VERSION = '2.29.4'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -65,4 +65,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.29.1 · 2026.05.25 — Chore: bump de versão para forçar atualização do SW no celular
  * 2.29.2 · 2026.05.25 — Fix: remove avatar/perfil resumido da aside, mantém apenas no topo direito
  * 2.29.3 · 2026.05.25 — Fix: remove banner PWA falso (enganoso), APK real via PWABuilder + assetlinks.json pendente
+ * 2.29.4 · 2026.05.25 — Fix: remove espaço em branco no final de todas as páginas no mobile (spacer div substitui padding no layout)
  */

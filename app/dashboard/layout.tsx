@@ -4,6 +4,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="dashboard-layout">
       {children}
+      <div className="mobile-nav-spacer" />
       <MobileBottomNav />
     </div>
   )

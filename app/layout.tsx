@@ -44,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <style dangerouslySetInnerHTML={{ __html: `
           html, body { overscroll-behavior: none; touch-action: pan-x pan-y; }
           .mobile-bottom-nav { display: none !important; }
+          .mobile-nav-spacer { display: none; }
 
           /* CSS media query — aplica antes do JS, cobre SSR + navegação */
           @media (max-width: 767px) {
@@ -51,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             .mobile-bottom-nav { display: flex !important; align-items: stretch; }
             [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }
             .dashboard-content { padding-bottom: 5rem !important; }
-            .dashboard-layout { padding-bottom: 5rem; }
+            .mobile-nav-spacer { display: block; height: 5rem; }
             body { font-size: 15px; }
             input, select, textarea { font-size: 16px !important; min-height: 44px; }
             /* Lancamento: colapsa grid e esconde coluna direita */
