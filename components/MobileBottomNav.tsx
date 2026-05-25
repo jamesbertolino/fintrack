@@ -140,6 +140,7 @@ export default function MobileBottomNav() {
       <nav className="mobile-bottom-nav" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         zIndex: 9000,
+        display: 'flex', flexDirection: 'row', alignItems: 'stretch',
         background: '#0a1205',
         borderTop: '1px solid #1a3a1a',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
