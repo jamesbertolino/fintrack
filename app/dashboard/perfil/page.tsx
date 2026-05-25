@@ -675,22 +675,25 @@ export default function PerfilPage() {
         </div>
 
         {/* Abas */}
-        <div style={{ display: 'flex', gap: 4, background: cores.surfaceAlt, border: `1px solid ${cores.borderMid}`, borderRadius: 8, padding: 3, marginBottom: '1.25rem' }}>
-          {([
-            { id: 'perfil',        label: 'Dados pessoais' },
-            { id: 'prioridades',   label: '🎯 Prioridades' },
-            { id: 'configuracoes', label: 'Configurações' },
-            { id: 'webhook',       label: 'Webhook' },
-            { id: 'grupo',         label: '👥 Pessoas' },
-            { id: 'plano',         label: 'Plano' },
-            { id: 'seguranca',     label: 'Segurança' },
-          ] as const).map(a => (
-            <button key={a.id} onClick={() => { setAbaSel(a.id); setErro(''); setSucesso('') }} style={{
-              flex: 1, padding: '7px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-              background: abaSel === a.id ? '#16a34a' : 'transparent',
-              color: abaSel === a.id ? '#fff' : cores.textMuted,
-            }}>{a.label}</button>
-          ))}
+        <div style={{ background: cores.surfaceAlt, border: `1px solid ${cores.borderMid}`, borderRadius: 8, padding: 3, marginBottom: '1.25rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <div style={{ display: 'flex', gap: 4, minWidth: 'max-content' }}>
+            {([
+              { id: 'perfil',        label: 'Dados pessoais' },
+              { id: 'prioridades',   label: '🎯 Prioridades' },
+              { id: 'configuracoes', label: 'Configurações' },
+              { id: 'webhook',       label: 'Webhook' },
+              { id: 'grupo',         label: '👥 Pessoas' },
+              { id: 'plano',         label: 'Plano' },
+              { id: 'seguranca',     label: 'Segurança' },
+            ] as const).map(a => (
+              <button key={a.id} onClick={() => { setAbaSel(a.id); setErro(''); setSucesso('') }} style={{
+                padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                whiteSpace: 'nowrap',
+                background: abaSel === a.id ? '#16a34a' : 'transparent',
+                color: abaSel === a.id ? '#fff' : cores.textMuted,
+              }}>{a.label}</button>
+            ))}
+          </div>
         </div>
 
         {/* Feedback */}
