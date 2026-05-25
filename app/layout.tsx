@@ -25,7 +25,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.poupaup.com.br'),
   title: 'PoupaUp — Poupe. Evolua. Conquiste.',
   description: 'Controle financeiro familiar com IA e WhatsApp',
-  manifest: '/manifest.json',
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',
