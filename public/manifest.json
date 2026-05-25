@@ -13,13 +13,13 @@
   "categories": ["finance", "productivity"],
   "icons": [
     {
-      "src": "https://www.poupaup.com.br/velocimetro.png",
-      "sizes": "192x192",
+      "src": "https://www.poupaup.com.br/launchericon-512x512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://www.poupaup.com.br/velocimetro.png",
+      "src": "https://www.poupaup.com.br/launchericon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
