@@ -1241,20 +1241,20 @@ useEffect(() => {
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
               <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 8, marginBottom: '1rem' }}>
                 {([
-                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0] },
-                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1] },
-                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2] },
-                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,           icone: tx.metIcones[3] },
+                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined },
+                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: '/dashboard/gastos?tipo=credito' },
+                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: '/dashboard/gastos?tipo=debito' },
+                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,           icone: tx.metIcones[3], href: undefined },
                 ] as const).map(card => (
                   <div key={card.label}
-                    onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : undefined}
+                    onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
                     style={{
                       background: cores.cardBg,
-                      border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : cores.cardBorder}`,
+                      border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder}`,
                       borderRadius: isMobile ? 14 : 10,
                       padding: isMobile ? '16px 18px' : '10px 12px',
                       boxShadow: cores.cardShadow,
-                      cursor: card.label === tx.metLabels[3] ? 'pointer' : 'default',
+                      cursor: card.label === tx.metLabels[3] || card.href ? 'pointer' : 'default',
                       transition: 'border-color .2s',
                       display: isMobile ? 'flex' : undefined,
                       alignItems: isMobile ? 'center' : undefined,

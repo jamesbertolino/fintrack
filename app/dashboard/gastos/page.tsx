@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { usePerfil } from '@/hooks/usePerfil'
@@ -46,6 +46,7 @@ function labelPeriodo(p: string) {
 
 export default function GastosPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { fmtData, fmtMes } = usePerfil()
 
@@ -54,7 +55,8 @@ export default function GastosPage() {
   const isMobile = useIsMobile(640)
   const [categoriasExtra, setCategoriasExtra] = useState<string[]>([])
   const [catFiltro, setCatFiltro]     = useState('Todas')
-  const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>('todos')
+  const tipoParam = searchParams.get('tipo') as 'debito' | 'credito' | null
+  const [tipoFiltro, setTipoFiltro]   = useState<'todos' | 'debito' | 'credito'>(tipoParam ?? 'todos')
   const [busca, setBusca]             = useState('')
   const [contaFiltro, setContaFiltro] = useState('')
   const [periodo, setPeriodo]         = useState('30')
