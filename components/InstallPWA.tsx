@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -11,7 +11,9 @@ interface BeforeInstallPromptEvent extends Event {
 export default function InstallPWA() {
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [visivel, setVisivel] = useState(false)
-  const isIOSRef = useRef(false)
+  const [isIOS] = useState(() =>
+    typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  )
 
   useEffect(() => {
     // Não mostrar se já está instalado (standalone) ou em desktop
@@ -23,10 +25,7 @@ export default function InstallPWA() {
     // Já dispensou antes
     if (sessionStorage.getItem('pwa_dismiss')) return
 
-    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    isIOSRef.current = ios
-
-    if (ios) {
+    if (isIOS) {
       // iOS não tem beforeinstallprompt — mostra banner manual após 3s
       const t = setTimeout(() => setVisivel(true), 3000)
       return () => clearTimeout(t)
@@ -39,7 +38,7 @@ export default function InstallPWA() {
     }
     window.addEventListener('beforeinstallprompt', handler)
     return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
+  }, [isIOS])
 
   function dispensar() {
     sessionStorage.setItem('pwa_dismiss', '1')
@@ -85,14 +84,14 @@ export default function InstallPWA() {
           Instalar PoupaUp
         </div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', lineHeight: 1.4 }}>
-          {isIOSRef.current
+          {isIOS
             ? 'Toque em Compartilhar → "Adicionar à Tela de Início"'
             : 'Adicione à tela inicial para acesso rápido'}
         </div>
       </div>
 
       {/* Ações */}
-      {isIOSRef.current ? (
+      {isIOS ? (
         <button onClick={dispensar} style={btnClose}>✕</button>
       ) : (
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
