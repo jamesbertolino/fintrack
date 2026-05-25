@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.31.4'
+export const APP_VERSION = '2.31.5'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -86,4 +86,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.31.2 · 2026.05.25 — Fix: nav mobile volta a position:fixed; remove flex-layout que causava 2 colunas no APK; padding-bottom no conteúdo
  * 2.31.3 · 2026.05.25 — Fix: MobileBottomNav display:flex no inline style — botões voltam a ser horizontais
  * 2.31.4 · 2026.05.25 — Fix: aside do dashboard some no mobile via display:none inline (sem depender de transform ou CSS externo)
+ * 2.31.5 · 2026.05.25 — Fix: useIsMobile usa matchMedia em vez de innerWidth — funciona corretamente no Android WebView/TWA
  */

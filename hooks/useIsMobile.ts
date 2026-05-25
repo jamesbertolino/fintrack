@@ -5,24 +5,22 @@ import { useState, useEffect } from 'react'
 export function useIsMobile(breakpoint = 768): boolean {
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === 'undefined') return false
-    // Lê a classe que o script inline da <head> já definiu — zero flash
-    if (breakpoint === 768) return document.documentElement.classList.contains('is-mobile')
-    return window.innerWidth < breakpoint
+    // matchMedia respeita o viewport meta tag — funciona corretamente no Android WebView/TWA
+    return window.matchMedia(`(max-width: ${breakpoint - 1}px)`).matches
   })
 
   useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`)
     const check = () => {
-      const mobile = window.innerWidth < breakpoint
+      const mobile = mq.matches
       setIsMobile(mobile)
       if (breakpoint === 768) {
         document.documentElement.classList.toggle('is-mobile', mobile)
       }
     }
-    // Run immediately on mount to catch cases where the viewport wasn't
-    // stable when the inline <head> script ran (e.g. Android WebView resume)
     check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    mq.addEventListener('change', check)
+    return () => mq.removeEventListener('change', check)
   }, [breakpoint])
 
   return isMobile

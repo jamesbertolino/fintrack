@@ -73,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Detecta mobile e aplica classe + tema antes do primeiro render */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
-            if (window.innerWidth < 768) document.documentElement.classList.add('is-mobile');
+            if (window.matchMedia('(max-width: 767px)').matches) document.documentElement.classList.add('is-mobile');
             var t = localStorage.getItem('poupaup_tema');
             if (t) document.documentElement.setAttribute('data-tema', t);
           } catch(e) {}
