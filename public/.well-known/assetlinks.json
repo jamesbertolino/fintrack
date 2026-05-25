@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "br.com.poupaup.www.twa",
+    "sha256_cert_fingerprints": ["D8:DF:6C:8D:78:C5:79:0F:C0:CA:48:4E:E6:F1:21:F6:DF:A2:73:FB:61:1E:6A:FA:54:36:D6:11:D3:AA:80:81"]
+  }
+}]
