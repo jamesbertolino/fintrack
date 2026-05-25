@@ -54,10 +54,10 @@ export function useCores() {
     text:         c ? '#0f172a'    : m ? '#F5E6C8'    : '#ededed',
     textMuted:    c ? 'rgba(15,23,42,0.60)'
                     : m ? 'rgba(245,230,200,0.42)'
-                    : 'rgba(255,255,255,0.4)',
+                    : 'rgba(255,255,255,0.65)',
     textFaint:    c ? 'rgba(15,23,42,0.40)'
                     : m ? 'rgba(245,230,200,0.22)'
-                    : 'rgba(255,255,255,0.25)',
+                    : 'rgba(255,255,255,0.45)',
     // ── Sidebar (fundo sempre escuro — texto SEMPRE claro) ────────────
     sidebarBg:    c ? 'linear-gradient(180deg,#1e3a5f 0%,#1a3354 100%)'
                     : m ? 'linear-gradient(180deg,#160d04 0%,#0e0904 100%)'
@@ -85,11 +85,11 @@ export function useCores() {
     // ── Cards ─────────────────────────────────────────────────────────
     cardBg:       c ? '#FFFFFF'
                     : m ? 'linear-gradient(145deg,#1c1409,#241808)'
-                    : 'linear-gradient(145deg,#0d1117,#111820)',
-    cardBorder:   c ? '#E5E7EB'    : m ? '#3d2e0a'    : '#1e2d1e',
+                    : 'linear-gradient(145deg,#111820,#161f2e)',
+    cardBorder:   c ? '#E5E7EB'    : m ? '#3d2e0a'    : '#243524',
     cardShadow:   c ? '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)'
                     : m ? 'inset 0 1px 0 rgba(212,175,55,.08), 0 4px 16px rgba(0,0,0,0.5)'
-                    : 'inset 0 1px 0 rgba(212,160,23,.04)',
+                    : 'inset 0 1px 0 rgba(255,255,255,.06), 0 2px 8px rgba(0,0,0,0.3)',
     // ── Navegação ativa ───────────────────────────────────────────────
     navActive:    c ? 'rgba(37,99,235,0.10)'
                     : m ? 'rgba(212,175,55,0.12)'

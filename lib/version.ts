@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.30.6'
+export const APP_VERSION = '2.30.7'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -78,4 +78,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.30.4 · 2026.05.25 — Fix: middleware não intercepta mais sw.js e manifest.webmanifest (retornavam HTML para PWABuilder)
  * 2.30.5 · 2026.05.25 — Fix: MobileBottomNav z-index 9000 + translateZ(0) para nunca sumir em modals ou APK
  * 2.30.6 · 2026.05.25 — Fix: mensagem de loading do dashboard respeita tema — medieval "Convocando o Reino..." / padrão "Carregando seu painel..."
+ * 2.30.7 · 2026.05.25 — UX: tema escuro — textMuted .4→.65, textFaint .25→.45, cards mais brilhantes para melhor legibilidade
  */
