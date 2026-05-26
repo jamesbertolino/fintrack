@@ -348,49 +348,17 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
     <div className="dashboard-page-body" style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
 
       {/* Topbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Dashboard
-          </button>
-          <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
-          <span style={{ fontSize: 15, fontWeight: 500 }}>Gastos</span>
-        </div>
-        {isMobile ? (
-          /* Mobile: pills em linha + inputs de data abaixo quando 📅 ativo */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
-              {([['7','7d'],['30','30d'],['90','90d'],['365','1a']] as const).map(([v,l]) => (
-                <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }} style={{
-                  flexShrink: 0, padding: '7px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                  background: periodo === v ? '#16a34a' : 'rgba(255,255,255,.08)',
-                  color: periodo === v ? '#fff' : 'rgba(255,255,255,.45)',
-                }}>{l}</button>
-              ))}
-              <button onClick={() => setFiltroExpandido(o => !o)} style={{
-                flexShrink: 0, padding: '7px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                background: periodo === 'custom' ? '#16a34a' : filtroExpandido ? 'rgba(22,163,74,.2)' : 'rgba(255,255,255,.08)',
-                color: periodo === 'custom' || filtroExpandido ? '#fff' : 'rgba(255,255,255,.45)',
-              }}>
-                {periodo === 'custom' && dataInicio && dataFim ? `${dataInicio.slice(5)}→${dataFim.slice(5)}` : '📅'}
-              </button>
-            </div>
-            {filtroExpandido && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) { setPeriodo('custom'); setFiltroExpandido(false) } }}
-                  style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
-                <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, flexShrink: 0 }}>→</span>
-                <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) { setPeriodo('custom'); setFiltroExpandido(false) } }}
-                  style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
-                {periodo === 'custom' && (
-                  <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }}
-                    style={{ padding: '8px 10px', borderRadius: 8, border: 'none', background: 'rgba(239,68,68,.15)', color: '#f87171', fontSize: 13, cursor: 'pointer', minHeight: 38, flexShrink: 0 }}>✕</button>
-                )}
-              </div>
-            )}
+      <div style={{ borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12 }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7l4-4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Dashboard
+            </button>
+            <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
+            <span style={{ fontSize: 15, fontWeight: 500 }}>Gastos</span>
           </div>
-        ) : (
+          {!isMobile && (
           /* Desktop: filtro sempre visível em linha */
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
@@ -413,6 +381,41 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 11, cursor: 'pointer', minHeight: 38 }}>✕</button>
               )}
             </div>
+          </div>
+          )}
+        </div>
+        {isMobile && (
+          /* Mobile: pills em linha + inputs de data abaixo quando 📅 ativo */
+          <div style={{ padding: '0 1rem .75rem', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 4, overflowX: 'auto', paddingBottom: 2 }}>
+              {([['7','7d'],['30','30d'],['90','90d'],['365','1a']] as const).map(([v,l]) => (
+                <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }} style={{
+                  flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                  background: periodo === v ? '#16a34a' : 'rgba(255,255,255,.08)',
+                  color: periodo === v ? '#fff' : 'rgba(255,255,255,.45)',
+                }}>{l}</button>
+              ))}
+              <button onClick={() => setFiltroExpandido(o => !o)} style={{
+                flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                background: periodo === 'custom' ? '#16a34a' : filtroExpandido ? 'rgba(22,163,74,.2)' : 'rgba(255,255,255,.08)',
+                color: periodo === 'custom' || filtroExpandido ? '#fff' : 'rgba(255,255,255,.45)',
+              }}>
+                {periodo === 'custom' && dataInicio && dataFim ? `${dataInicio.slice(5)}→${dataFim.slice(5)}` : '📅'}
+              </button>
+            </div>
+            {filtroExpandido && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) { setPeriodo('custom'); setFiltroExpandido(false) } }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
+                <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, flexShrink: 0 }}>→</span>
+                <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) { setPeriodo('custom'); setFiltroExpandido(false) } }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
+                {periodo === 'custom' && (
+                  <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }}
+                    style={{ padding: '8px 10px', borderRadius: 8, border: 'none', background: 'rgba(239,68,68,.15)', color: '#f87171', fontSize: 13, cursor: 'pointer', minHeight: 38, flexShrink: 0 }}>✕</button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -455,7 +458,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12, marginBottom: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 12, marginBottom: '1rem' }}>
 
           {/* Gráficos */}
           <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem' }}>
@@ -529,7 +532,6 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 )}
               </div>
             )}
-          </div>
 
             {abaGrafico === 'comparativo' && (
               <div>

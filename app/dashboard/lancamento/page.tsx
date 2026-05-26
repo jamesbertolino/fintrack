@@ -1642,6 +1642,8 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               </div>
             )}
           </div>
+          {/* Espaçador para o upload não ficar atrás da nav mobile */}
+          <div style={{ height: '5rem' }} />
         </div>
 
         {/* ─── Histórico — oculto no mobile via CSS (.lancamento-right-col) ─── */}
