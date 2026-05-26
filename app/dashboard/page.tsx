@@ -474,7 +474,6 @@ export default function Dashboard() {
 
   // Em mobile sidebar começa fechada, em desktop aberta
   const [sidebarAberta, setSidebar]   = useState(true)
-  const [maisSheetAberto, setMaisSheet] = useState(false)
   const [openGroups,   setOpenGroups] = useState<Set<string>>(new Set(['principal']))
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -1642,91 +1641,7 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* Bottom navigation — rendered always, hidden on desktop via CSS class .mobile-bottom-nav */}
-      {(() => {
-        const bottomItems = [
-          { id: 'inicio',     label: m ? 'Salão' : 'Início',    icon: m ? '🏰' : '🏠', href: undefined },
-          { id: 'lancamento', label: m ? 'Tesouro' : 'Lançar',  icon: m ? '📜' : '📝', href: '/dashboard/lancamento' },
-          { id: 'gastos',     label: m ? 'Batalhas' : 'Gastos', icon: m ? '⚔️' : '💸', href: '/dashboard/gastos' },
-          { id: 'metas',      label: m ? 'Quests' : 'Metas',    icon: m ? '🎯' : '🎯', href: '/dashboard/metas' },
-          { id: 'mais',       label: 'Mais',                     icon: '⊞',              href: undefined },
-        ]
-        const maisItems = [
-          { label: 'IA',           icon: '🤖', href: '/dashboard/ia' },
-          { label: 'Perfil',       icon: '👤', href: '/dashboard/perfil' },
-          { label: 'Score',        icon: '⭐', href: '/dashboard/score' },
-          { label: 'Conquistas',   icon: '🏆', href: '/dashboard/conquistas' },
-          { label: 'Contas',       icon: '🏦', href: '/dashboard/contas' },
-          { label: 'Orçamento',    icon: '📊', href: '/dashboard/orcamento' },
-          { label: 'Dívidas',      icon: '💳', href: '/dashboard/dividas' },
-          { label: 'Família',      icon: '👨‍👩‍👧', href: '/dashboard/familia' },
-          { label: 'Relatório',    icon: '📈', href: '/dashboard/relatorio' },
-          { label: 'Desafios',     icon: '🎮', href: '/dashboard/desafios' },
-          { label: 'Planejamento', icon: '📅', href: '/dashboard/planejamento' },
-          { label: 'Evolução',     icon: '📉', href: '/dashboard/evolucao' },
-        ]
-        return (
-          <>
-            {/* Bottom sheet "Mais" */}
-            {maisSheetAberto && (
-              <>
-                <div onClick={() => setMaisSheet(false)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.6)' }} />
-                <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 301, background: '#0d1f0d', borderTop: '1px solid #2a4a2a', borderRadius: '20px 20px 0 0', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))', animation: 'sheetUp .22s ease' }}>
-                  <style>{`@keyframes sheetUp { from { transform:translateY(100%) } to { transform:translateY(0) } }`}</style>
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-                    <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.15)' }} />
-                  </div>
-                  <div style={{ padding: '8px 20px 16px', fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 14 }}>Mais opções</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-                      {maisItems.map(item => (
-                        <button key={item.href} onClick={() => { setMaisSheet(false); router.push(item.href) }}
-                          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 8px', borderRadius: 14, border: 'none', background: 'rgba(255,255,255,.04)', cursor: 'pointer', minHeight: 72 }}>
-                          <span style={{ fontSize: 24, lineHeight: 1, pointerEvents: 'none' }}>{item.icon}</span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)', fontFamily: 'system-ui', lineHeight: 1.2, textAlign: 'center', pointerEvents: 'none' }}>{item.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <nav className="mobile-bottom-nav" style={{
-              position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 200,
-              alignItems: 'stretch',
-              background: cores.topbarBg,
-              borderTop: `1px solid ${cores.border}`,
-              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            }}>
-              {bottomItems.map(item => {
-                const active = item.id !== 'mais' && item.id === paginaAtiva
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      if (item.id === 'mais') { setMaisSheet(o => !o); return }
-                      setMaisSheet(false)
-                      if (item.href) router.push(item.href)
-                      else setPagina(item.id)
-                    }}
-                    style={{
-                      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      gap: 3, padding: '8px 4px', background: 'none', border: 'none', cursor: 'pointer',
-                      color: active ? tx.accentColor : 'rgba(255,255,255,.45)',
-                      fontSize: 12, fontFamily: 'system-ui, sans-serif', minHeight: 56,
-                      borderTop: active ? `2px solid ${tx.accentColor}` : '2px solid transparent',
-                    }}
-                  >
-                    <span style={{ fontSize: 20, lineHeight: 1, pointerEvents: 'none' }}>{item.icon}</span>
-                    <span style={{ pointerEvents: 'none' }}>{item.label}</span>
-                  </button>
-                )
-              })}
-            </nav>
-          </>
-        )
-      })()}
+      {/* Bottom nav removido — renderizado pelo dashboard/layout.tsx via MobileBottomNav */}
 
       {/* Widget de prioridades — flutua sobre tudo */}
       {profile?.prioridades && profile.prioridades.length > 0 && (() => {

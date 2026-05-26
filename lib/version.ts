@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.33.5'
+export const APP_VERSION = '2.33.6'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -96,4 +96,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.33.3 · 2026.05.25 — UX: filtro mobile vira pills horizontais (7d/30d/90d/1a/📅); inputs de data aparecem inline abaixo ao tocar 📅
  * 2.33.4 · 2026.05.25 — Fix definitivo: aside do dashboard só renderiza quando mounted && !isMobile — mobile nunca vê o aside
  * 2.33.5 · 2026.05.25 — Fix nuclear: aside tem display:none inline; CSS @media(min-width:768px) é o único que mostra
+ * 2.33.6 · 2026.05.25 — Fix causa raiz: remove nav/aside duplicado do dashboard/page.tsx — era renderizado junto com o MobileBottomNav do layout
  */
