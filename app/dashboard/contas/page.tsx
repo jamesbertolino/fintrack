@@ -102,6 +102,7 @@ export default function ContasPage() {
     e.preventDefault()
     if (!form.banco_id) { setErro('Selecione um banco'); return }
     if (!form.nome.trim()) { setErro('Nome da conta obrigatório'); return }
+    if (form.saldo_inicial !== '' && parseFloat(form.saldo_inicial) < 0) { setErro('Saldo inicial não pode ser negativo'); return }
     setSalvando(true); setErro('')
 
     const res = await fetch('/api/contas', {

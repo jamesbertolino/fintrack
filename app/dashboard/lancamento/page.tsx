@@ -542,6 +542,10 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     const v = valorNumerico()
     if (!v || v <= 0) { setErro('Digite um valor válido'); return }
     if (!descricao.trim()) { setErro('Digite uma descrição'); return }
+    if (dataHora && new Date(dataHora) > new Date()) {
+      const ok = confirm('A data informada é no futuro. Deseja continuar?')
+      if (!ok) return
+    }
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -882,7 +886,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
       {/* ─── Toast pós-importação ─── */}
       {toastImport && (
         <div style={{
-          position: 'fixed', bottom: 24, right: 24, zIndex: 1100,
+          position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)', right: 24, zIndex: 1100,
           background: '#0f1f0f', border: '1px solid rgba(74,222,128,.35)',
           borderRadius: 12, padding: '14px 18px', minWidth: 260, maxWidth: 340,
           boxShadow: '0 8px 32px rgba(0,0,0,.6)',

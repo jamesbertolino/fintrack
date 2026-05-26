@@ -168,7 +168,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
 
   // ─── transações filtradas ───
   const filtradas = useMemo(() => transacoes.filter(t => {
-    if (catFiltro !== 'Todas' && t.categoria !== catFiltro) return false
+    if (catFiltro !== 'Todas' && t.categoria?.toLowerCase() !== catFiltro.toLowerCase()) return false
     if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
     if (busca && !t.descricao.toLowerCase().includes(busca.toLowerCase())) return false
     if (contaFiltro && t.conta_id !== contaFiltro) return false

@@ -268,6 +268,11 @@ export default function MetasPage() {
     setErro('')
     if (!form.nome.trim()) { setErro('Nome obrigatório'); return }
     if (!form.valor_total || parseFloat(form.valor_total) <= 0) { setErro('Valor total inválido'); return }
+    if (form.prazo) {
+      const hoje = new Date()
+      const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+      if (form.prazo < mesAtual) { setErro('O prazo não pode ser no passado'); return }
+    }
 
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()

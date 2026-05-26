@@ -303,6 +303,8 @@ export default function PerfilPage() {
     e.preventDefault()
     setErro(''); setSucesso('')
     if (!form.nome.trim()) { setErro('Nome obrigatório'); return }
+    const waDigs = form.whatsapp.replace(/\D/g, '')
+    if (waDigs && (waDigs.length < 10 || waDigs.length > 15)) { setErro('WhatsApp inválido: informe DDI + DDD + número (ex: 5511999999999)'); return }
     setSalvando(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -311,7 +313,7 @@ export default function PerfilPage() {
     const { error } = await supabase.from('profiles').update({
       nome: form.nome.trim(),
       sobrenome: form.sobrenome.trim(),
-      whatsapp: form.whatsapp.replace(/\D/g, '') || null,
+      whatsapp: waDigs || null,
       timezone: form.timezone,
       idioma: form.idioma,
     }).eq('id', user.id)

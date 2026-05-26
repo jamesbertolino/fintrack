@@ -108,7 +108,7 @@ export default function OrcamentoPage() {
   }
 
   async function adicionarCategoria() {
-    if (!novaCategoria || !novoValor) return
+    if (!novaCategoria || !novoValor || parseFloat(novoValor) <= 0) return
     setAdicionando(true)
     await fetch('/api/orcamento', {
       method: 'POST',

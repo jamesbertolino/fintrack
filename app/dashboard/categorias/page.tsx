@@ -44,6 +44,7 @@ export default function CategoriasPage() {
 
   async function salvar() {
     if (!form.nome.trim()) { setErro('Nome obrigatório'); return }
+    if (!editId && customCats.some(c => c.nome.toLowerCase() === form.nome.trim().toLowerCase())) { setErro('Já existe uma categoria com esse nome'); return }
     setSalvando(true); setErro('')
     try {
       if (editId) {
