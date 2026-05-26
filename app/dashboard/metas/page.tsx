@@ -717,7 +717,7 @@ export default function MetasPage() {
               <div>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>💰 Aportes — {metaAporte.nome}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>
-                  {fmtBRL(metaAporte.valor_atual)} de {fmtBRL(metaAporte.valor_total)} ({Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100)}%)
+                  {fmtBRL(metaAporte.valor_atual)} de {fmtBRL(metaAporte.valor_total)} ({metaAporte.valor_total > 0 ? Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100) : 0}%)
                 </div>
               </div>
               <button onClick={() => setMetaAporte(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 20, lineHeight: 1 }}>×</button>
@@ -725,7 +725,7 @@ export default function MetasPage() {
 
             {/* Barra de progresso */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <PctBar pct={Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100)} cor={metaAporte.valor_atual >= metaAporte.valor_total ? '#4ade80' : '#22d3ee'} />
+              <PctBar pct={metaAporte.valor_total > 0 ? Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100) : 0} cor={metaAporte.valor_atual >= metaAporte.valor_total ? '#4ade80' : '#22d3ee'} />
             </div>
 
             {/* Projeção baseada nos aportes */}

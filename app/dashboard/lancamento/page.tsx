@@ -767,6 +767,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
   async function excluirSelecionados() {
     if (!selecionados.length) return
+    if (!confirm(`Excluir ${selecionados.length} transaç${selecionados.length > 1 ? 'ões' : 'ão'}? Esta ação não pode ser desfeita.`)) return
     setExcluindoLote(true)
     await Promise.all(selecionados.map(id => fetch(`/api/lancamento/${id}`, { method: 'DELETE' })))
     setSelecionados([])

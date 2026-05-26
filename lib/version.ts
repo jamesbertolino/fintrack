@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.33.8'
+export const APP_VERSION = '2.34.0'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -99,4 +99,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.33.6 · 2026.05.25 — Fix causa raiz: remove nav/aside duplicado do dashboard/page.tsx — era renderizado junto com o MobileBottomNav do layout
  * 2.33.7 · 2026.05.25 — Fix mobile gastos: nav some ao scrollar (translateZ GPU), último elemento cortado (spacer 5rem + padding-bottom 6rem)
  * 2.33.8 · 2026.05.25 — Fix gastos mobile: topbar em bloco separado (não overflow), grid 1fr no mobile, comparativo dentro do card; lançamento: spacer no upload
+ * 2.34.0 · 2026.05.25 — Fix críticos: confirm antes de excluir lote (lançamento+gastos); divisão por zero em metas; loop impagável em dívidas; IA: histórico persistido na sessão + limite de 10 msgs para API
  */

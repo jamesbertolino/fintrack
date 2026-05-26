@@ -33,7 +33,14 @@ function pct(v: number) {
 
 /** Simula o plano de pagamento. Retorna meses até quitação e total de juros. */
 function simular(dividas: Divida[], extra: number, metodo: Metodo) {
-  if (!dividas.length) return { meses: [], totalJuros: 0, totalPago: 0, mesesTotal: 0 }
+  if (!dividas.length) return { meses: [], totalJuros: 0, totalPago: 0, mesesTotal: 0, impagavel: false }
+
+  // Detecta cenário impagável: pagamentos mensais não cobrem os juros do primeiro mês
+  const totalPagamentoMensal = dividas.reduce((s, d) => s + d.pagamento_minimo, 0) + extra
+  const totalJurosPrimeiro   = dividas.reduce((s, d) => s + d.saldo * d.taxa_juros, 0)
+  if (totalPagamentoMensal <= totalJurosPrimeiro && totalJurosPrimeiro > 0) {
+    return { meses: [], totalJuros: 0, totalPago: 0, mesesTotal: 0, impagavel: true }
+  }
 
   // Ordena por estratégia
   const ordem = metodo === 'neve'
@@ -86,7 +93,7 @@ function simular(dividas: Divida[], extra: number, metodo: Metodo) {
     if (ativas.every(d => saldos[d.id] <= 0.005)) break
   }
 
-  return { meses, totalJuros, totalPago, mesesTotal: meses.length }
+  return { meses, totalJuros, totalPago, mesesTotal: meses.length, impagavel: false }
 }
 
 export default function DividasPage() {
@@ -120,6 +127,9 @@ export default function DividasPage() {
     if (!form.nome.trim() || isNaN(saldo) || isNaN(taxa) || isNaN(min)) {
       setErro('Preencha todos os campos corretamente.'); return
     }
+    if (saldo <= 0) { setErro('O saldo da dívida deve ser maior que zero.'); return }
+    if (taxa < 0)   { setErro('A taxa de juros não pode ser negativa.'); return }
+    if (min <= 0)   { setErro('O pagamento mínimo deve ser maior que zero.'); return }
     setSalvando(true); setErro('')
     const res = await fetch('/api/dividas', {
       method: 'POST',
@@ -289,6 +299,19 @@ export default function DividasPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* ── Alerta cenário impagável ── */}
+                {neve.impagavel && (
+                  <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.35)', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>🚨</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#f87171', marginBottom: 2 }}>Pagamentos não cobrem os juros</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.6)', lineHeight: 1.5 }}>
+                        Com os pagamentos mínimos atuais, os juros crescem mais rápido do que você paga. Aumente o valor extra ou o pagamento mínimo para viabilizar a quitação.
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* ── Resultado comparativo ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>

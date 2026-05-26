@@ -42,7 +42,16 @@ export default function IAPage() {
       const { data: p } = await supabase.from('profiles').select('nome').eq('id', user.id).single()
       if (p) setNomeUser(p.nome)
 
-      // Mensagem inicial
+      // Restaura conversa da sessão, se houver
+      try {
+        const saved = sessionStorage.getItem('poupaup_ia_chat')
+        if (saved) {
+          const { msgs: m, horarios: h } = JSON.parse(saved)
+          if (Array.isArray(m) && m.length > 0) { setMsgs(m); setHorarios(h || []); return }
+        }
+      } catch { /* ignore */ }
+
+      // Mensagem inicial (apenas se não havia sessão salva)
       setMsgs([{
         role: 'assistant',
         content: `Olá${p?.nome ? `, ${p.nome}` : ''}! 👋 Sou o **PoupaBot**, seu assistente financeiro inteligente.\n\nTenho acesso aos seus dados reais — transações, metas e métricas — e posso te ajudar a tomar decisões financeiras melhores.\n\nComo posso te ajudar hoje?`,
@@ -52,6 +61,12 @@ export default function IAPage() {
     init()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Persiste conversa na sessão sempre que mudar
+  useEffect(() => {
+    if (msgs.length === 0) return
+    try { sessionStorage.setItem('poupaup_ia_chat', JSON.stringify({ msgs, horarios })) } catch { /* ignore */ }
+  }, [msgs, horarios])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -74,7 +89,8 @@ export default function IAPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mensagem: msg,
-          historico: msgs.map(m => ({ role: m.role, content: m.content })),
+          // Limita a 10 mensagens anteriores para não estourar tokens da API
+          historico: msgs.slice(-10).map(m => ({ role: m.role, content: m.content })),
         }),
       })
       const data = await res.json()
@@ -124,7 +140,10 @@ export default function IAPage() {
             </div>
           </div>
         </div>
-        <button onClick={() => { setMsgs([]); setHorarios([]) }} style={{ fontSize: 11, padding: '5px 10px', background: 'rgba(255,255,255,.06)', border: '1px solid #1a3a1a', borderRadius: 6, color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
+        <button onClick={() => {
+          setMsgs([]); setHorarios([])
+          try { sessionStorage.removeItem('poupaup_ia_chat') } catch { /* ignore */ }
+        }} style={{ fontSize: 11, padding: '5px 10px', background: 'rgba(255,255,255,.06)', border: '1px solid #1a3a1a', borderRadius: 6, color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
           Limpar conversa
         </button>
       </div>
