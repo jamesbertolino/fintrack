@@ -144,6 +144,9 @@ export default function MobileBottomNav() {
         background: '#0a1205',
         borderTop: '1px solid #1a3a1a',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)',
+        willChange: 'transform',
       }}>
         {NAV_ITEMS.map(item => {
           const active = item.id === 'mais' ? maisActive || maisAberto : isActive(item.href)

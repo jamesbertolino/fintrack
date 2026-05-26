@@ -57,8 +57,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           @media (max-width: 767px) {
             body { font-size: 15px; }
             /* padding-bottom garante que o conteúdo não some atrás da nav fixa */
-            .dashboard-content   { padding-bottom: 5rem !important; }
-            .dashboard-page-body { padding-bottom: 5rem !important; }
+            .dashboard-content   { padding-bottom: 6rem !important; }
+            .dashboard-page-body { padding-bottom: 6rem !important; }
+            /* Garante que qualquer filho direto de dashboard-page-body também tenha espaço */
+            .dashboard-page-body > div:last-child { padding-bottom: 6rem !important; }
             .dashboard-page-root { min-height: 100vh !important; }
             .dashboard-page-root > aside { display: none !important; width: 0 !important; }
             [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }

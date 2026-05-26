@@ -1022,6 +1022,8 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             </div></div>
           )}
         </div>
+        {/* Espaçador para o último elemento não ficar atrás da barra de navegação */}
+        <div style={{ height: '5rem' }} />
 
       {/* ─── Modal edição ─── */}
       {modalAberto && transacaoEditando && (

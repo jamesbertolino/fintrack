@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.33.6'
+export const APP_VERSION = '2.33.7'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -97,4 +97,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.33.4 · 2026.05.25 — Fix definitivo: aside do dashboard só renderiza quando mounted && !isMobile — mobile nunca vê o aside
  * 2.33.5 · 2026.05.25 — Fix nuclear: aside tem display:none inline; CSS @media(min-width:768px) é o único que mostra
  * 2.33.6 · 2026.05.25 — Fix causa raiz: remove nav/aside duplicado do dashboard/page.tsx — era renderizado junto com o MobileBottomNav do layout
+ * 2.33.7 · 2026.05.25 — Fix mobile gastos: nav some ao scrollar (translateZ GPU), último elemento cortado (spacer 5rem + padding-bottom 6rem)
  */
