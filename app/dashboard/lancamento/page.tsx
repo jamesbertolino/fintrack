@@ -328,6 +328,53 @@ export default function LancamentoPage() {
     banco_id: '', nome: '', tipo: 'corrente', numero: '', agencia: '', mostrar_saldo: true, saldo_inicial: '',
   })
 
+  // ─── reconhecimento de voz ───
+  const [vozGravando, setVozGravando]       = useState(false)
+  const [vozProcessando, setVozProcessando] = useState(false)
+  const [vozTranscricao, setVozTranscricao] = useState('')
+  const [vozErro, setVozErro]               = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vozRecRef = useRef<any>(null)
+
+  function iniciarVoz() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (typeof window !== 'undefined') && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    if (!SR) { setVozErro('Navegador não suporta reconhecimento de voz. Use Chrome.'); return }
+    setVozErro(''); setVozTranscricao('')
+    const rec = new SR()
+    rec.lang = 'pt-BR'
+    rec.interimResults = false
+    rec.maxAlternatives = 1
+    vozRecRef.current = rec
+    rec.onstart  = () => setVozGravando(true)
+    rec.onend    = () => setVozGravando(false)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror  = (e: any) => { setVozGravando(false); setVozErro(`Microfone: ${e.error === 'not-allowed' ? 'permissão negada' : e.error}`) }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = async (e: any) => {
+      const transcript = e.results[0][0].transcript
+      setVozTranscricao(transcript)
+      setVozProcessando(true)
+      try {
+        const res  = await fetch('/api/ia/voz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript }) })
+        const data = await res.json()
+        if (!res.ok || data.error) { setVozErro(data.error || 'Não entendi a frase'); return }
+        setTipo(data.tipo)
+        setValor(data.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        setDescricao(data.descricao)
+        setCategoria(data.categoria)
+        setVozErro('')
+      } catch { setVozErro('Erro ao processar. Tente novamente.') }
+      finally   { setVozProcessando(false) }
+    }
+    rec.start()
+  }
+
+  function pararVoz() {
+    vozRecRef.current?.stop()
+    setVozGravando(false)
+  }
+
   // ─── modal edição ───
   const [modalAberto, setModalAberto]       = useState(false)
   const [transacaoEditando, setTransacaoEditando] = useState<Transacao | null>(null)
@@ -939,6 +986,44 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                 {t === 'debito' ? '↓ Despesa' : '↑ Receita'}
               </button>
             ))}
+          </div>
+
+          {/* ── Voz ── */}
+          <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <button
+              type="button"
+              onClick={vozGravando ? pararVoz : iniciarVoz}
+              disabled={vozProcessando}
+              title={vozGravando ? 'Parar gravação' : 'Lançar por voz'}
+              style={{
+                width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: vozProcessando ? 'default' : 'pointer',
+                background: vozGravando ? 'rgba(239,68,68,.2)' : 'rgba(74,222,128,.1)',
+                outline: vozGravando ? '3px solid rgba(239,68,68,.5)' : '2px solid rgba(74,222,128,.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .2s',
+                animation: vozGravando ? 'vozPulse 1s ease-in-out infinite' : 'none',
+                opacity: vozProcessando ? 0.6 : 1,
+              }}
+            >
+              {vozProcessando
+                ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeOpacity=".3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>
+                : vozGravando
+                  ? <svg width="18" height="18" viewBox="0 0 24 24" fill="#f87171"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v4M8 23h8"/></svg>
+              }
+            </button>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>
+              {vozGravando ? '🔴 Ouvindo... fale agora' : vozProcessando ? 'Processando...' : 'Lançar por voz'}
+            </div>
+            {vozTranscricao && !vozErro && (
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', fontStyle: 'italic', textAlign: 'center', maxWidth: 260 }}>
+                &ldquo;{vozTranscricao}&rdquo;
+              </div>
+            )}
+            {vozErro && (
+              <div style={{ fontSize: 11, color: '#f87171', textAlign: 'center', maxWidth: 260 }}>{vozErro}</div>
+            )}
+            <style>{`@keyframes vozPulse { 0%,100%{outline-width:2px;outline-color:rgba(239,68,68,.4)} 50%{outline-width:6px;outline-color:rgba(239,68,68,.15)} }`}</style>
           </div>
 
           <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
