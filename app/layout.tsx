@@ -47,10 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <style dangerouslySetInnerHTML={{ __html: `
           html, body { overscroll-behavior: none; touch-action: pan-x pan-y; background: #071a07; }
           .mobile-nav-spacer { display: none; }
-          /* Aside do dashboard: oculto por padrão (mobile-first), visível só no desktop */
-          aside[data-tour="tour-sidebar"] { display: none !important; }
-
-          /* Desktop: esconde nav mobile, mostra aside */
+          /* Desktop: esconde nav mobile, mostra aside (display:flex sobrescreve o none inline do aside) */
           @media (min-width: 768px) {
             .mobile-bottom-nav { display: none !important; }
             aside[data-tour="tour-sidebar"] { display: flex !important; }
@@ -62,7 +59,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             /* padding-bottom garante que o conteúdo não some atrás da nav fixa */
             .dashboard-content   { padding-bottom: 5rem !important; }
             .dashboard-page-body { padding-bottom: 5rem !important; }
-            aside[data-tour="tour-sidebar"] { display: none !important; width: 0 !important; min-width: 0 !important; }
             .dashboard-page-root { min-height: 100vh !important; }
             .dashboard-page-root > aside { display: none !important; width: 0 !important; }
             [data-tour="tour-metricas"] { grid-template-columns: 1fr !important; }

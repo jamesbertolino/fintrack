@@ -906,12 +906,12 @@ useEffect(() => {
         />
       )}
 
-      {/* ── Sidebar — só renderiza no desktop (após mount para evitar SSR mismatch) ── */}
-      {mounted && !isMobile ? <aside data-tour="tour-sidebar" style={{
+      {/* ── Sidebar — inline display:none garante oculto no mobile sem depender de JS ── */}
+      {true ? <aside data-tour="tour-sidebar" style={{
         width: sidebarWidth,
         background: cores.sidebarBg,
         borderRight: `1px solid ${cores.border}`,
-        display: 'flex',
+        display: 'none', // CSS desktop-sidebar-show sobrescreve em telas grandes
         flexDirection: 'column',
         transition: 'width .2s',
         flexShrink: 0,
@@ -1104,7 +1104,7 @@ useEffect(() => {
           </svg>
           {!collapsed && 'Sair'}
         </button>
-      </aside> : null}
+      </aside> : null /* never null, always renders hidden */}
 
       {/* ── Conteúdo principal ── */}
       <main style={{
