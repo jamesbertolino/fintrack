@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.36.0'
+export const APP_VERSION = '2.37.0'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -102,4 +102,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.34.0 · 2026.05.25 — Fix críticos: confirm antes de excluir lote (lançamento+gastos); divisão por zero em metas; loop impagável em dívidas; IA: histórico persistido na sessão + limite de 10 msgs para API
  * 2.35.0 · 2026.05.25 — Fix alta prioridade: validação WhatsApp (10-15 dígitos); orçamento rejeita R$0; saldo inicial não negativo; categoria duplicada; prazo de meta no passado; aviso data futura no lançamento; filtro categoria case-insensitive; toast acima da nav mobile
  * 2.36.0 · 2026.05.25 — Fix média prioridade: confirm ao remover dívida e aporte; conta duplicada bloqueada; gastos ignora período custom inválido; relatório desabilita meses futuros; score sem spinner infinito
+ * 2.37.0 · 2026.05.25 — UX: botão × limpa busca global; title em descrições truncadas; empty state com CTA em desafios; min-height 44px no botão IA de notificações; confirm ao remover transação do preview
  */

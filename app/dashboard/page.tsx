@@ -756,6 +756,9 @@ useEffect(() => {
                   placeholder="Buscar por descrição, categoria ou valor…"
                   style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#fff', caretColor: tx.accentColor }}
                 />
+                {buscaQuery && (
+                  <button onClick={() => setBuscaQuery('')} title="Limpar busca" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }}>×</button>
+                )}
                 <kbd onClick={() => { setBuscaAb(false); setBuscaQuery('') }} style={{ fontSize: 10, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, padding: '2px 7px', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>ESC</kbd>
               </div>
               {/* Resultados */}
@@ -780,7 +783,7 @@ useEffect(() => {
                             <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280' }} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
+                            <div title={t.descricao} style={{ fontSize: 13, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
                             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 1 }}>
                               {t.categoria} · {fmtData(t.data_hora)}
                             </div>

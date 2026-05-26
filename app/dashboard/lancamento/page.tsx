@@ -668,6 +668,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
   }
 
   function removerTransacao(i: number) {
+    if (!confirm('Remover esta transação do lote?')) return
     setTransacoesDetectadas(prev => prev.filter((_, idx) => idx !== i))
     setEditandoCategoriaIdx(null)
   }

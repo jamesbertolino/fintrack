@@ -173,7 +173,7 @@ export default function NotificacoesPage() {
             </button>
           )}
           <button onClick={gerarComIA} disabled={iaAnalisando}
-            style={{ fontSize: 11, padding: '7px 14px', background: `${accentColor}18`, border: `1px solid ${accentColor}44`, borderRadius: 8, color: accentColor, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+            style={{ fontSize: 11, padding: '7px 14px', background: `${accentColor}18`, border: `1px solid ${accentColor}44`, borderRadius: 8, color: accentColor, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, minHeight: 44 }}>
             {m ? '🔮' : '🤖'} {m ? 'Consultar Oráculo' : 'Analisar com IA'}
           </button>
         </div>

@@ -410,8 +410,12 @@ export default function TarefasPage() {
                 {abaD === 'ativos' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {ativos.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '2rem', color: cores.textMuted }}>
-                        Nenhum desafio ativo. Aceite um na aba Disponíveis!
+                      <div style={{ textAlign: 'center', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                        <div style={{ fontSize: 32 }}>🎮</div>
+                        <div style={{ color: cores.textMuted, fontSize: 13 }}>Nenhum desafio ativo ainda.</div>
+                        <button onClick={() => setAbaD('disponiveis')} style={{ padding: '8px 18px', background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 20, color: '#4ade80', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                          Ver desafios disponíveis →
+                        </button>
                       </div>
                     ) : ativos.map(p => {
                       if (!p.desafio) return null
