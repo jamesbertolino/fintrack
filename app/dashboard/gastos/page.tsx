@@ -97,6 +97,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
     if (periodo === 'custom' && dataInicio && dataFim) {
       corte = new Date(dataInicio + 'T00:00:00')
       const fim = new Date(dataFim + 'T23:59:59')
+      if (fim < corte) { setLoading(false); return }
       const duracao = fim.getTime() - corte.getTime()
       desde = new Date(corte.getTime() - duracao)
 

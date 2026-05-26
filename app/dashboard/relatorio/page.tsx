@@ -194,7 +194,11 @@ export default function RelatorioPage() {
           {/* Linha 2: filtros — empilha no mobile */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '0 1rem .875rem', flexWrap: 'wrap' }}>
             <select value={mes} onChange={e => setMes(+e.target.value)} style={{ flex: 1, minWidth: 100, padding: '8px', borderRadius: 7, border: `1px solid ${cores.border}`, background: cores.surface, color: cores.text, fontSize: 14 }}>
-              {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              {MESES.map((m, i) => {
+                const mesNum = i + 1
+                const isFuturo = ano === now.getFullYear() && mesNum > now.getMonth() + 1
+                return <option key={i} value={mesNum} disabled={isFuturo}>{m}{isFuturo ? ' (futuro)' : ''}</option>
+              })}
             </select>
             <select value={ano} onChange={e => setAno(+e.target.value)} style={{ width: 90, padding: '8px', borderRadius: 7, border: `1px solid ${cores.border}`, background: cores.surface, color: cores.text, fontSize: 14 }}>
               {[now.getFullYear() - 1, now.getFullYear()].map(a => <option key={a} value={a}>{a}</option>)}

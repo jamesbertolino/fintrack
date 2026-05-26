@@ -144,6 +144,7 @@ export default function DividasPage() {
   }
 
   async function removerDivida(id: string) {
+    if (!confirm('Remover esta dívida? Esta ação não pode ser desfeita.')) return
     await fetch('/api/dividas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     setDividas(prev => prev.filter(d => d.id !== id))
   }

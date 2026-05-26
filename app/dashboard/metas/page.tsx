@@ -240,6 +240,7 @@ export default function MetasPage() {
   }
 
   async function removerAporte(aporte_id: string, valor: number) {
+    if (!confirm('Remover este aporte? O valor será descontado do progresso da meta.')) return
     await fetch(`/api/metas/${metaAporte!.id}/aportes`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

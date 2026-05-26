@@ -81,9 +81,8 @@ export default function ScorePage() {
         dividas:    div || [],
         saldoTotal,
       }))
-      setLoading(false)
     }
-    init()
+    init().catch(() => {}).finally(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
