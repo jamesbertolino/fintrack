@@ -32,7 +32,7 @@ export async function GET() {
       .select('nome, valor_total, valor_atual, contribuicao_mensal, prazo, ativo, created_at')
       .eq('user_id', user.id),
     supabase.from('orcamentos')
-      .select('categoria, valor_limite, periodo, created_at')
+      .select('categoria, valor_planejado, mes, created_at')
       .eq('user_id', user.id),
     supabase.from('conquistas_usuario')
       .select('conquista_id, desbloqueada_em')

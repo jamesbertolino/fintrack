@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.38.0'
+export const APP_VERSION = '2.39.0'
 export const APP_BUILD   = '2026.05.25'
 
 /**
@@ -104,4 +104,5 @@ export const APP_BUILD   = '2026.05.25'
  * 2.36.0 · 2026.05.25 — Fix média prioridade: confirm ao remover dívida e aporte; conta duplicada bloqueada; gastos ignora período custom inválido; relatório desabilita meses futuros; score sem spinner infinito
  * 2.37.0 · 2026.05.25 — UX: botão × limpa busca global; title em descrições truncadas; empty state com CTA em desafios; min-height 44px no botão IA de notificações; confirm ao remover transação do preview
  * 2.38.0 · 2026.05.25 — Visual: score com estado de erro + botão recarregar; hover em cards de contas e dívidas; CTA em empty states de contas e dívidas; title nos botões ✕ de gastos
+ * 2.39.0 · 2026.05.26 — Produto: export API corrige campos orcamentos; metas valida valor_atual ≤ valor_total; dívidas API valida saldo/pagamento server-side; planejamento avisa histórico insuficiente; onboarding requer seleção
  */

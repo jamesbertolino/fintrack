@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
   if (!nome || saldo == null || taxa_juros == null || pagamento_minimo == null) {
     return NextResponse.json({ error: 'Campos obrigatórios: nome, saldo, taxa_juros, pagamento_minimo' }, { status: 400 })
   }
+  if (saldo <= 0) return NextResponse.json({ error: 'Saldo deve ser maior que zero' }, { status: 400 })
+  if (taxa_juros < 0) return NextResponse.json({ error: 'Taxa de juros não pode ser negativa' }, { status: 400 })
+  if (pagamento_minimo <= 0) return NextResponse.json({ error: 'Pagamento mínimo deve ser maior que zero' }, { status: 400 })
 
   const { data, error } = await supabase.from('dividas').insert({
     user_id: user.id, nome, saldo, taxa_juros, pagamento_minimo,

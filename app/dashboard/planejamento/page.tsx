@@ -73,7 +73,7 @@ export default function PlanejamentoPage() {
   // ── Calcula médias dos últimos 3 meses completos ─────────────────────────
   const hoje      = new Date()
   const mesesBase = 3
-  const mediasBase = (() => {
+  const { mediasBase, mesesComDados } = (() => {
     let totalRec = 0, totalDesp = 0, mesesComDados = 0
     for (let i = 1; i <= mesesBase; i++) {
       const ref  = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
@@ -84,8 +84,8 @@ export default function PlanejamentoPage() {
       totalDesp += txMes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
       mesesComDados++
     }
-    if (!mesesComDados) return { rec: 0, desp: 0 }
-    return { rec: totalRec / mesesComDados, desp: totalDesp / mesesComDados }
+    if (!mesesComDados) return { mediasBase: { rec: 0, desp: 0 }, mesesComDados: 0 }
+    return { mediasBase: { rec: totalRec / mesesComDados, desp: totalDesp / mesesComDados }, mesesComDados }
   })()
 
   // ── Projeta 12 meses ─────────────────────────────────────────────────────
@@ -155,9 +155,13 @@ export default function PlanejamentoPage() {
         ) : (
           <>
             {/* Alerta dados insuficientes */}
-            {mediasBase.rec === 0 && mediasBase.desp === 0 && (
+            {mesesComDados === 0 ? (
               <div style={{ background: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 10, padding: '12px 16px', marginBottom: '1.25rem', fontSize: 13, color: '#fbbf24' }}>
                 ⚠️ Sem transações nos últimos 3 meses. Lance algumas transações para gerar uma projeção precisa.
+              </div>
+            ) : mesesComDados < 3 && (
+              <div style={{ background: 'rgba(251,191,36,.05)', border: '1px solid rgba(251,191,36,.15)', borderRadius: 10, padding: '12px 16px', marginBottom: '1.25rem', fontSize: 13, color: '#fbbf24' }}>
+                ℹ️ Projeção baseada em apenas {mesesComDados} {mesesComDados === 1 ? 'mês' : 'meses'} de dados. Com mais histórico a precisão aumenta.
               </div>
             )}
 

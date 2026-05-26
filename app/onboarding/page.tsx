@@ -77,6 +77,7 @@ export default function OnboardingPage() {
   ]
 
   async function finalizar() {
+    if (selecionados.length === 0) return
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }

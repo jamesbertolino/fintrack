@@ -269,6 +269,7 @@ export default function MetasPage() {
     setErro('')
     if (!form.nome.trim()) { setErro('Nome obrigatório'); return }
     if (!form.valor_total || parseFloat(form.valor_total) <= 0) { setErro('Valor total inválido'); return }
+    if (form.valor_atual && parseFloat(form.valor_atual) > parseFloat(form.valor_total)) { setErro('Valor atual não pode exceder o valor total da meta'); return }
     if (form.prazo) {
       const hoje = new Date()
       const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
