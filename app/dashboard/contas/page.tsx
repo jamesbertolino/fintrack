@@ -196,10 +196,13 @@ export default function ContasPage() {
 
         {/* Lista de contas */}
         {contas.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.3)' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🏦</div>
-            <div style={{ fontSize: 14, marginBottom: 8 }}>Nenhuma conta cadastrada</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 36 }}>🏦</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,.6)' }}>Nenhuma conta cadastrada</div>
             <div style={{ fontSize: 12 }}>Adicione suas contas bancárias para controlar seus saldos.</div>
+            <button onClick={() => setModal(true)} style={{ marginTop: 4, padding: '8px 20px', background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 20, color: '#4ade80', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              + Adicionar primeira conta
+            </button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -209,7 +212,10 @@ export default function ContasPage() {
               const logoUrl = getLogoBanco(banco || {})
               const saldoVisivel = conta.mostrar_saldo && !ocultarSaldos
               return (
-                <div key={conta.id} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div key={conta.id}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#111')}
+                  style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14, transition: 'background .15s' }}>
                   {/* Ícone banco */}
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: `${cor}22`, border: `1.5px solid ${cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 700, color: cor }}>
                     {logoUrl ? (
@@ -259,7 +265,8 @@ export default function ContasPage() {
                     </button>
                     <button
                       onClick={() => excluirConta(conta.id)}
-                      style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, padding: '5px 8px', color: '#f87171', fontSize: 12, cursor: 'pointer' }}
+                      title="Excluir conta"
+                      style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, padding: '5px 8px', color: '#f87171', fontSize: 12, cursor: 'pointer', minHeight: 32 }}
                     >
                       ✕
                     </button>

@@ -55,6 +55,7 @@ export default function ScorePage() {
 
   const [score,   setScore]   = useState<ScoreResult | null>(null)
   const [loading, setLoading] = useState(true)
+  const [erro,    setErro]    = useState('')
 
   useEffect(() => {
     async function init() {
@@ -82,7 +83,7 @@ export default function ScorePage() {
         saldoTotal,
       }))
     }
-    init().catch(() => {}).finally(() => setLoading(false))
+    init().catch(() => setErro('Erro ao carregar o score. Tente recarregar a página.')).finally(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -98,6 +99,12 @@ export default function ScorePage() {
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '1.5rem' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '4rem', color: cores.textMuted }}>Calculando seu score...</div>
+        ) : erro ? (
+          <div style={{ textAlign: 'center', padding: '4rem' }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+            <div style={{ fontSize: 14, color: '#f87171', marginBottom: 8 }}>{erro}</div>
+            <button onClick={() => window.location.reload()} style={{ padding: '8px 20px', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, color: '#f87171', fontSize: 13, cursor: 'pointer' }}>Recarregar</button>
+          </div>
         ) : score && (
           <>
             <div style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 16, padding: '2rem', marginBottom: '1.25rem', textAlign: 'center' }}>

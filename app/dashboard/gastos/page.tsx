@@ -380,6 +380,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.2)' : 'rgba(0,0,0,.3)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
               {periodo === 'custom' && (
                 <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim('') }}
+                  title="Limpar período personalizado"
                   style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 11, cursor: 'pointer', minHeight: 38 }}>✕</button>
               )}
             </div>
@@ -456,6 +457,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
               {' · '}<span>Os totais acima refletem o período completo</span>
             </span>
             <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }}
+              title="Limpar todos os filtros"
               style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 18, lineHeight: 1 }}>×</button>
           </div>
         )}

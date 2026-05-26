@@ -241,12 +241,19 @@ export default function DividasPage() {
 
               {/* Lista */}
               {dividas.length === 0 && !adicionando ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted, fontSize: 13 }}>
-                  Nenhuma dívida cadastrada. Adicione suas dívidas para simular o pagamento.
+                <div style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                  <div style={{ fontSize: 32 }}>💳</div>
+                  <div style={{ color: cores.textMuted, fontSize: 13 }}>Nenhuma dívida cadastrada.</div>
+                  <button onClick={() => setAdd(true)} style={{ padding: '7px 18px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 20, color: '#f87171', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    + Adicionar dívida
+                  </button>
                 </div>
               ) : (
                 dividas.map((d, i) => (
-                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 1.25rem', borderBottom: i < dividas.length - 1 ? `1px solid ${cores.border}` : 'none' }}>
+                  <div key={d.id}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.02)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 1.25rem', borderBottom: i < dividas.length - 1 ? `1px solid ${cores.border}` : 'none', transition: 'background .15s' }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>💳</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 500 }}>{d.nome}</div>
