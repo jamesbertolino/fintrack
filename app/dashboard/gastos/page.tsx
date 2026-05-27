@@ -262,6 +262,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   }
 
   async function deletar(id: string) {
+    if (!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return
     setDeletando(id)
     await fetch(`/api/lancamento/${id}`, { method: 'DELETE' })
     setDeletando(null)
