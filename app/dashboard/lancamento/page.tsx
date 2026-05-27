@@ -424,6 +424,8 @@ export default function LancamentoPage() {
   const [processando, setProcessan] = useState(false)
   const [etapaUpload, setEtapa]     = useState('')
   const [confirmando, setConfirman] = useState(false)
+  const [maisOpcoes, setMaisOpcoes]   = useState(false)
+  const [uploadAberto, setUploadAberto] = useState(false)
   const [transacoesDetectadas, setTransacoesDetectadas] = useState<TransacaoDetectada[]>([])
   const [resumoDetectado, setResumo] = useState('')
   const [csvDebug, setCsvDebug]       = useState('')
@@ -1020,17 +1022,17 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
             ))}
           </div>
 
-          {/* ── Voz ── */}
-          <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          {/* ── Voz (inline abaixo do toggle) ── */}
+          <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,.02)', border: '1px solid rgba(74,222,128,.1)', borderRadius: 10 }}>
             <button
               type="button"
               onClick={vozGravando ? pararVoz : iniciarVoz}
               disabled={vozProcessando}
               title={vozGravando ? 'Parar gravação' : 'Lançar por voz'}
               style={{
-                width: 52, height: 52, borderRadius: '50%', border: 'none', cursor: vozProcessando ? 'default' : 'pointer',
-                background: vozGravando ? 'rgba(239,68,68,.2)' : 'rgba(74,222,128,.1)',
-                outline: vozGravando ? '3px solid rgba(239,68,68,.5)' : '2px solid rgba(74,222,128,.2)',
+                width: 36, height: 36, borderRadius: '50%', border: 'none', cursor: vozProcessando ? 'default' : 'pointer', flexShrink: 0,
+                background: vozGravando ? 'rgba(239,68,68,.2)' : 'rgba(74,222,128,.12)',
+                outline: vozGravando ? '3px solid rgba(239,68,68,.4)' : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all .2s',
                 animation: vozGravando ? 'vozPulse 1s ease-in-out infinite' : 'none',
@@ -1038,24 +1040,24 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               }}
             >
               {vozProcessando
-                ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeOpacity=".3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>
+                ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><circle cx="12" cy="12" r="10" strokeOpacity=".3"/><path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur=".8s" repeatCount="indefinite"/></path></svg>
                 : vozGravando
-                  ? <svg width="18" height="18" viewBox="0 0 24 24" fill="#f87171"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v4M8 23h8"/></svg>
+                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="#f87171"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v4M8 23h8"/></svg>
               }
             </button>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>
-              {vozGravando ? '🔴 Ouvindo... fale agora' : vozProcessando ? 'Processando...' : 'Lançar por voz'}
-            </div>
-            {vozTranscricao && !vozErro && (
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', fontStyle: 'italic', textAlign: 'center', maxWidth: 260 }}>
-                &ldquo;{vozTranscricao}&rdquo;
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: vozGravando ? '#f87171' : vozProcessando ? '#4ade80' : 'rgba(255,255,255,.5)' }}>
+                {vozGravando ? '🔴 Ouvindo... fale agora' : vozProcessando ? 'Processando...' : 'Falar para lançar'}
               </div>
-            )}
-            {vozErro && (
-              <div style={{ fontSize: 11, color: '#f87171', textAlign: 'center', maxWidth: 260 }}>{vozErro}</div>
-            )}
-            <style>{`@keyframes vozPulse { 0%,100%{outline-width:2px;outline-color:rgba(239,68,68,.4)} 50%{outline-width:6px;outline-color:rgba(239,68,68,.15)} }`}</style>
+              {vozTranscricao && !vozErro && (
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  &ldquo;{vozTranscricao}&rdquo;
+                </div>
+              )}
+              {vozErro && <div style={{ fontSize: 10, color: '#f87171' }}>{vozErro}</div>}
+            </div>
+            <style>{`@keyframes vozPulse { 0%,100%{outline-width:2px;outline-color:rgba(239,68,68,.4)} 50%{outline-width:5px;outline-color:rgba(239,68,68,.12)} }`}</style>
           </div>
 
           <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
@@ -1074,13 +1076,13 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Atalhos rápidos</div>
             <TipCard id="tip-atalhos" icon="⚡" tips={tips}
               text="Clique num atalho para preencher descrição e categoria automaticamente. Seus favoritos aparecem aqui." />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexWrap: isMobile ? 'nowrap' : 'wrap', paddingBottom: isMobile ? 4 : 0 }}>
               {ATALHOS.filter(a => a.tipo === tipo).map(a => (
                 <button key={a.label} onClick={() => aplicarAtalho(a)} style={{
                   padding: '5px 12px', borderRadius: 20, border: `1px solid ${CORES[a.cat] || '#1a3a1a'}22`,
                   background: descricao === a.label ? `${CORES[a.cat]}22` : 'rgba(255,255,255,.04)',
                   color: descricao === a.label ? CORES[a.cat] || '#fff' : 'rgba(255,255,255,.5)',
-                  fontSize: 11, cursor: 'pointer', transition: 'all .15s',
+                  fontSize: 11, cursor: 'pointer', transition: 'all .15s', flexShrink: 0,
                 }}>{a.label}</button>
               ))}
             </div>
@@ -1095,13 +1097,13 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Categoria</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', overflowX: 'auto', flexWrap: isMobile ? 'nowrap' : 'wrap', paddingBottom: isMobile ? 4 : 0 }}>
                 {categorias.map(c => (
                   <button key={c} type="button" onClick={() => setCategoria(c)} style={{
-                    padding: '8px 14px', minHeight: 40, borderRadius: 20, border: `1px solid ${categoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
+                    padding: isMobile ? '6px 12px' : '8px 14px', minHeight: 36, borderRadius: 20, border: `1px solid ${categoria === c ? CORES[c] || '#4ade80' : '#1a3a1a'}`,
                     background: categoria === c ? `${CORES[c] || '#4ade80'}18` : 'transparent',
                     color: categoria === c ? CORES[c] || '#4ade80' : 'rgba(255,255,255,.4)',
-                    fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontWeight: categoria === c ? 500 : 400,
+                    fontSize: 12, cursor: 'pointer', transition: 'all .15s', fontWeight: categoria === c ? 500 : 400, flexShrink: 0,
                   }}>{c}</button>
                 ))}
                 {adicionandoCateg ? (
@@ -1126,6 +1128,23 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               </div>
             </div>
 
+            {/* ── Mais opções (conta, data, recorrente) ── */}
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => setMaisOpcoes(v => !v)}
+                style={{ width: '100%', marginBottom: 12, padding: '8px 12px', background: 'rgba(255,255,255,.03)', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.45)', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+              >
+                <span>
+                  {contaSelecionada ? `🏦 ${contas.find(c => c.id === contaSelecionada)?.nome || 'Conta selecionada'}` : recorrente ? '🔁 Recorrente · Mais opções' : '+ Conta, data e opções'}
+                </span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transition: 'transform .2s', transform: maisOpcoes ? 'rotate(180deg)' : 'none' }}>
+                  <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.3)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
+
+            {(!isMobile || maisOpcoes) && (<>
             {contas.length > 0 && (
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conta (opcional)</label>
@@ -1156,6 +1175,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>Marcar como gasto fixo mensal</div>
               </div>
             </div>
+            </>)}
 
             {alertaOrcamento && (
               <div style={{
@@ -1195,23 +1215,41 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
           </form>
 
           {/* Upload */}
-          <div data-tour="tour-importar" style={{ marginTop: '2rem', borderTop: '1px solid #1a3a1a', paddingTop: '1.5rem' }}>
+          <div data-tour="tour-importar" style={{ marginTop: '1.5rem', borderTop: '1px solid #1a3a1a', paddingTop: '1rem' }}>
 
-            {/* Cabeçalho da seção */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>📎 Importar extrato ou fatura</div>
-              <span style={{ fontSize: 10, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', color: '#4ade80', padding: '2px 8px', borderRadius: 10 }}>IA</span>
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 14 }}>
-              A IA lê o documento e lança todas as transações automaticamente — sem digitar nada.
-            </div>
+            {/* Cabeçalho da seção — no mobile vira botão toggle */}
+            <button
+              type="button"
+              onClick={() => isMobile ? setUploadAberto(v => !v) : undefined}
+              style={{ width: '100%', background: 'none', border: 'none', cursor: isMobile ? 'pointer' : 'default', padding: 0, textAlign: 'left', marginBottom: isMobile ? (uploadAberto ? 12 : 0) : 4 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600 }}>📎 Importar extrato ou fatura</div>
+                  <span style={{ fontSize: 10, background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.2)', color: '#4ade80', padding: '2px 8px', borderRadius: 10 }}>IA</span>
+                </div>
+                {isMobile && (
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform .2s', transform: uploadAberto ? 'rotate(180deg)' : 'none' }}>
+                    <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.3)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              {!isMobile && (
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 4, marginBottom: 10 }}>
+                  A IA lê o documento e lança todas as transações automaticamente — sem digitar nada.
+                </div>
+              )}
+            </button>
+
+            {/* No mobile, o conteúdo só aparece quando expandido; no desktop sempre visível */}
+            {(!isMobile || uploadAberto) && (<>
 
             {/* Tip principal do upload — mostrada apenas antes do primeiro uso */}
             <TipCard id="tip-upload-intro" icon="✨" tips={tips} accent="#a78bfa"
               text="<strong>Dica de primeiro uso:</strong> Vá ao app do seu banco → Extrato → Baixar OFX ou PDF, depois arraste o arquivo aqui. OFX é nativo (sem IA), PDF usa IA para detectar banco, datas e categorias." />
 
-            {/* 4 passos — só aparece quando não há transações detectadas e não está processando */}
-            {transacoesDetectadas.length === 0 && !processando && (
+            {/* 4 passos — só no desktop e quando não há transações detectadas */}
+            {transacoesDetectadas.length === 0 && !processando && !isMobile && (
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6, marginBottom: 14 }}>
                 {[
                   { n: '1', label: 'Envie', desc: 'PDF, imagem ou CSV', icon: '📤' },
@@ -1764,6 +1802,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                 )}
               </div>
             )}
+            </>)}
           </div>
           {/* Espaçador para o upload não ficar atrás da nav mobile */}
           <div style={{ height: '5rem' }} />
