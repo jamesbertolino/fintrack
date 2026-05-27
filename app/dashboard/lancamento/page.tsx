@@ -151,14 +151,16 @@ type TransacaoLote = {
   id: string; descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
 }
 
-// ─── Componente: Histórico de importações expansível ────────────────────────
+// ─── Componente: Histórico de importações compacto ──────────────────────────
 function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: {
   importacoes: ImportacaoItem[]; loading: boolean
   filtroAtivo: string | null; onFiltrar: (id: string | null) => void
 }) {
-  const [expandido, setExpandido] = useState<string | null>(null)
-  const [lotes, setLotes] = useState<Record<string, TransacaoLote[]>>({})
+  const [secaoAberta, setSecaoAberta] = useState(false)
+  const [expandido, setExpandido]     = useState<string | null>(null)
+  const [lotes, setLotes]             = useState<Record<string, TransacaoLote[]>>({})
   const [carregandoLote, setCarregandoLote] = useState<string | null>(null)
+  const [mostrarTodos, setMostrarTodos] = useState(false)
 
   async function toggleExpand(id: string) {
     if (expandido === id) { setExpandido(null); return }
@@ -179,99 +181,129 @@ function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: 
     'Presente': '#f472b6', 'Outros': '#6b7280',
   }
 
+  const visiveis = mostrarTodos ? importacoes : importacoes.slice(0, 5)
+
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 10 }}>Importações recentes</div>
-      {loading ? (
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', padding: '12px 0' }}>Carregando...</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {importacoes.map(imp => {
-            const icon = FORMATO_ICON[imp.formato || ''] || '📁'
-            const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
-            const dataStr = new Date(imp.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-            const pct = imp.total_detectadas > 0 ? Math.round((imp.total_inseridas / imp.total_detectadas) * 100) : 0
-            const pctDup = imp.total_detectadas > 0 ? Math.round((imp.total_duplicatas / imp.total_detectadas) * 100) : 0
-            const aberto = expandido === imp.id
-            const transacoes = lotes[imp.id] || []
+    <div style={{ marginBottom: '1rem', borderRadius: 10, border: '1px solid #1a3a1a', overflow: 'hidden' }}>
+      {/* ── Cabeçalho da seção ── */}
+      <button
+        onClick={() => setSecaoAberta(v => !v)}
+        style={{ width: '100%', background: '#0a1a0a', border: 'none', cursor: 'pointer', padding: '9px 12px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8 }}
+      >
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: 'rgba(255,255,255,.4)' }}>
+          <path d="M1 2h10M3 5h6M5 8h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+        </svg>
+        <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.6)' }}>
+          Importações recentes
+          {!loading && importacoes.length > 0 && (
+            <span style={{ marginLeft: 6, fontSize: 10, color: 'rgba(255,255,255,.3)' }}>({importacoes.length})</span>
+          )}
+          {filtroAtivo && (
+            <span style={{ marginLeft: 6, fontSize: 9, padding: '1px 5px', borderRadius: 5, background: 'rgba(129,140,248,.15)', color: '#818cf8', border: '1px solid rgba(129,140,248,.3)' }}>filtro ativo</span>
+          )}
+        </span>
+        {loading && <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)' }}>...</span>}
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform .2s', transform: secaoAberta ? 'rotate(180deg)' : 'none' }}>
+          <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.3)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
 
-            return (
-              <div key={imp.id} style={{ background: '#0a1a0a', border: `1px solid ${filtroAtivo === imp.id ? '#818cf8' : aberto ? '#2a4a2a' : '#1a3a1a'}`, borderRadius: 10, overflow: 'hidden', transition: 'border-color .2s' }}>
-                {/* Cabeçalho clicável */}
-                <button
-                  onClick={() => toggleExpand(imp.id)}
-                  style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 12px', textAlign: 'left' }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{nome}</div>
-                        {filtroAtivo === imp.id && (
-                          <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 6, background: 'rgba(129,140,248,.15)', color: '#818cf8', border: '1px solid rgba(129,140,248,.3)', flexShrink: 0 }}>filtrado</span>
+      {/* ── Lista de lotes (só quando aberta) ── */}
+      {secaoAberta && (
+        <div style={{ borderTop: '1px solid #1a3a1a' }}>
+          {loading ? (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', padding: '10px 12px' }}>Carregando...</div>
+          ) : importacoes.length === 0 ? (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', padding: '10px 12px' }}>Nenhuma importação encontrada.</div>
+          ) : (
+            <>
+              {visiveis.map((imp, idx) => {
+                const icon = FORMATO_ICON[imp.formato || ''] || '📁'
+                const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
+                const dataStr = new Date(imp.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                const pct = imp.total_detectadas > 0 ? Math.round((imp.total_inseridas / imp.total_detectadas) * 100) : 0
+                const pctDup = imp.total_detectadas > 0 ? Math.round((imp.total_duplicatas / imp.total_detectadas) * 100) : 0
+                const aberto = expandido === imp.id
+                const transacoes = lotes[imp.id] || []
+                const ativo = filtroAtivo === imp.id
+
+                return (
+                  <div key={imp.id} style={{ borderBottom: idx < visiveis.length - 1 || mostrarTodos ? '1px solid #111' : 'none' }}>
+                    {/* Linha compacta */}
+                    <button
+                      onClick={() => toggleExpand(imp.id)}
+                      style={{ width: '100%', background: aberto ? 'rgba(255,255,255,.03)' : 'none', border: 'none', cursor: 'pointer', padding: '7px 12px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, minHeight: 36 }}
+                    >
+                      <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>
+                      <span style={{ flex: 1, fontSize: 11, color: 'rgba(255,255,255,.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nome}>{nome}</span>
+                      <span style={{ fontSize: 10, color: '#4ade80', flexShrink: 0, whiteSpace: 'nowrap' }}>{imp.total_inseridas} lç</span>
+                      {imp.total_duplicatas > 0 && <span style={{ fontSize: 10, color: 'rgba(239,68,68,.6)', flexShrink: 0 }}>·{imp.total_duplicatas}d</span>}
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,.25)', flexShrink: 0 }}>{dataStr}</span>
+                      {ativo && <span style={{ fontSize: 8, padding: '1px 4px', borderRadius: 4, background: 'rgba(129,140,248,.15)', color: '#818cf8', flexShrink: 0 }}>●</span>}
+                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform .15s', transform: aberto ? 'rotate(180deg)' : 'none' }}>
+                        <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.25)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+
+                    {/* Painel expandido */}
+                    {aberto && (
+                      <div style={{ padding: '6px 12px 10px', background: 'rgba(0,0,0,.2)', borderTop: '1px solid #111' }}>
+                        {/* Barra de progresso */}
+                        {imp.total_detectadas > 0 && (
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ display: 'flex', height: 3, borderRadius: 3, overflow: 'hidden', background: 'rgba(255,255,255,.06)', marginBottom: 4 }}>
+                              <div style={{ width: `${pct}%`, background: '#16a34a' }} />
+                              {imp.total_duplicatas > 0 && <div style={{ width: `${pctDup}%`, background: 'rgba(239,68,68,.4)' }} />}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                              <span style={{ fontSize: 10, color: '#4ade80' }}>✓ {imp.total_inseridas} lançados</span>
+                              {imp.total_duplicatas > 0 && <span style={{ fontSize: 10, color: 'rgba(239,68,68,.6)' }}>⊘ {imp.total_duplicatas} dup.</span>}
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{imp.total_detectadas} total</span>
+                            </div>
+                          </div>
                         )}
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0, transition: 'transform .2s', transform: aberto ? 'rotate(180deg)' : 'none' }}>
-                          <path d="M2 3.5l3 3 3-3" stroke="rgba(255,255,255,.3)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{dataStr}</div>
-                      {imp.total_detectadas > 0 && (
-                        <div style={{ marginTop: 8 }}>
-                          <div style={{ display: 'flex', height: 4, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,.06)' }}>
-                            <div style={{ width: `${pct}%`, background: '#16a34a', transition: 'width .3s' }} />
-                            {imp.total_duplicatas > 0 && <div style={{ width: `${pctDup}%`, background: 'rgba(239,68,68,.4)' }} />}
+                        {/* Transações */}
+                        {carregandoLote === imp.id ? (
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', padding: '4px 0' }}>Carregando...</div>
+                        ) : transacoes.length === 0 ? (
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', padding: '4px 0' }}>
+                            {imp.total_inseridas === 0 ? 'Nenhuma transação inserida.' : 'Lote anterior ao vínculo por importação.'}
                           </div>
-                          <div style={{ display: 'flex', gap: 10, marginTop: 5 }}>
-                            <span style={{ fontSize: 10, color: '#4ade80' }}>✓ {imp.total_inseridas} lançado{imp.total_inseridas !== 1 ? 's' : ''}</span>
-                            {imp.total_duplicatas > 0 && <span style={{ fontSize: 10, color: 'rgba(239,68,68,.6)' }}>⊘ {imp.total_duplicatas} duplicata{imp.total_duplicatas !== 1 ? 's' : ''}</span>}
-                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{imp.total_detectadas} detectados</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </button>
-
-                {/* Lista de transações expandida */}
-                {aberto && (
-                  <div style={{ borderTop: '1px solid #1a3a1a', padding: '8px 12px 10px' }}>
-                    {carregandoLote === imp.id ? (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', padding: '6px 0' }}>Carregando transações...</div>
-                    ) : transacoes.length === 0 ? (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', padding: '6px 0' }}>
-                        {imp.total_inseridas === 0 ? 'Nenhuma transação foi inserida neste lote.' : 'Transações importadas antes do vínculo por lote.'}
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 260, overflowY: 'auto' }}>
-                          {transacoes.map(t => (
-                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
-                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: CATEGORIA_COR[t.categoria] || '#6b7280', flexShrink: 0 }} />
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao}</div>
-                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.3)', marginTop: 1 }}>
-                                  {t.categoria} · {new Date(t.data_hora).toLocaleDateString('pt-BR')}
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 200, overflowY: 'auto', marginBottom: 8 }}>
+                            {transacoes.map(t => (
+                              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', borderBottom: '1px solid rgba(255,255,255,.03)' }}>
+                                <div style={{ width: 5, height: 5, borderRadius: '50%', background: CATEGORIA_COR[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                                <div style={{ flex: 1, fontSize: 10, color: 'rgba(255,255,255,.65)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.descricao}</div>
+                                <div style={{ fontSize: 10, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(t.valor)}
                                 </div>
                               </div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(t.valor)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Botão filtrar */}
                         <button
-                          onClick={() => onFiltrar(filtroAtivo === imp.id ? null : imp.id)}
-                          style={{ marginTop: 10, width: '100%', padding: '6px', background: filtroAtivo === imp.id ? 'rgba(129,140,248,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${filtroAtivo === imp.id ? 'rgba(129,140,248,.35)' : 'rgba(255,255,255,.1)'}`, borderRadius: 7, color: filtroAtivo === imp.id ? '#818cf8' : 'rgba(255,255,255,.4)', fontSize: 11, cursor: 'pointer' }}
+                          onClick={() => onFiltrar(ativo ? null : imp.id)}
+                          style={{ width: '100%', padding: '5px', background: ativo ? 'rgba(129,140,248,.12)' : 'rgba(255,255,255,.03)', border: `1px solid ${ativo ? 'rgba(129,140,248,.3)' : 'rgba(255,255,255,.08)'}`, borderRadius: 6, color: ativo ? '#818cf8' : 'rgba(255,255,255,.35)', fontSize: 10, cursor: 'pointer' }}
                         >
-                          {filtroAtivo === imp.id ? '✕ Remover filtro do histórico' : '↓ Filtrar histórico por este lote'}
+                          {ativo ? '✕ Remover filtro' : '↓ Filtrar histórico por este lote'}
                         </button>
-                      </>
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            )
-          })}
+                )
+              })}
+              {importacoes.length > 5 && (
+                <button
+                  onClick={() => setMostrarTodos(v => !v)}
+                  style={{ width: '100%', padding: '7px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: 'rgba(255,255,255,.3)', borderTop: '1px solid #111' }}
+                >
+                  {mostrarTodos ? '↑ mostrar menos' : `↓ ver mais ${importacoes.length - 5} importações`}
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

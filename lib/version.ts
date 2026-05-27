@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.40.0'
-export const APP_BUILD   = '2026.05.26'
+export const APP_VERSION = '2.40.1'
+export const APP_BUILD   = '2026.05.27'
 
 /**
  * Histórico de versões
@@ -106,4 +106,5 @@ export const APP_BUILD   = '2026.05.26'
  * 2.38.0 · 2026.05.25 — Visual: score com estado de erro + botão recarregar; hover em cards de contas e dívidas; CTA em empty states de contas e dívidas; title nos botões ✕ de gastos
  * 2.39.0 · 2026.05.26 — Produto: export API corrige campos orcamentos; metas valida valor_atual ≤ valor_total; dívidas API valida saldo/pagamento server-side; planejamento avisa histórico insuficiente; onboarding requer seleção
  * 2.40.0 · 2026.05.26 — Feature: reconhecimento de voz no lançamento — mic button, Web Speech API pt-BR, IA converte frase em débito/crédito estruturado
+ * 2.40.1 · 2026.05.27 — UX: histórico de importações compacto — seção colapsável, linhas de 36px, painel expandido por lote, máx 5 visíveis
  */
