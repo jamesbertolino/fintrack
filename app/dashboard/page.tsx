@@ -710,7 +710,7 @@ useEffect(() => {
   const collapsed    = !isMobile && !sidebarAberta
 
   return (
-    <div className="dashboard-page-root" style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: isMobile ? 15 : 13, position: 'relative', color: cores.text }}>
+    <div className="dashboard-page-root" style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: isMobile ? 15 : 'clamp(13px, 0.9vw, 17px)', position: 'relative', color: cores.text }}>
 
       {/* Overlay IA analisando */}
       {iaAnalisando && (
@@ -1244,16 +1244,16 @@ useEffect(() => {
           {paginaAtiva === 'inicio' && (
             <div>
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 600, color: m ? '#F5E6C8' : cores.text, marginBottom: 2, fontFamily: tx.fontDisplay, letterSpacing: m ? '0.03em' : 0 }}>
+                <div style={{ fontSize: isMobile ? 16 : 'clamp(18px, 1.3vw, 26px)', fontWeight: 600, color: m ? '#F5E6C8' : cores.text, marginBottom: 2, fontFamily: tx.fontDisplay, letterSpacing: m ? '0.03em' : 0 }}>
                   {tx.saudacao}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
+                <div style={{ fontSize: 'clamp(12px, 0.85vw, 15px)', color: 'rgba(255,255,255,.4)' }}>
                   {new Intl.DateTimeFormat(idioma, { weekday: 'long', day: 'numeric', month: 'long', timeZone: timezone }).format(new Date())}
                 </div>
               </div>
 
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
-              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 8, marginBottom: '1rem' }}>
+              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
                 {([
                   { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined },
                   { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref },
@@ -1266,7 +1266,7 @@ useEffect(() => {
                       background: cores.cardBg,
                       border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder}`,
                       borderRadius: isMobile ? 14 : 10,
-                      padding: isMobile ? '16px 18px' : '10px 12px',
+                      padding: isMobile ? '16px 18px' : 'clamp(10px, 1vw, 20px) clamp(12px, 1.2vw, 24px)',
                       boxShadow: cores.cardShadow,
                       cursor: card.label === tx.metLabels[3] || card.href ? 'pointer' : 'default',
                       transition: 'border-color .2s',
@@ -1275,12 +1275,12 @@ useEffect(() => {
                       justifyContent: isMobile ? 'space-between' : undefined,
                     }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'space-between', gap: isMobile ? 10 : 0, marginBottom: isMobile ? 0 : 5 }}>
-                      <span style={{ fontSize: isMobile ? 22 : 12 }}>{card.icone}</span>
-                      <span style={{ fontSize: isMobile ? 13 : 9, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
+                      <span style={{ fontSize: isMobile ? 22 : 'clamp(14px, 1.1vw, 22px)' }}>{card.icone}</span>
+                      <span style={{ fontSize: isMobile ? 13 : 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
                     </div>
-                    <div style={{ fontSize: isMobile ? 20 : 18, fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
+                    <div style={{ fontSize: isMobile ? 20 : 'clamp(18px, 1.5vw, 28px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
                     {card.label === tx.metLabels[3] && (
-                      <div style={{ fontSize: 11, color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
+                      <div style={{ fontSize: 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
                   </div>
                 ))}
@@ -1613,8 +1613,8 @@ useEffect(() => {
                   { label: nomeNivel,     val: `${nivel.pct}%`,          cor: nivel.cor },
                 ].map(card => (
                   <div key={card.label} style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 10, padding: '12px 14px' }}>
-                    <div style={{ fontSize: 10, color: cores.textMuted, marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</div>
-                    <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 500, color: card.cor }}>{card.val}</div>
+                    <div style={{ fontSize: 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, marginBottom: 4, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</div>
+                    <div style={{ fontSize: isMobile ? 16 : 'clamp(18px, 1.4vw, 26px)', fontWeight: 500, color: card.cor }}>{card.val}</div>
                   </div>
                 ))}
               </div>
