@@ -1278,7 +1278,7 @@ useEffect(() => {
                       <span style={{ fontSize: isMobile ? 22 : 'clamp(14px, 1.1vw, 22px)' }}>{card.icone}</span>
                       <span style={{ fontSize: isMobile ? 13 : 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
                     </div>
-                    <div style={{ fontSize: isMobile ? 20 : 'clamp(18px, 1.5vw, 28px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
+                    <div style={{ fontSize: isMobile ? 20 : 'clamp(22px, 2vw, 36px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
                     {card.label === tx.metLabels[3] && (
                       <div style={{ fontSize: 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
