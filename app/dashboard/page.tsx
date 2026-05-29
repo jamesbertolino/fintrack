@@ -498,6 +498,7 @@ useEffect(() => {
 useEffect(() => {
   function onKey(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); setBuscaAb(true) }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); router.push('/dashboard/lancamento') }
     if (e.key === 'Escape') { setBuscaAb(false); setBuscaQuery('') }
   }
   window.addEventListener('keydown', onKey)
@@ -1427,6 +1428,46 @@ useEffect(() => {
                       </div>
                     </div>
                     <div style={{ fontSize: 11, color: cores.textMuted, flexShrink: 0 }}>Ver detalhes →</div>
+                  </div>
+                )
+              })()}
+
+              {/* Meta em destaque — a mais próxima de ser concluída */}
+              {metas.length > 0 && (() => {
+                const metaDestaque = [...metas]
+                  .filter(mt => mt.valor_total > 0 && mt.valor_atual < mt.valor_total)
+                  .sort((a, b) => (b.valor_atual / b.valor_total) - (a.valor_atual / a.valor_total))[0]
+                if (!metaDestaque) return null
+                const pct = Math.min(Math.round((metaDestaque.valor_atual / metaDestaque.valor_total) * 100), 100)
+                const falta = metaDestaque.valor_total - metaDestaque.valor_atual
+                const gradStart = m ? '#8B6914' : cores.accent + 'aa'
+                const gradEnd   = m ? '#D4AF37' : cores.accent
+                return (
+                  <div
+                    onClick={() => router.push('/dashboard/metas')}
+                    style={{ background: cores.cardBg, border: `1px solid ${m ? '#D4AF3733' : cores.accent + '33'}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = m ? '#D4AF3766' : cores.accent + '66' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = m ? '#D4AF3733' : cores.accent + '33' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.1em', fontFamily: tx.fontDisplay, marginBottom: 3 }}>
+                          {m ? '🎯 Quest mais próxima' : '🎯 Meta mais próxima'}
+                        </div>
+                        <div style={{ fontSize: 'clamp(14px, 1.1vw, 18px)', fontWeight: 700, color: cores.text }}>{metaDestaque.nome}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 'clamp(20px, 1.8vw, 30px)', fontWeight: 800, color: tx.accentColor, lineHeight: 1 }}>{pct}%</div>
+                        <div style={{ fontSize: 10, color: cores.textMuted, marginTop: 2 }}>concluído</div>
+                      </div>
+                    </div>
+                    <div style={{ height: 8, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})`, borderRadius: 4, transition: 'width .6s ease' }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: cores.textMuted }}>
+                      <span>{formatBRL(metaDestaque.valor_atual)} guardados</span>
+                      <span style={{ color: tx.accentColor }}>faltam {formatBRL(falta)} →</span>
+                    </div>
                   </div>
                 )
               })()}

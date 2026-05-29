@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, useMemo, Suspense } from 'react'
+import { useCallback, useEffect, useState, useMemo, Suspense, useRef } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -73,6 +73,27 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const [excluindoLote, setExcluindoLote] = useState(false)
 
   const [deletando, setDeletando] = useState<string | null>(null)
+
+  // ─── swipe mobile ───
+  const swipeTouchX   = useRef<Record<string, number>>({})
+  const [swipeOffset, setSwipeOffset] = useState<Record<string, number>>({})
+  function onSwipeStart(id: string, e: React.TouchEvent) {
+    swipeTouchX.current[id] = e.touches[0].clientX
+  }
+  function onSwipeMove(id: string, e: React.TouchEvent) {
+    const dx = e.touches[0].clientX - (swipeTouchX.current[id] ?? e.touches[0].clientX)
+    const clamped = Math.max(-90, Math.min(0, dx)) // só para esquerda (delete)
+    setSwipeOffset(prev => ({ ...prev, [id]: clamped }))
+  }
+  function onSwipeEnd(id: string, t: Transacao) {
+    const offset = swipeOffset[id] ?? 0
+    if (offset < -70) {
+      deletar(id)
+    } else if (offset > 40) {
+      abrirEdicao(t)
+    }
+    setSwipeOffset(prev => ({ ...prev, [id]: 0 }))
+  }
 
   // ─── modal edição ───
   const [modalAberto, setModalAberto]               = useState(false)
@@ -916,11 +937,23 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
               </div>
 
               {filtradas.map(t => (
-                <div key={t.id} style={{
-                  padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,.04)',
-                  background: selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : 'transparent',
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}>
+                <div key={t.id} style={{ position: 'relative', overflow: 'hidden', borderBottom: '1px solid rgba(255,255,255,.04)' }}>
+                  {/* Fundo vermelho revelado ao arrastar */}
+                  <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 80, background: 'rgba(239,68,68,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                    🗑️
+                  </div>
+                  {/* Row deslizável */}
+                  <div
+                    onTouchStart={e => onSwipeStart(t.id, e)}
+                    onTouchMove={e => onSwipeMove(t.id, e)}
+                    onTouchEnd={() => onSwipeEnd(t.id, t)}
+                    style={{
+                      transform: `translateX(${swipeOffset[t.id] ?? 0}px)`,
+                      transition: (swipeOffset[t.id] ?? 0) === 0 ? 'transform .25s ease' : 'none',
+                      padding: '10px 12px',
+                      background: selecionados.includes(t.id) ? 'rgba(74,222,128,.04)' : '#0a1205',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
                   <input type="checkbox" checked={selecionados.includes(t.id)} onChange={() => toggleSelecionado(t.id)}
                     onClick={e => e.stopPropagation()}
                     style={{ cursor: 'pointer', accentColor: '#4ade80', width: 15, height: 15, flexShrink: 0 }} />
@@ -950,6 +983,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 6, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}>
                     <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
+                  </div>
                 </div>
               ))}
 
