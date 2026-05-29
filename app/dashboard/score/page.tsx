@@ -139,7 +139,7 @@ export default function ScorePage() {
                   <div style={{ fontSize: 14, fontWeight: 600, color: cores.text, marginBottom: 4 }}>
                     Seu score começa aqui!
                   </div>
-                  <div style={{ fontSize: 12, color: cores.textMuted, lineHeight: 1.6 }}>
+                  <div style={{ fontSize: 12, color: cores.textFaint, lineHeight: 1.6 }}>
                     Para ter um score real, complete 3 passos:
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>

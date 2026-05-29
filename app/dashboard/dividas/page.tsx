@@ -252,7 +252,7 @@ export default function DividasPage() {
                       + Adicionar dívida
                     </button>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 8 }}>
                     {[
                       { emoji: '💳', label: 'Cartão de crédito', desc: 'Rotativo e parcelado' },
                       { emoji: '🏦', label: 'Financiamento',      desc: 'Imóvel ou veículo' },

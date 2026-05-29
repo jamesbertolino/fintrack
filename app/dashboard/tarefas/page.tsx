@@ -104,27 +104,35 @@ export default function TarefasPage() {
 
   const carregar = useCallback(async () => {
     setLoading(true)
-    const [rM, rD, rC] = await Promise.all([
-      fetch('/api/missoes'),
-      fetch('/api/desafios'),
-      fetch('/api/conquistas', { method: 'POST' }),
-    ])
-    if (rM.status === 401 || rD.status === 401) { router.push('/login'); return }
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 8000)
+    try {
+      const [rM, rD, rC] = await Promise.all([
+        fetch('/api/missoes',   { signal: ctrl.signal }),
+        fetch('/api/desafios',  { signal: ctrl.signal }),
+        fetch('/api/conquistas', { method: 'POST', signal: ctrl.signal }),
+      ])
+      clearTimeout(timer)
+      if (rM.status === 401 || rD.status === 401) { router.push('/login'); return }
 
-    const [dM, dD, dC] = await Promise.all([rM.json(), rD.json(), rC.json()])
+      const [dM, dD, dC] = await Promise.all([rM.json(), rD.json(), rC.json()])
 
-    setMissoes(dM)
-    setCatalogo(dD.catalogo || CATALOGO_DESAFIOS)
-    setAtivos(dD.ativos || [])
-    setHistorico(dD.historico || [])
+      setMissoes(dM)
+      setCatalogo(dD.catalogo || CATALOGO_DESAFIOS)
+      setAtivos(dD.ativos || [])
+      setHistorico(dD.historico || [])
 
-    if (dC.conquistas) {
-      setConquistas(dC.conquistas)
-      const novas = (dC.conquistas as ConquistaComStatus[]).filter(c => c.nova)
-      if (novas.length > 0) { setNovasC(novas); setMostrarNovas(true) }
+      if (dC.conquistas) {
+        setConquistas(dC.conquistas)
+        const novas = (dC.conquistas as ConquistaComStatus[]).filter(c => c.nova)
+        if (novas.length > 0) { setNovasC(novas); setMostrarNovas(true) }
+      }
+    } catch (e) {
+      clearTimeout(timer)
+      if ((e as Error).name !== 'AbortError') console.error('[tarefas] carregar:', e)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }, [router])
 
   // eslint-disable-next-line react-hooks/exhaustive-deps,react-hooks/set-state-in-effect

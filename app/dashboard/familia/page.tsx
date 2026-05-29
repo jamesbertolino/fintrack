@@ -218,20 +218,23 @@ export default function FamiliaPage() {
         <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 18, lineHeight: 1, padding: 4 }}>←</button>
         <PoupaUpLogo mode="compact" />
         <span style={{ fontSize: 13, color: cores.textMuted }}>{m ? '👑 Reino Familiar' : '👨‍👩‍👧 Família'}</span>
-        <div style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
-          {([
-            { id: 'dashboard', label: '📊 Dashboard' },
-            { id: 'fontes',    label: '💰 Fontes' },
-            { id: 'extrato',   label: '📋 Extrato' },
-          ] as const).map(t => (
-            <button key={t.id} onClick={() => setAba(t.id)} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: aba === t.id ? 600 : 400, background: aba === t.id ? cores.accent : 'transparent', color: aba === t.id ? '#fff' : cores.textMuted }}>
-              {t.label}
+        {/* Abas só aparecem quando há família configurada */}
+        {!erro && !loading && (
+          <div style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
+            {([
+              { id: 'dashboard', label: '📊 Dashboard' },
+              { id: 'fontes',    label: '💰 Fontes' },
+              { id: 'extrato',   label: '📋 Extrato' },
+            ] as const).map(t => (
+              <button key={t.id} onClick={() => setAba(t.id)} style={{ padding: '6px 12px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: aba === t.id ? 600 : 400, background: aba === t.id ? cores.accent : 'transparent', color: aba === t.id ? '#fff' : cores.textMuted }}>
+                {t.label}
+              </button>
+            ))}
+            <button onClick={() => router.push('/dashboard/perfil?aba=grupo')} style={{ marginLeft: 6, fontSize: 12, padding: '6px 12px', borderRadius: 7, border: `1px solid ${cores.border}`, background: 'transparent', color: cores.textMuted, cursor: 'pointer' }}>
+              Membros →
             </button>
-          ))}
-          <button onClick={() => router.push('/dashboard/perfil?aba=grupo')} style={{ marginLeft: 6, fontSize: 12, padding: '6px 12px', borderRadius: 7, border: `1px solid ${cores.border}`, background: 'transparent', color: cores.textMuted, cursor: 'pointer' }}>
-            Membros →
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '1.5rem' }}>

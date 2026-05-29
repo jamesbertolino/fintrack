@@ -1456,7 +1456,17 @@ useEffect(() => {
               )}
 
               {/* ── ABA ANÁLISE ── */}
-              {abaInicio === 'analise' && (
+              {abaInicio === 'analise' && transacoes.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12 }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: cores.text, marginBottom: 6 }}>Sem dados para analisar</div>
+                  <div style={{ fontSize: 13, color: cores.textMuted, marginBottom: 18 }}>Registre transações para ver insights, comparativos e relatórios.</div>
+                  <button onClick={() => router.push('/dashboard/lancamento')} style={{ padding: '10px 22px', background: tx.accentColor, border: 'none', borderRadius: 8, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    + Registrar transação
+                  </button>
+                </div>
+              )}
+              {abaInicio === 'analise' && transacoes.length > 0 && (
                 <div>
                   {/* Insights + Por categoria */}
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
@@ -1613,7 +1623,22 @@ useEffect(() => {
               )}
 
               {/* ── ABA PROGRESSO ── */}
-              {abaInicio === 'progresso' && (
+              {abaInicio === 'progresso' && transacoes.length === 0 && metas.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12 }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🎯</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: cores.text, marginBottom: 6 }}>Seu progresso começa aqui</div>
+                  <div style={{ fontSize: 13, color: cores.textMuted, marginBottom: 18 }}>Crie metas e registre transações para acompanhar sua evolução financeira.</div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' as const }}>
+                    <button onClick={() => router.push('/dashboard/metas')} style={{ padding: '10px 20px', background: tx.accentColor, border: 'none', borderRadius: 8, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      🎯 Criar meta
+                    </button>
+                    <button onClick={() => router.push('/dashboard/lancamento')} style={{ padding: '10px 20px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 8, color: cores.text, fontSize: 13, cursor: 'pointer' }}>
+                      + Registrar transação
+                    </button>
+                  </div>
+                </div>
+              )}
+              {abaInicio === 'progresso' && (transacoes.length > 0 || metas.length > 0) && (
                 <div>
                   {/* Score financeiro */}
                   {(() => {
