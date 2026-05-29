@@ -48,7 +48,7 @@ export function calcularScore(input: ScoreInput): ScoreResult {
   const poupancaPts = clamp(Math.round((taxaPoupanca / 0.20) * 250), 0, 250)
 
   // ── 2. Controle de orçamentos (0-200) ───────────────────────────────────
-  let orcScore = 200
+  let orcScore = 0 // sem orçamentos cadastrados = 0, não 200
   if (orcamentos.length > 0) {
     const inicioMes = `${hoje.toISOString().slice(0, 7)}-01`
     const porCat: Record<string, number> = {}

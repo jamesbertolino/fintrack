@@ -207,11 +207,32 @@ export default function IAPage() {
           </div>
         )}
 
+        {/* Perguntas rápidas inline — aparecem logo após a boas-vindas */}
+        {msgs.length === 1 && !loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, paddingLeft: 28 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Sugestões para começar</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, width: '100%', maxWidth: 560 }}>
+              {PERGUNTAS_RAPIDAS.map(p => (
+                <button key={p} onClick={() => enviar(p)} style={{
+                  fontSize: 12, padding: '10px 14px', borderRadius: 10, textAlign: 'left',
+                  border: '1px solid #1a3a1a', background: 'rgba(255,255,255,.04)',
+                  color: 'rgba(255,255,255,.7)', cursor: 'pointer', transition: 'all .15s', lineHeight: 1.4,
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#4ade80'; e.currentTarget.style.background = 'rgba(74,222,128,.06)'; e.currentTarget.style.color = '#fff' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1a3a1a'; e.currentTarget.style.background = 'rgba(255,255,255,.04)'; e.currentTarget.style.color = 'rgba(255,255,255,.7)' }}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* Perguntas rápidas */}
-      {msgs.length <= 1 && (
+      {/* Perguntas rápidas no rodapé — só quando já há conversa em andamento */}
+      {msgs.length > 1 && msgs.length <= 3 && (
         <div style={{ padding: '0 1.5rem', maxWidth: 760, width: '100%', margin: '0 auto' }}>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' }}>Perguntas rápidas</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '1rem' }}>

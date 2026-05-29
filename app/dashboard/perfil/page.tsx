@@ -158,6 +158,20 @@ export default function PerfilPage() {
   }
 
   const carregar = useCallback(async () => {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 12000)
+    )
+    try {
+      await Promise.race([carregarInterno(), timeout])
+    } catch (e) {
+      if (e instanceof Error && e.message === 'timeout') {
+        setErro('O perfil demorou muito para carregar. Verifique sua conexão.')
+      }
+      setLoading(false)
+    }
+  }, [supabase, router]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const carregarInterno = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
@@ -255,7 +269,7 @@ export default function PerfilPage() {
     }
 
     setLoading(false)
-  }, [supabase, router])
+  }, [supabase, router]) // carregarInterno
 
   async function familiaConvidar() {
     if (!familiaEmail.trim()) return
@@ -632,8 +646,19 @@ export default function PerfilPage() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 13, color: cores.textMuted, fontFamily: 'system-ui' }}>Carregando perfil...</div>
+    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+      {erro ? (
+        <>
+          <div style={{ fontSize: 32 }}>⚠️</div>
+          <div style={{ fontSize: 14, color: '#f87171', fontFamily: 'system-ui', textAlign: 'center', maxWidth: 320 }}>{erro}</div>
+          <button onClick={() => { setErro(''); setLoading(true); carregar() }}
+            style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: cores.accent, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            Tentar novamente
+          </button>
+        </>
+      ) : (
+        <div style={{ fontSize: 13, color: cores.textMuted, fontFamily: 'system-ui' }}>Carregando perfil...</div>
+      )}
     </div>
   )
 
