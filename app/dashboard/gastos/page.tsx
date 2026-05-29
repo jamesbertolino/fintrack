@@ -382,32 +382,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             <span style={{ color: 'rgba(255,255,255,.2)' }}>/</span>
             <span style={{ fontSize: 15, fontWeight: 500 }}>Gastos</span>
           </div>
-          {!isMobile && (
-          /* Desktop: filtro sempre visível em linha */
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 4, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
-              {[['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1 ano']].map(([v, l]) => (
-                <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim('') }} style={{
-                  padding: '8px 12px', minHeight: 38, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
-                  background: periodo === v ? '#16a34a' : 'transparent',
-                  color: periodo === v ? '#fff' : 'rgba(255,255,255,.4)',
-                }}>{l}</button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
-                style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.2)' : 'rgba(0,0,0,.3)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
-              <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11 }}>até</span>
-              <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) setPeriodo('custom') }}
-                style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.2)' : 'rgba(0,0,0,.3)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '8px 10px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
-              {periodo === 'custom' && (
-                <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim('') }}
-                  title="Limpar período personalizado"
-                  style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 11, cursor: 'pointer', minHeight: 38 }}>✕</button>
-              )}
-            </div>
-          </div>
-          )}
+          {/* topbar desktop limpa — período fica no corpo da página */}
         </div>
         {isMobile && (
           /* Mobile: pills em linha + inputs de data abaixo quando 📅 ativo */
@@ -446,6 +421,33 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
       </div>
 
       <div style={{ padding: '1.5rem' }}>
+
+        {/* ── Seletor de período — desktop integrado ao conteúdo ── */}
+        {!isMobile && (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 3, background: 'rgba(0,0,0,.3)', border: '1px solid #1a3a1a', borderRadius: 8, padding: 3 }}>
+              {[['7', '7d'], ['30', '30d'], ['90', '90d'], ['365', '1 ano']].map(([v, l]) => (
+                <button key={v} onClick={() => { setPeriodo(v); setDataInicio(''); setDataFim('') }} style={{
+                  padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                  background: periodo === v ? '#16a34a' : 'transparent',
+                  color: periodo === v ? '#fff' : 'rgba(255,255,255,.4)',
+                }}>{l}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
+                style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
+              <span style={{ color: 'rgba(255,255,255,.25)', fontSize: 11 }}>até</span>
+              <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) setPeriodo('custom') }}
+                style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
+              {periodo === 'custom' && (
+                <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim('') }}
+                  style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 11, cursor: 'pointer' }}>✕</button>
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{labelPeriodo(periodo)}</span>
+          </div>
+        )}
 
         {/* ── Cards de métricas — sempre período completo, nunca filtrado ── */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))', gap: 10, marginBottom: filtroAtivo ? 6 : '1.25rem' }}>

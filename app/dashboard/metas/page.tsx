@@ -401,15 +401,50 @@ export default function MetasPage() {
         {abaSel === 'metas' && (
           <>
             {metas.length === 0 ? (
-              <div style={{ background: '#111', border: '1px dashed #1a3a1a', borderRadius: 12, padding: '3rem', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Nenhuma meta ainda</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', marginBottom: 8, lineHeight: 1.6 }}>Crie sua primeira meta e comece a acumular XP</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.25)', marginBottom: 24, lineHeight: 1.6 }}>
-                  Exemplos: Reserva de emergência, Viagem, Novo celular, Aposentadoria.
+              <div style={{ maxWidth: 560, margin: '0 auto' }}>
+                <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>🎯</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Nenhuma meta ainda</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', lineHeight: 1.6 }}>
+                    Crie sua primeira meta e comece a acumular XP. Escolha um modelo ou crie do zero.
+                  </div>
                 </div>
-                <button onClick={() => { resetForm(); setShowForm(true) }} style={{ padding: '12px 28px', minHeight: 44, background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-                  Criar primeira meta
+                {/* Templates de metas */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
+                  {[
+                    { emoji: '🏦', nome: 'Reserva de emergência', valor: '10000', contrib: '500', tipo: 'emergencia' as const },
+                    { emoji: '✈️', nome: 'Viagem',                valor: '5000',  contrib: '300', tipo: 'acumulacao' as const },
+                    { emoji: '📱', nome: 'Novo celular',           valor: '3000',  contrib: '200', tipo: 'acumulacao' as const },
+                    { emoji: '🏠', nome: 'Apartamento próprio',    valor: '50000', contrib: '1000', tipo: 'acumulacao' as const },
+                  ].map(t => (
+                    <button key={t.nome} onClick={() => {
+                      setForm({ nome: t.nome, tipo: t.tipo, valor_total: t.valor, valor_atual: '0', contribuicao_mensal: t.contrib, prazo: '', categoria_vinculada: '' })
+                      setShowForm(true)
+                    }} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                      background: '#111', border: '1px solid #1a3a1a', borderRadius: 10,
+                      cursor: 'pointer', textAlign: 'left', transition: 'border-color .15s',
+                    }}
+                      onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
+                      onMouseLeave={e => (e.currentTarget.style.borderColor = '#1a3a1a')}>
+                      <span style={{ fontSize: 24, flexShrink: 0 }}>{t.emoji}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{t.nome}</div>
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>
+                          R$ {parseInt(t.valor).toLocaleString('pt-BR')} · R$ {parseInt(t.contrib).toLocaleString('pt-BR')}/mês
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => { resetForm(); setShowForm(true) }} style={{
+                  width: '100%', padding: '11px', background: 'transparent', border: '1px dashed #1a3a1a',
+                  borderRadius: 10, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer',
+                  transition: 'all .15s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#16a34a'; e.currentTarget.style.color = '#4ade80' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#1a3a1a'; e.currentTarget.style.color = 'rgba(255,255,255,.4)' }}>
+                  + Criar meta personalizada
                 </button>
               </div>
             ) : (

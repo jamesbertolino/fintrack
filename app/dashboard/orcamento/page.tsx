@@ -351,10 +351,40 @@ export default function OrcamentoPage() {
           {loading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted }}>Carregando...</div>
           ) : orcamentos.length === 0 ? (
-            <div style={{ padding: '2.5rem', textAlign: 'center', color: cores.textMuted }}>
+            <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted }}>
               <div style={{ fontSize: 36, marginBottom: 10 }}>📊</div>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 6 }}>{m ? 'O livro do tesouro está vazio' : 'Nenhum orçamento definido'}</div>
-              <div style={{ fontSize: 12, color: cores.textFaint }}>Adicione categorias abaixo ou duplique o mês anterior.</div>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4, color: cores.text }}>{m ? 'O livro do tesouro está vazio' : 'Nenhum orçamento definido'}</div>
+              <div style={{ fontSize: 12, color: cores.textFaint, marginBottom: 20 }}>Clique numa categoria para adicionar rapidamente:</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 400, margin: '0 auto 8px' }}>
+                {[
+                  { cat: 'Alimentação', val: 800,  emoji: '🍽️' },
+                  { cat: 'Transporte',  val: 400,  emoji: '🚗' },
+                  { cat: 'Moradia',     val: 1500, emoji: '🏠' },
+                  { cat: 'Saúde',       val: 300,  emoji: '🏥' },
+                  { cat: 'Lazer',       val: 300,  emoji: '🎬' },
+                  { cat: 'Educação',    val: 200,  emoji: '📚' },
+                ].map(s => (
+                  <button key={s.cat} onClick={async () => {
+                    await fetch('/api/orcamento', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ categoria: s.cat, valor_planejado: s.val, mes }),
+                    })
+                    carregar()
+                  }} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
+                    background: `${cores.accent}10`, border: `1px solid ${cores.accent}30`,
+                    borderRadius: 20, cursor: 'pointer', fontSize: 12, color: cores.text,
+                    transition: 'all .15s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = `${cores.accent}22`; e.currentTarget.style.borderColor = `${cores.accent}66` }}
+                    onMouseLeave={e => { e.currentTarget.style.background = `${cores.accent}10`; e.currentTarget.style.borderColor = `${cores.accent}30` }}>
+                    <span>{s.emoji}</span>
+                    <span>{s.cat}</span>
+                    <span style={{ color: cores.textFaint, fontSize: 11 }}>R$ {s.val}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             orcamentos.map(o => {
