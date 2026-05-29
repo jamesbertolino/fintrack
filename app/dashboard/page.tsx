@@ -1212,6 +1212,7 @@ useEffect(() => {
 
         {/* Conteúdo das páginas */}
         <div className="dashboard-content" style={{ flex: 1, overflow: 'auto', padding: isMobile ? '.875rem' : '1.25rem 1.5rem' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
 
           {/* Banner offline */}
           {isOffline && (() => {
@@ -1785,6 +1786,7 @@ useEffect(() => {
             </div>
           )}
 
+          </div>{/* fim maxWidth wrapper */}
         </div>
       </main>
 
