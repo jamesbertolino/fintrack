@@ -507,6 +507,43 @@ useEffect(() => {
   const xp           = calcularXP({ transacoes, metas, xpBonus: profile?.xp_bonus || 0 })
   const { receitas, despesas, saldo } = xp
 
+  // Tendência vs mês anterior
+  const tendencia = (() => {
+    const hoje = new Date()
+    const anoA = hoje.getFullYear(), mesA = hoje.getMonth()
+    const anoB = mesA === 0 ? anoA - 1 : anoA, mesB = mesA === 0 ? 11 : mesA - 1
+    function resumo(ano: number, mes: number) {
+      const txs = transacoes.filter(t => { const d = new Date(t.data_hora); return d.getFullYear() === ano && d.getMonth() === mes })
+      const rec  = txs.filter(t => t.tipo === 'credito').reduce((s, t) => s + t.valor, 0)
+      const desp = txs.filter(t => t.tipo === 'debito').reduce((s, t) => s + Math.abs(t.valor), 0)
+      return { receitas: rec, despesas: desp, saldo: rec - desp }
+    }
+    const prev = resumo(anoB, mesB)
+    function delta(atual: number, anterior: number) {
+      if (anterior === 0) return null
+      return ((atual - anterior) / anterior) * 100
+    }
+    return {
+      saldo:    delta(saldo,    prev.saldo),
+      receitas: delta(receitas, prev.receitas),
+      despesas: delta(despesas, prev.despesas),
+      temPrev:  prev.receitas > 0 || prev.despesas > 0,
+    }
+  })()
+
+  // Previsão de fechamento do mês
+  const previsaoMes = (() => {
+    const hoje = new Date()
+    const diaAtual   = hoje.getDate()
+    const diasNoMes  = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
+    const diasRestam = diasNoMes - diaAtual
+    if (diaAtual < 3 || despesas === 0) return null
+    const mediaDiaria   = despesas / diaAtual
+    const projecao      = despesas + mediaDiaria * diasRestam
+    const diferenca     = projecao - receitas
+    return { projecao, mediaDiaria, diasRestam, noNegativo: diferenca > 0, diferenca }
+  })()
+
   // Range de datas para link do card (primeira e última transação)
   const gastosHref = (() => {
     if (!transacoes.length) return '/dashboard/gastos'
@@ -1252,13 +1289,38 @@ useEffect(() => {
                 </div>
               </div>
 
+              {/* Estado vazio — sem transações */}
+              {transacoes.length === 0 && (
+                <div style={{ textAlign: 'center', padding: isMobile ? '2rem 1rem' : '3rem 2rem', background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, marginBottom: '1rem' }}>
+                  <div style={{ fontSize: 52, marginBottom: 16 }}>{m ? '📜' : '🏦'}</div>
+                  <div style={{ fontSize: isMobile ? 18 : 'clamp(18px, 1.4vw, 24px)', fontWeight: 700, color: cores.text, marginBottom: 8, fontFamily: tx.fontDisplay }}>
+                    {m ? 'O Livro do Tesouro está vazio' : 'Comece registrando seus gastos'}
+                  </div>
+                  <div style={{ fontSize: 14, color: cores.textMuted, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
+                    {m ? 'Registre suas batalhas financeiras para que o Oráculo possa guiar seu reino.' : 'Adicione sua primeira transação para ver o painel completo com gráficos, insights e previsões.'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' as const }}>
+                    <button
+                      onClick={() => router.push('/dashboard/lancamento')}
+                      style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: tx.accentColor, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {m ? '📜 Registrar batalha' : '+ Adicionar transação'}
+                    </button>
+                    <button
+                      onClick={() => router.push('/dashboard/contas')}
+                      style={{ padding: '12px 24px', borderRadius: 10, border: `1px solid ${cores.border}`, background: 'transparent', color: cores.text, fontSize: 14, cursor: 'pointer' }}>
+                      {m ? '🏦 Configurar cofres' : '🏦 Configurar contas'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
               <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
                 {([
-                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined },
-                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref },
-                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref },
-                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,           icone: tx.metIcones[3], href: undefined },
+                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined,      delta: tendencia.temPrev ? tendencia.saldo    : null, deltaInverso: false },
+                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref,   delta: tendencia.temPrev ? tendencia.receitas : null, deltaInverso: false },
+                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref,     delta: tendencia.temPrev ? tendencia.despesas : null, deltaInverso: true  },
+                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,            icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false },
                 ] as const).map(card => (
                   <div key={card.label}
                     onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
@@ -1289,12 +1351,43 @@ useEffect(() => {
                       <span style={{ fontSize: isMobile ? 13 : 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
                     </div>
                     <div style={{ fontSize: isMobile ? 20 : 'clamp(22px, 2vw, 36px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
+                    {card.delta !== null && (() => {
+                      const positivo = card.deltaInverso ? card.delta < 0 : card.delta > 0
+                      const cor = positivo ? '#4ade80' : '#f87171'
+                      const seta = card.delta > 0 ? '↑' : '↓'
+                      return (
+                        <div style={{ fontSize: 'clamp(10px, 0.75vw, 12px)', color: cor, marginTop: 4, display: 'flex', alignItems: 'center', gap: 3, justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
+                          <span>{seta} {Math.abs(card.delta).toFixed(0)}%</span>
+                          <span style={{ color: cores.textFaint }}>vs mês ant.</span>
+                        </div>
+                      )
+                    })()}
                     {card.label === tx.metLabels[3] && (
                       <div style={{ fontSize: 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
                   </div>
                 ))}
               </div>
+
+              {/* Previsão de fechamento do mês */}
+              {previsaoMes && (
+                <div style={{ background: previsaoMes.noNegativo ? 'rgba(248,113,113,.06)' : 'rgba(74,222,128,.06)', border: `1px solid ${previsaoMes.noNegativo ? 'rgba(248,113,113,.25)' : 'rgba(74,222,128,.2)'}`, borderRadius: 12, padding: '10px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>{previsaoMes.noNegativo ? '⚠️' : '✅'}</span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 'clamp(12px, 0.85vw, 14px)', color: previsaoMes.noNegativo ? '#f87171' : '#4ade80', fontWeight: 600 }}>
+                      {m ? 'Profecia do mês:' : 'Previsão para o fim do mês:'}
+                    </span>
+                    <span style={{ fontSize: 'clamp(12px, 0.85vw, 14px)', color: 'rgba(255,255,255,.7)', marginLeft: 6 }}>
+                      {previsaoMes.noNegativo
+                        ? `Gastos devem chegar a ${formatBRL(previsaoMes.projecao)} — ${formatBRL(previsaoMes.diferenca)} acima das receitas`
+                        : `Gastos devem fechar em ${formatBRL(previsaoMes.projecao)} — dentro das receitas`}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 'clamp(10px, 0.75vw, 12px)', color: 'rgba(255,255,255,.3)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    {previsaoMes.diasRestam}d restantes
+                  </span>
+                </div>
+              )}
 
               {/* Widget Score Financeiro */}
               {(() => {
@@ -1653,6 +1746,27 @@ useEffect(() => {
 
         </div>
       </main>
+
+      {/* FAB — lançamento rápido, apenas desktop */}
+      {!isMobile && (
+        <button
+          onClick={() => router.push('/dashboard/lancamento')}
+          title={m ? 'Registrar no Livro do Tesouro' : 'Novo lançamento'}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = `0 8px 32px ${tx.accentColor}55` }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)';   e.currentTarget.style.boxShadow = `0 4px 20px ${tx.accentColor}33` }}
+          style={{
+            position: 'fixed', bottom: 32, right: 32, zIndex: 500,
+            width: 56, height: 56, borderRadius: '50%',
+            background: tx.accentColor,
+            border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 26, fontWeight: 700, color: '#000',
+            boxShadow: `0 4px 20px ${tx.accentColor}33`,
+            transition: 'transform .18s, box-shadow .18s',
+          }}>
+          +
+        </button>
+      )}
 
       {/* Bottom nav removido — renderizado pelo dashboard/layout.tsx via MobileBottomNav */}
 
