@@ -33,7 +33,6 @@ const CORES: Record<string, string> = {
   'Outros':      '#6b7280',
 }
 
-const CATEGORIAS = ['Todas', 'Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Educação', 'Receita', 'Outros']
 const TODAS_CATEGORIAS = ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Educação', 'Salário', 'Freelance', 'Investimento', 'Presente', 'Outros']
 
 function fmtBRL(v: number) {

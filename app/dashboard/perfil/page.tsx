@@ -157,20 +157,6 @@ export default function PerfilPage() {
     }
   }
 
-  const carregar = useCallback(async () => {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 12000)
-    )
-    try {
-      await Promise.race([carregarInterno(), timeout])
-    } catch (e) {
-      if (e instanceof Error && e.message === 'timeout') {
-        setErro('O perfil demorou muito para carregar. Verifique sua conexão.')
-      }
-      setLoading(false)
-    }
-  }, [supabase, router]) // eslint-disable-line react-hooks/exhaustive-deps
-
   const carregarInterno = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
@@ -269,7 +255,21 @@ export default function PerfilPage() {
     }
 
     setLoading(false)
-  }, [supabase, router]) // carregarInterno
+  }, [supabase, router])
+
+  const carregar = useCallback(async () => {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 12000)
+    )
+    try {
+      await Promise.race([carregarInterno(), timeout])
+    } catch (e) {
+      if (e instanceof Error && e.message === 'timeout') {
+        setErro('O perfil demorou muito para carregar. Verifique sua conexão.')
+      }
+      setLoading(false)
+    }
+  }, [carregarInterno])
 
   async function familiaConvidar() {
     if (!familiaEmail.trim()) return

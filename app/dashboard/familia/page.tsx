@@ -110,7 +110,6 @@ export default function FamiliaPage() {
   const [showFormOrigem, setShowFormOrigem] = useState(false)
   const [formOrigem,   setFormOrigem]   = useState({ nome: '', tipo: 'conta_bancaria', saldo_inicial: '' })
   const [salvandoOrigem, setSalvandoOrigem] = useState(false)
-  const [grupoId,      setGrupoId]      = useState<string | null>(null)
 
   // extrato
   const [movimentos,     setMovimentos]     = useState<GrupoMovimento[]>([])
@@ -132,14 +131,13 @@ export default function FamiliaPage() {
         setLoading(false)
       })
       .catch(() => { setErro('Erro ao carregar dados da família.'); setLoading(false) })
-  }, []) // eslint-disable-line react-hooks/set-state-in-effect
+  }, [])  
 
   async function carregarOrigens() {
     setLoadOrigens(true)
     const res = await fetch('/api/familia/origens')
     const d = await res.json()
     setOrigens(d.origens || [])
-    setGrupoId(d.grupoId || null)
     setLoadOrigens(false)
   }
 
@@ -155,8 +153,8 @@ export default function FamiliaPage() {
 
   useEffect(() => {
     if (aba === 'fontes')  carregarOrigens()    // eslint-disable-line react-hooks/set-state-in-effect
-    if (aba === 'extrato') { carregarOrigens(); carregarMovimentos() } // eslint-disable-line react-hooks/set-state-in-effect
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (aba === 'extrato') { carregarOrigens(); carregarMovimentos() }  
+   
   }, [aba])
 
   async function criarOrigem(e: React.FormEvent) {

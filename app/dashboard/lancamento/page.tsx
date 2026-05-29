@@ -531,11 +531,11 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     const mes = new Date().toISOString().slice(0, 7)
     fetch(`/api/orcamento/check?categoria=${encodeURIComponent(categoria)}&mes=${mes}`)
       .then(r => r.json())
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       .then(d => setAlertaOrcamento(d.limite != null ? d : null))
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       .catch(() => setAlertaOrcamento(null))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [categoria, tipo])
 
   function handleSetTipo(t: 'debito' | 'credito') {

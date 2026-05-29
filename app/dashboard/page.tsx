@@ -418,7 +418,7 @@ const OFFLINE_CACHE_KEY = 'poupaup_offline_snapshot'
 function useOffline() {
   const [offline, setOffline] = useState(false)
   useEffect(() => {
-    const set = () => setOffline(!navigator.onLine) // eslint-disable-line react-hooks/set-state-in-effect
+    const set = () => setOffline(!navigator.onLine)  
     set()
     window.addEventListener('online',  set)
     window.addEventListener('offline', set)
@@ -477,10 +477,6 @@ export default function Dashboard() {
   const [sidebarAberta, setSidebar]   = useState(true)
   const [openGroups,   setOpenGroups] = useState<Set<string>>(new Set(['principal']))
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null)
-  const [mounted, setMounted] = useState(false)
-
-useEffect(() => { setMounted(true) }, []) // eslint-disable-line react-hooks/set-state-in-effect
-
 useEffect(() => {
   setSidebar(!isMobile) // eslint-disable-line react-hooks/set-state-in-effect
 }, [isMobile])
@@ -504,7 +500,7 @@ useEffect(() => {
   }
   window.addEventListener('keydown', onKey)
   return () => window.removeEventListener('keydown', onKey)
-}, [])
+}, [router])
 
   const xp           = calcularXP({ transacoes, metas, xpBonus: profile?.xp_bonus || 0 })
   const { receitas, despesas, saldo } = xp
