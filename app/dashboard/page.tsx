@@ -462,6 +462,7 @@ export default function Dashboard() {
   const [dividas, setDividas]       = useState<{ saldo: number; taxa_juros: number }[]>([])
   const [loading, setLoading]       = useState(true)
   const [paginaAtiva, setPagina]    = useState('inicio')
+  const [abaInicio, setAbaInicio]   = useState<'resumo' | 'analise' | 'progresso'>('resumo')
   const [buscaQuery, setBuscaQuery] = useState('')
   const [buscaAberta, setBuscaAb]   = useState(false)
   const [iaAnalisando, setIaAnalisando]   = useState(false)
@@ -1391,359 +1392,376 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* Widget Score Financeiro */}
+              {/* ── Abas ── */}
               {(() => {
-                const sc = calcularScore({
-                  transacoes: transacoes as Parameters<typeof calcularScore>[0]['transacoes'],
-                  metas:      metas.map(mt => ({ valor_total: mt.valor_total, valor_atual: mt.valor_atual, ativo: true })),
-                  orcamentos: orcamentos.map(o => ({ categoria: o.categoria, limite: o.valor_planejado })),
-                  dividas,
-                  saldoTotal: contas.filter(c => c.mostrar_saldo).reduce((a, c) => a + c.saldo, 0),
-                })
+                const abas = [
+                  { id: 'resumo'   as const, label: m ? '⚔ Resumo'   : '📊 Resumo',   icon: '📊' },
+                  { id: 'analise'  as const, label: m ? '🔮 Análise'  : '🔍 Análise',  icon: '🔍' },
+                  { id: 'progresso'as const, label: m ? '👑 Progresso': '🎯 Progresso', icon: '🎯' },
+                ]
                 return (
-                  <div
-                    onClick={() => router.push('/dashboard/score')}
-                    style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
-                  >
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      <svg width="52" height="52" viewBox="0 0 52 52">
-                        <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="5" />
-                        <circle cx="26" cy="26" r="22" fill="none" stroke={sc.corNivel} strokeWidth="5"
-                          strokeDasharray={`${(sc.total / 1000) * 138.2} 138.2`}
-                          strokeLinecap="round"
-                          transform="rotate(-90 26 26)" />
-                        <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill={sc.corNivel} fontFamily="system-ui">{sc.total}</text>
-                      </svg>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
-                        {m ? '⭐ Honra do Cavaleiro' : '⭐ Score Financeiro'}
-                      </div>
-                      <div style={{ fontSize: 15, fontWeight: 700, color: sc.corNivel, marginTop: 2 }}>{sc.nivel}</div>
-                      <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' as const }}>
-                        {sc.dimensoes.map(d => {
-                          const p = d.pontos / d.maximo
-                          const c = p >= 0.80 ? '#4ade80' : p >= 0.55 ? '#fbbf24' : '#f87171'
-                          return <span key={d.id} title={`${d.nome}: ${d.pontos}/${d.maximo}`} style={{ fontSize: 11, background: `${c}18`, border: `1px solid ${c}33`, borderRadius: 4, padding: '2px 6px', color: c }}>{d.emoji} {d.pontos}</span>
-                        })}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 11, color: cores.textMuted, flexShrink: 0 }}>Ver detalhes →</div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: `1px solid ${cores.border}`, paddingBottom: 0 }}>
+                    {abas.map(aba => {
+                      const ativo = abaInicio === aba.id
+                      return (
+                        <button key={aba.id} onClick={() => setAbaInicio(aba.id)} style={{
+                          padding: '8px 16px', border: 'none', borderRadius: '8px 8px 0 0', cursor: 'pointer',
+                          background: ativo ? cores.cardBg : 'transparent',
+                          color: ativo ? tx.accentColor : cores.textMuted,
+                          fontSize: 'clamp(11px, 0.8vw, 13px)', fontWeight: ativo ? 600 : 400,
+                          borderBottom: ativo ? `2px solid ${tx.accentColor}` : '2px solid transparent',
+                          transition: 'all .15s', marginBottom: -1,
+                          fontFamily: m ? tx.fontDisplay : 'inherit',
+                        }}>
+                          {aba.label}
+                        </button>
+                      )
+                    })}
                   </div>
                 )
               })()}
 
-              {/* Meta em destaque — a mais próxima de ser concluída */}
-              {metas.length > 0 && (() => {
-                const metaDestaque = [...metas]
-                  .filter(mt => mt.valor_total > 0 && mt.valor_atual < mt.valor_total)
-                  .sort((a, b) => (b.valor_atual / b.valor_total) - (a.valor_atual / a.valor_total))[0]
-                if (!metaDestaque) return null
-                const pct = Math.min(Math.round((metaDestaque.valor_atual / metaDestaque.valor_total) * 100), 100)
-                const falta = metaDestaque.valor_total - metaDestaque.valor_atual
-                const gradStart = m ? '#8B6914' : cores.accent + 'aa'
-                const gradEnd   = m ? '#D4AF37' : cores.accent
-                return (
-                  <div
-                    onClick={() => router.push('/dashboard/metas')}
-                    style={{ background: cores.cardBg, border: `1px solid ${m ? '#D4AF3733' : cores.accent + '33'}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = m ? '#D4AF3766' : cores.accent + '66' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = m ? '#D4AF3733' : cores.accent + '33' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <div>
-                        <div style={{ fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.1em', fontFamily: tx.fontDisplay, marginBottom: 3 }}>
-                          {m ? '🎯 Quest mais próxima' : '🎯 Meta mais próxima'}
-                        </div>
-                        <div style={{ fontSize: 'clamp(14px, 1.1vw, 18px)', fontWeight: 700, color: cores.text }}>{metaDestaque.nome}</div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 'clamp(20px, 1.8vw, 30px)', fontWeight: 800, color: tx.accentColor, lineHeight: 1 }}>{pct}%</div>
-                        <div style={{ fontSize: 10, color: cores.textMuted, marginTop: 2 }}>concluído</div>
-                      </div>
-                    </div>
-                    <div style={{ height: 8, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})`, borderRadius: 4, transition: 'width .6s ease' }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: cores.textMuted }}>
-                      <span>{formatBRL(metaDestaque.valor_atual)} guardados</span>
-                      <span style={{ color: tx.accentColor }}>faltam {formatBRL(falta)} →</span>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Gráfico saldo ao longo do tempo */}
-              {transacoes.length > 1 && (
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
-                      {m ? '📈 Tesouro — últimos 30 dias' : '📈 Saldo — últimos 30 dias'}
-                    </span>
-                    <span style={{ fontSize: 10, color: saldo >= 0 ? tx.accentColor : '#f87171', fontWeight: 600 }}>
-                      {formatBRL(saldo)}
-                    </span>
-                  </div>
-                  <GraficoSaldo transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
-                </div>
-              )}
-
-              {/* Saldos por conta */}
-              {contas.length > 0 && (
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secContas}</span>
-                    <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>{tx.btnContas}</button>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {contas.slice(0, 4).map(c => (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.bancos?.cor || '#4ade80', flexShrink: 0 }} />
-                        <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nome}</span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? tx.accentColor : '#c0392b', flexShrink: 0 }}>
-                          {c.mostrar_saldo ? `R$ ${c.saldo.toFixed(2).replace('.', ',')}` : '••••••'}
+              {/* ── ABA RESUMO ── */}
+              {abaInicio === 'resumo' && (
+                <div>
+                  {/* Gráfico saldo */}
+                  {transacoes.length > 1 && (
+                    <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                          {m ? '📈 Tesouro — últimos 30 dias' : '📈 Saldo — últimos 30 dias'}
                         </span>
+                        <span style={{ fontSize: 10, color: saldo >= 0 ? tx.accentColor : '#f87171', fontWeight: 600 }}>{formatBRL(saldo)}</span>
+                      </div>
+                      <GraficoSaldo transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
+                    </div>
+                  )}
+
+                  {/* Últimas transações — largura total */}
+                  <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secTx}</span>
+                      <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer', minHeight: 44, padding: '0 4px', margin: '0 -4px' }}>{tx.btnTx}</button>
+                    </div>
+                    {transacoes.length === 0 ? (
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
+                        {tx.emptyTx}{' '}
+                        <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>{tx.emptyTxCta}</span>
+                      </div>
+                    ) : transacoes.slice(0, 7).map(t => (
+                      <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${cores.divider}` }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
+                          <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
+                        </div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: t.tipo === 'credito' ? tx.accentColor : (m ? '#c0392b' : '#f87171'), whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
+                        </div>
                       </div>
                     ))}
-                    {contas.length > 4 && (
-                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{contas.length - 4} contas</div>
-                    )}
-                    <div style={{ borderTop: `1px solid ${cores.divider}`, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: tx.accentColor }}>
-                        R$ {contas.reduce((a, c) => a + (c.mostrar_saldo ? c.saldo : 0), 0).toFixed(2).replace('.', ',')}
-                      </span>
-                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Widget orçamento por categoria */}
-              {orcamentos.length > 0 && (() => {
-                const excedidas = orcamentos.filter(o => (orcRealizado[o.categoria] || 0) > o.valor_planejado)
-                return (
-                  <div style={{ background: cores.cardBg, border: `1px solid ${excedidas.length > 0 ? 'rgba(248,113,113,.35)' : cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
-                        {m ? '⚖️ Edito do Reino' : '📊 Orçamento do mês'}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {excedidas.length > 0 && (
-                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: 'rgba(248,113,113,.15)', color: '#f87171' }}>
-                            {excedidas.length} excedida{excedidas.length !== 1 ? 's' : ''} ⚠️
-                          </span>
-                        )}
-                        <button onClick={() => router.push('/dashboard/orcamento')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>
-                          {m ? 'gerenciar →' : 'gerenciar →'}
-                        </button>
+              {/* ── ABA ANÁLISE ── */}
+              {abaInicio === 'analise' && (
+                <div>
+                  {/* Insights + Por categoria */}
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
+                    <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secInsights}</span>
+                        <span style={{ fontSize: 10, background: `${tx.accentColor}1a`, color: tx.accentColor, padding: '2px 8px', borderRadius: 4 }}>{insights.length} novos</span>
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {orcamentos.slice(0, 5).map(o => {
-                        const real = orcRealizado[o.categoria] || 0
-                        const pct  = o.valor_planejado > 0 ? Math.min((real / o.valor_planejado) * 100, 100) : 0
-                        const over = real > o.valor_planejado
-                        const barColor = over ? '#f87171' : pct >= 80 ? '#fbbf24' : tx.accentColor
-                        return (
-                          <div key={o.id}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[o.categoria] || '#6b7280', flexShrink: 0 }} />
-                                <span style={{ fontSize: 12, color: over ? '#f87171' : 'rgba(255,255,255,.7)' }}>{o.categoria}</span>
-                                {over && <span style={{ fontSize: 9, color: '#f87171' }}>+{formatBRL(real - o.valor_planejado)}</span>}
+                      {insights.length === 0 ? (
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>Lance transações para ver insights personalizados</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {insights.map((ins, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,.03)', border: '1px solid #1e2d1e', borderRadius: 8, padding: '8px 10px' }}>
+                              <div style={{ width: 18, height: 18, borderRadius: 5, background: ins.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d={ins.icon} stroke={ins.cor} strokeWidth="1.3" strokeLinecap="round"/></svg>
                               </div>
-                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontVariantNumeric: 'tabular-nums' }}>
-                                {formatBRL(real)} / {formatBRL(o.valor_planejado)}
-                              </span>
+                              <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: ins.texto }} />
                             </div>
-                            <div style={{ height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden' }}>
-                              <div style={{ height: '100%', width: `${pct.toFixed(1)}%`, background: barColor, borderRadius: 3, transition: 'width .4s' }} />
-                            </div>
-                          </div>
-                        )
-                      })}
-                      {orcamentos.length > 5 && (
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{orcamentos.length - 5} mais</div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </div>
-                )
-              })()}
-
-              {/* Calendário de calor de gastos */}
-              {transacoes.length > 0 && (
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
-                      {m ? '🗓️ Crônicas do Mês' : '🗓️ Gastos do mês'}
-                    </span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>
-                      {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <CalendarioGastos transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
-                </div>
-              )}
-
-              {/* Comparativo mês a mês */}
-              {transacoes.length > 0 && (() => {
-                const comp = <ComparativoMes transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} m={m} />
-                if (!comp) return null
-                const hoje = new Date()
-                const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1)
-                const nomePrev = prev.toLocaleDateString('pt-BR', { month: 'long' })
-                return (
-                  <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
-                        {m ? '⚔️ Batalha vs. mês anterior' : '📊 vs. mês anterior'}
-                      </span>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>comparado a {nomePrev}</span>
-                    </div>
-                    {comp}
-                  </div>
-                )
-              })()}
-
-              {/* Relatório IA */}
-              {(() => {
-                const mesAtual = new Date().toISOString().slice(0, 7)
-                async function gerarRelatorio() {
-                  setRelLoad(true); setRelErro(''); setRelAb(true)
-                  try {
-                    const res  = await fetch('/api/relatorio-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mes: mesAtual }) })
-                    const data = await res.json()
-                    if (!res.ok) throw new Error(data.error || 'Erro ao gerar relatório')
-                    setRelTxt(data.relatorio); setRelMes(data.mes)
-                  } catch (e) { setRelErro(e instanceof Error ? e.message : 'Erro desconhecido') }
-                  finally { setRelLoad(false) }
-                }
-                return (
-                  <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay, marginBottom: 2 }}>
-                          {m ? '🔮 Análise do Mago' : '✨ Relatório IA'}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Resumo inteligente do mês com recomendações personalizadas</div>
-                      </div>
-                      <button
-                        onClick={gerarRelatorio}
-                        disabled={relatorioLoad}
-                        style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: tx.accentColor, color: '#fff', fontSize: 12, fontWeight: 600, cursor: relatorioLoad ? 'default' : 'pointer', opacity: relatorioLoad ? 0.6 : 1, flexShrink: 0, marginLeft: 12 }}
-                      >
-                        {relatorioLoad ? '⏳ Gerando...' : relatorioTexto ? '↻ Regenerar' : '✨ Analisar mês'}
-                      </button>
-                    </div>
-                    {relatorioTexto && !relatorioLoad && (
-                      <button onClick={() => setRelAb(true)} style={{ marginTop: 10, width: '100%', padding: '8px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, color: 'rgba(255,255,255,.6)', fontSize: 12, cursor: 'pointer' }}>
-                        Ver relatório de {relatorioMes} →
-                      </button>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {/* Insights + Por categoria — coluna única em mobile */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 220px', gap: 10, marginBottom: 10 }}>
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secInsights}</span>
-                    <span style={{ fontSize: 10, background: `${tx.accentColor}1a`, color: tx.accentColor, padding: '2px 8px', borderRadius: 2 }}>{insights.length} novos</span>
-                  </div>
-                  {insights.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>Lance transações para ver insights personalizados</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {insights.map((ins, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 8, background: 'rgba(255,255,255,.03)', border: '1px solid #1e2d1e', borderRadius: 8, padding: '8px 10px' }}>
-                          <div style={{ width: 18, height: 18, borderRadius: 5, background: ins.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                            <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d={ins.icon} stroke={ins.cor} strokeWidth="1.3" strokeLinecap="round"/></svg>
+                    <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 12, fontFamily: tx.fontDisplay }}>{tx.secCats}</div>
+                      {Object.keys(porCategoria).length === 0 ? (
+                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: '1rem' }}>Nenhum gasto ainda</div>
+                      ) : Object.entries(porCategoria).sort((a,b) => b[1]-a[1]).slice(0,5).map(([cat, val]) => (
+                        <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[cat] || '#6b7280', flexShrink: 0 }} />
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat}</span>
+                          <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
+                            <div style={{ height: '100%', width: `${Math.round((val/maxCategoria)*100)}%`, background: CORES[cat] || '#6b7280', borderRadius: 2 }} />
                           </div>
-                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', lineHeight: 1.5 }} dangerouslySetInnerHTML={{ __html: ins.texto }} />
+                          <span style={{ fontSize: 10, fontWeight: 500, color: '#fff', minWidth: 48, textAlign: 'right', flexShrink: 0 }}>{formatBRL(val)}</span>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
-                  <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 12, fontFamily: tx.fontDisplay }}>{tx.secCats}</div>
-                  {Object.keys(porCategoria).length === 0 ? (
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: '1rem' }}>Nenhum gasto ainda</div>
-                  ) : (
-                    Object.entries(porCategoria).sort((a,b) => b[1]-a[1]).slice(0,5).map(([cat, val]) => (
-                      <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[cat] || '#6b7280', flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat}</span>
-                        <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,.06)', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
-                          <div style={{ height: '100%', width: `${Math.round((val/maxCategoria)*100)}%`, background: CORES[cat] || '#6b7280', borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: '#fff', minWidth: 48, textAlign: 'right', flexShrink: 0 }}>{formatBRL(val)}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Tarefas — missões, desafios e conquistas unificados */}
-              <div style={{ marginBottom: 10 }}>
-                <TarefasWidget />
-              </div>
-
-              {/* Últimas transações + Metas — coluna única em mobile */}
-              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secTx}</span>
-                    <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer', minHeight: 44, padding: '0 4px', margin: '0 -4px' }}>{tx.btnTx}</button>
                   </div>
-                  {transacoes.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
-                      {tx.emptyTx}{' '}
-                      <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>{tx.emptyTxCta}</span>
-                    </div>
-                  ) : transacoes.slice(0, 5).map(t => (
-                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: `1px solid ${cores.divider}` }}>
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtData(t.data_hora)}</div>
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? tx.accentColor : (m ? '#c0392b' : '#f87171'), whiteSpace: 'nowrap', flexShrink: 0 }}>
-                        {t.tipo === 'credito' ? '+' : '-'}{formatBRL(Math.abs(t.valor))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
 
-                <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secMetas}</span>
-                    <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer', minHeight: 44, padding: '0 4px', margin: '0 -4px' }}>{tx.btnMetas}</button>
-                  </div>
-                  {metas.length === 0 ? (
-                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
-                      {tx.emptyMeta}{' '}
-                      <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/metas')}>{tx.emptyMetaCta}</span>
-                    </div>
-                  ) : metas.map(m => {
-                    const pct = Math.min(Math.round((m.valor_atual / m.valor_total) * 100), 100)
+                  {/* Orçamento */}
+                  {orcamentos.length > 0 && (() => {
+                    const excedidas = orcamentos.filter(o => (orcRealizado[o.categoria] || 0) > o.valor_planejado)
                     return (
-                      <div key={m.id} style={{ marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 500, color: '#fff' }}>{m.nome}</span>
-                          <span style={{ fontSize: 10, color: '#D4AF37' }}>{pct}%</span>
+                      <div style={{ background: cores.cardBg, border: `1px solid ${excedidas.length > 0 ? 'rgba(248,113,113,.35)' : cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                            {m ? '⚖️ Edito do Reino' : '📊 Orçamento do mês'}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            {excedidas.length > 0 && (
+                              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: 'rgba(248,113,113,.15)', color: '#f87171' }}>
+                                {excedidas.length} excedida{excedidas.length !== 1 ? 's' : ''} ⚠️
+                              </span>
+                            )}
+                            <button onClick={() => router.push('/dashboard/orcamento')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>gerenciar →</button>
+                          </div>
                         </div>
-                        <div style={{ height: 5, background: 'rgba(255,255,255,.06)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: m ? 'linear-gradient(90deg, #8B6914, #D4AF37)' : `linear-gradient(90deg, ${cores.accent}88, ${cores.accent})`, borderRadius: 3 }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {orcamentos.slice(0, 5).map(o => {
+                            const real = orcRealizado[o.categoria] || 0
+                            const pct  = o.valor_planejado > 0 ? Math.min((real / o.valor_planejado) * 100, 100) : 0
+                            const over = real > o.valor_planejado
+                            const barColor = over ? '#f87171' : pct >= 80 ? '#fbbf24' : tx.accentColor
+                            return (
+                              <div key={o.id}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[o.categoria] || '#6b7280', flexShrink: 0 }} />
+                                    <span style={{ fontSize: 12, color: over ? '#f87171' : 'rgba(255,255,255,.7)' }}>{o.categoria}</span>
+                                    {over && <span style={{ fontSize: 9, color: '#f87171' }}>+{formatBRL(real - o.valor_planejado)}</span>}
+                                  </div>
+                                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', fontVariantNumeric: 'tabular-nums' }}>{formatBRL(real)} / {formatBRL(o.valor_planejado)}</span>
+                                </div>
+                                <div style={{ height: 5, background: 'rgba(255,255,255,.07)', borderRadius: 3, overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${pct.toFixed(1)}%`, background: barColor, borderRadius: 3, transition: 'width .4s' }} />
+                                </div>
+                              </div>
+                            )
+                          })}
+                          {orcamentos.length > 5 && <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{orcamentos.length - 5} mais</div>}
                         </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3 }}>{formatBRL(m.valor_atual)} de {formatBRL(m.valor_total)}</div>
                       </div>
                     )
-                  })}
+                  })()}
+
+                  {/* Calendário */}
+                  {transacoes.length > 0 && (
+                    <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                          {m ? '🗓️ Crônicas do Mês' : '🗓️ Gastos do mês'}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>{new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+                      </div>
+                      <CalendarioGastos transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} />
+                    </div>
+                  )}
+
+                  {/* Comparativo */}
+                  {transacoes.length > 0 && (() => {
+                    const comp = <ComparativoMes transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} m={m} />
+                    if (!comp) return null
+                    const nomePrev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString('pt-BR', { month: 'long' })
+                    return (
+                      <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                            {m ? '⚔️ Batalha vs. mês anterior' : '📊 vs. mês anterior'}
+                          </span>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>comparado a {nomePrev}</span>
+                        </div>
+                        {comp}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Relatório IA */}
+                  {(() => {
+                    const mesAtual = new Date().toISOString().slice(0, 7)
+                    async function gerarRelatorio() {
+                      setRelLoad(true); setRelErro(''); setRelAb(true)
+                      try {
+                        const res  = await fetch('/api/relatorio-ia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mes: mesAtual }) })
+                        const data = await res.json()
+                        if (!res.ok) throw new Error(data.error || 'Erro ao gerar relatório')
+                        setRelTxt(data.relatorio); setRelMes(data.mes)
+                      } catch (e) { setRelErro(e instanceof Error ? e.message : 'Erro desconhecido') }
+                      finally { setRelLoad(false) }
+                    }
+                    return (
+                      <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay, marginBottom: 2 }}>
+                              {m ? '🔮 Análise do Mago' : '✨ Relatório IA'}
+                            </div>
+                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Resumo inteligente do mês com recomendações personalizadas</div>
+                          </div>
+                          <button onClick={gerarRelatorio} disabled={relatorioLoad}
+                            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: tx.accentColor, color: '#fff', fontSize: 12, fontWeight: 600, cursor: relatorioLoad ? 'default' : 'pointer', opacity: relatorioLoad ? 0.6 : 1, flexShrink: 0, marginLeft: 12 }}>
+                            {relatorioLoad ? '⏳ Gerando...' : relatorioTexto ? '↻ Regenerar' : '✨ Analisar mês'}
+                          </button>
+                        </div>
+                        {relatorioTexto && !relatorioLoad && (
+                          <button onClick={() => setRelAb(true)} style={{ marginTop: 10, width: '100%', padding: '8px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, color: 'rgba(255,255,255,.6)', fontSize: 12, cursor: 'pointer' }}>
+                            Ver relatório de {relatorioMes} →
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
-              </div>
+              )}
+
+              {/* ── ABA PROGRESSO ── */}
+              {abaInicio === 'progresso' && (
+                <div>
+                  {/* Score financeiro */}
+                  {(() => {
+                    const sc = calcularScore({
+                      transacoes: transacoes as Parameters<typeof calcularScore>[0]['transacoes'],
+                      metas:      metas.map(mt => ({ valor_total: mt.valor_total, valor_atual: mt.valor_atual, ativo: true })),
+                      orcamentos: orcamentos.map(o => ({ categoria: o.categoria, limite: o.valor_planejado })),
+                      dividas,
+                      saldoTotal: contas.filter(c => c.mostrar_saldo).reduce((a, c) => a + c.saldo, 0),
+                    })
+                    return (
+                      <div onClick={() => router.push('/dashboard/score')}
+                        style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <svg width="52" height="52" viewBox="0 0 52 52">
+                            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="5" />
+                            <circle cx="26" cy="26" r="22" fill="none" stroke={sc.corNivel} strokeWidth="5"
+                              strokeDasharray={`${(sc.total / 1000) * 138.2} 138.2`} strokeLinecap="round" transform="rotate(-90 26 26)" />
+                            <text x="26" y="30" textAnchor="middle" fontSize="11" fontWeight="700" fill={sc.corNivel} fontFamily="system-ui">{sc.total}</text>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
+                            {m ? '⭐ Honra do Cavaleiro' : '⭐ Score Financeiro'}
+                          </div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: sc.corNivel, marginTop: 2 }}>{sc.nivel}</div>
+                          <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' as const }}>
+                            {sc.dimensoes.map(d => {
+                              const p = d.pontos / d.maximo
+                              const c = p >= 0.80 ? '#4ade80' : p >= 0.55 ? '#fbbf24' : '#f87171'
+                              return <span key={d.id} title={`${d.nome}: ${d.pontos}/${d.maximo}`} style={{ fontSize: 11, background: `${c}18`, border: `1px solid ${c}33`, borderRadius: 4, padding: '2px 6px', color: c }}>{d.emoji} {d.pontos}</span>
+                            })}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, color: cores.textMuted, flexShrink: 0 }}>Ver detalhes →</div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Meta em destaque */}
+                  {metas.length > 0 && (() => {
+                    const metaDestaque = [...metas]
+                      .filter(mt => mt.valor_total > 0 && mt.valor_atual < mt.valor_total)
+                      .sort((a, b) => (b.valor_atual / b.valor_total) - (a.valor_atual / a.valor_total))[0]
+                    if (!metaDestaque) return null
+                    const pct = Math.min(Math.round((metaDestaque.valor_atual / metaDestaque.valor_total) * 100), 100)
+                    const falta = metaDestaque.valor_total - metaDestaque.valor_atual
+                    const gradStart = m ? '#8B6914' : cores.accent + 'aa'
+                    const gradEnd   = m ? '#D4AF37' : cores.accent
+                    return (
+                      <div onClick={() => router.push('/dashboard/metas')}
+                        style={{ background: cores.cardBg, border: `1px solid ${m ? '#D4AF3733' : cores.accent + '33'}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = m ? '#D4AF3766' : cores.accent + '66' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = m ? '#D4AF3733' : cores.accent + '33' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div>
+                            <div style={{ fontSize: 9, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.1em', fontFamily: tx.fontDisplay, marginBottom: 3 }}>
+                              {m ? '🎯 Quest mais próxima' : '🎯 Meta mais próxima'}
+                            </div>
+                            <div style={{ fontSize: 'clamp(14px, 1.1vw, 18px)', fontWeight: 700, color: cores.text }}>{metaDestaque.nome}</div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 'clamp(20px, 1.8vw, 30px)', fontWeight: 800, color: tx.accentColor, lineHeight: 1 }}>{pct}%</div>
+                            <div style={{ fontSize: 10, color: cores.textMuted, marginTop: 2 }}>concluído</div>
+                          </div>
+                        </div>
+                        <div style={{ height: 8, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${gradStart}, ${gradEnd})`, borderRadius: 4, transition: 'width .6s ease' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: cores.textMuted }}>
+                          <span>{formatBRL(metaDestaque.valor_atual)} guardados</span>
+                          <span style={{ color: tx.accentColor }}>faltam {formatBRL(falta)} →</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Metas + Contas em grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secMetas}</span>
+                        <button onClick={() => router.push('/dashboard/metas')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer', minHeight: 44, padding: '0 4px', margin: '0 -4px' }}>{tx.btnMetas}</button>
+                      </div>
+                      {metas.length === 0 ? (
+                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
+                          {tx.emptyMeta}{' '}
+                          <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/metas')}>{tx.emptyMetaCta}</span>
+                        </div>
+                      ) : metas.map(mt => {
+                        const pct = Math.min(Math.round((mt.valor_atual / mt.valor_total) * 100), 100)
+                        return (
+                          <div key={mt.id} style={{ marginBottom: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: '#fff' }}>{mt.nome}</span>
+                              <span style={{ fontSize: 10, color: tx.accentColor }}>{pct}%</span>
+                            </div>
+                            <div style={{ height: 5, background: 'rgba(255,255,255,.06)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: m ? 'linear-gradient(90deg, #8B6914, #D4AF37)' : `linear-gradient(90deg, ${cores.accent}88, ${cores.accent})`, borderRadius: 3 }} />
+                            </div>
+                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 3 }}>{formatBRL(mt.valor_atual)} de {formatBRL(mt.valor_total)}</div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {contas.length > 0 && (
+                      <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                          <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secContas}</span>
+                          <button onClick={() => router.push('/dashboard/contas')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer' }}>{tx.btnContas}</button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {contas.slice(0, 5).map(c => (
+                            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: '50%', background: c.bancos?.cor || '#4ade80', flexShrink: 0 }} />
+                              <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.nome}</span>
+                              <span style={{ fontSize: 12, fontWeight: 500, color: c.saldo >= 0 ? tx.accentColor : '#c0392b', flexShrink: 0 }}>
+                                {c.mostrar_saldo ? `R$ ${c.saldo.toFixed(2).replace('.', ',')}` : '••••••'}
+                              </span>
+                            </div>
+                          ))}
+                          <div style={{ borderTop: `1px solid ${cores.divider}`, paddingTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Total</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: tx.accentColor }}>
+                              R$ {contas.reduce((a, c) => a + (c.mostrar_saldo ? c.saldo : 0), 0).toFixed(2).replace('.', ',')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tarefas */}
+                  <div style={{ marginBottom: 10 }}>
+                    <TarefasWidget />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
