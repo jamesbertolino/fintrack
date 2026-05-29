@@ -1292,31 +1292,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* Estado vazio — sem transações */}
-              {transacoes.length === 0 && (
-                <div style={{ textAlign: 'center', padding: isMobile ? '2rem 1rem' : '3rem 2rem', background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, marginBottom: '1rem' }}>
-                  <div style={{ fontSize: 52, marginBottom: 16 }}>{m ? '📜' : '🏦'}</div>
-                  <div style={{ fontSize: isMobile ? 18 : 'clamp(18px, 1.4vw, 24px)', fontWeight: 700, color: cores.text, marginBottom: 8, fontFamily: tx.fontDisplay }}>
-                    {m ? 'O Livro do Tesouro está vazio' : 'Comece registrando seus gastos'}
-                  </div>
-                  <div style={{ fontSize: 14, color: cores.textMuted, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
-                    {m ? 'Registre suas batalhas financeiras para que o Oráculo possa guiar seu reino.' : 'Adicione sua primeira transação para ver o painel completo com gráficos, insights e previsões.'}
-                  </div>
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' as const }}>
-                    <button
-                      onClick={() => router.push('/dashboard/lancamento')}
-                      style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: tx.accentColor, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {m ? '📜 Registrar batalha' : '+ Adicionar transação'}
-                    </button>
-                    <button
-                      onClick={() => router.push('/dashboard/contas')}
-                      style={{ padding: '12px 24px', borderRadius: 10, border: `1px solid ${cores.border}`, background: 'transparent', color: cores.text, fontSize: 14, cursor: 'pointer' }}>
-                      {m ? '🏦 Configurar cofres' : '🏦 Configurar contas'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
               <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
                 {([
@@ -1437,18 +1412,37 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {/* Últimas transações — largura total */}
+                  {/* Empty state completo quando sem transações */}
+                  {transacoes.length === 0 && (
+                    <div style={{ textAlign: 'center', padding: isMobile ? '2rem 1rem' : '2.5rem 2rem', background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16 }}>
+                      <div style={{ fontSize: 48, marginBottom: 14 }}>{m ? '📜' : '🏦'}</div>
+                      <div style={{ fontSize: isMobile ? 18 : 'clamp(17px, 1.3vw, 22px)', fontWeight: 700, color: cores.text, marginBottom: 8, fontFamily: tx.fontDisplay }}>
+                        {m ? 'O Livro do Tesouro está vazio' : 'Comece registrando seus gastos'}
+                      </div>
+                      <div style={{ fontSize: 13, color: cores.textMuted, marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
+                        {m ? 'Registre suas batalhas financeiras para que o Oráculo possa guiar seu reino.' : 'Adicione sua primeira transação para ver o painel completo com gráficos, insights e previsões.'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' as const }}>
+                        <button onClick={() => router.push('/dashboard/lancamento')}
+                          style={{ padding: '12px 24px', borderRadius: 10, border: 'none', background: tx.accentColor, color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                          {m ? '📜 Registrar batalha' : '+ Adicionar transação'}
+                        </button>
+                        <button onClick={() => router.push('/dashboard/contas')}
+                          style={{ padding: '12px 24px', borderRadius: 10, border: `1px solid ${cores.border}`, background: 'transparent', color: cores.text, fontSize: 14, cursor: 'pointer' }}>
+                          {m ? '🏦 Configurar cofres' : '🏦 Configurar contas'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Últimas transações — só aparece quando há dados */}
+                  {transacoes.length > 0 && (
                   <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                       <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>{tx.secTx}</span>
                       <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: tx.accentColor, background: 'none', border: 'none', cursor: 'pointer', minHeight: 44, padding: '0 4px', margin: '0 -4px' }}>{tx.btnTx}</button>
                     </div>
-                    {transacoes.length === 0 ? (
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', textAlign: 'center', padding: '1rem 0' }}>
-                        {tx.emptyTx}{' '}
-                        <span style={{ color: tx.accentColor, cursor: 'pointer' }} onClick={() => router.push('/dashboard/lancamento')}>{tx.emptyTxCta}</span>
-                      </div>
-                    ) : transacoes.slice(0, 7).map(t => (
+                    {transacoes.slice(0, 7).map(t => (
                       <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${cores.divider}` }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1461,6 +1455,7 @@ useEffect(() => {
                       </div>
                     ))}
                   </div>
+                  )}
                 </div>
               )}
 
