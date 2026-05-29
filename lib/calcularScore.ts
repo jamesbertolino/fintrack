@@ -75,7 +75,7 @@ export function calcularScore(input: ScoreInput): ScoreResult {
     ? clamp(Math.round(
         (metasAtivas.reduce((a, m) => a + Math.min(1, m.valor_atual / m.valor_total), 0) / metasAtivas.length) * 200
       ), 0, 200)
-    : 100 // sem metas → neutro
+    : 0 // sem metas cadastradas = 0
 
   // ── 4. Consistência de lançamentos (0-150) ──────────────────────────────
   const diaAtual   = hoje.getDate()
@@ -128,7 +128,8 @@ export function calcularScore(input: ScoreInput): ScoreResult {
     {
       id: 'orcamento', nome: 'Controle de orçamentos', emoji: '📊', pontos: orcScore, maximo: 200,
       descricao: orcamentos.length === 0 ? 'Nenhum orçamento cadastrado' : `${orcamentos.length} orçamento${orcamentos.length > 1 ? 's' : ''} configurado${orcamentos.length > 1 ? 's' : ''}`,
-      dica: orcScore >= 180 ? 'Excelente controle! Todos os orçamentos dentro do limite.'
+      dica: orcamentos.length === 0 ? 'Configure orçamentos por categoria para controlar seus gastos e ganhar pontos aqui.'
+        : orcScore >= 180 ? 'Excelente controle! Todos os orçamentos dentro do limite.'
         : orcScore >= 120 ? 'Alguns orçamentos ultrapassados. Revise seus gastos por categoria.'
         : 'Orçamentos frequentemente estourados. Ajuste os limites ou reduza gastos.',
     },

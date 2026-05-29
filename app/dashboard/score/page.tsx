@@ -53,9 +53,10 @@ export default function ScorePage() {
   const { tema } = useTema()
   const m = tema === 'medieval'
 
-  const [score,   setScore]   = useState<ScoreResult | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [erro,    setErro]    = useState('')
+  const [score,     setScore]     = useState<ScoreResult | null>(null)
+  const [novoUser,  setNovoUser]  = useState(false)
+  const [loading,   setLoading]   = useState(true)
+  const [erro,      setErro]      = useState('')
 
   useEffect(() => {
     async function init() {
@@ -75,6 +76,8 @@ export default function ScorePage() {
         .filter((c: { mostrar_saldo: boolean }) => c.mostrar_saldo)
         .reduce((a: number, c: { saldo: number }) => a + c.saldo, 0)
 
+      const semDados = !tx?.length && !mt?.length && !orc?.length
+      setNovoUser(semDados)
       setScore(calcularScore({
         transacoes: (tx || []) as Parameters<typeof calcularScore>[0]['transacoes'],
         metas:      mt || [],
@@ -127,6 +130,41 @@ export default function ScorePage() {
                 </div>
               </div>
             </div>
+
+            {/* Painel de boas-vindas para novo usuário */}
+            {novoUser && (
+              <div style={{ background: `${cores.accent}0f`, border: `1px solid ${cores.accent}33`, borderRadius: 12, padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>🚀</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: cores.text, marginBottom: 4 }}>
+                    Seu score começa aqui!
+                  </div>
+                  <div style={{ fontSize: 12, color: cores.textMuted, lineHeight: 1.6 }}>
+                    Para ter um score real, complete 3 passos:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                    {[
+                      { label: 'Registre sua primeira transação',      href: '/dashboard/lancamento', emoji: '📝' },
+                      { label: 'Crie um orçamento mensal',             href: '/dashboard/orcamento',  emoji: '📊' },
+                      { label: 'Defina uma meta financeira',           href: '/dashboard/metas',      emoji: '🎯' },
+                    ].map(p => (
+                      <button key={p.href} onClick={() => router.push(p.href)} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                        background: 'rgba(255,255,255,.04)', border: `1px solid ${cores.border}`,
+                        borderRadius: 8, cursor: 'pointer', color: cores.text, fontSize: 12, textAlign: 'left',
+                        transition: 'all .15s',
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = cores.accent; e.currentTarget.style.background = `${cores.accent}10` }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = cores.border; e.currentTarget.style.background = 'rgba(255,255,255,.04)' }}>
+                        <span>{p.emoji}</span>
+                        <span>{p.label}</span>
+                        <span style={{ marginLeft: 'auto', color: cores.textFaint }}>→</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
               {score.dimensoes.map(d => {

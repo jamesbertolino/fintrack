@@ -173,8 +173,8 @@ export default function ContasPage() {
 
       <div style={{ maxWidth: 680, margin: '0 auto', padding: '1.5rem' }}>
 
-        {/* Total consolidado */}
-        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Total consolidado — só exibe quando há contas */}
+        {contas.length > 0 && <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Saldo total consolidado</div>
             <div style={{ fontSize: 28, fontWeight: 700, color: totalSaldo >= 0 ? '#4ade80' : '#f87171' }}>
@@ -188,7 +188,7 @@ export default function ContasPage() {
           >
             {ocultarSaldos ? '👁 Mostrar' : '🙈 Ocultar'}
           </button>
-        </div>
+        </div>}
 
         {/* Feedback */}
         {sucesso && <div style={{ background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', marginBottom: 12 }}>{sucesso}</div>}
