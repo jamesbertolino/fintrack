@@ -1262,6 +1262,16 @@ useEffect(() => {
                 ] as const).map(card => (
                   <div key={card.label}
                     onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-3px)'
+                      e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,.35), 0 0 0 1px ${card.cor}55`
+                      e.currentTarget.style.borderColor = card.cor + '66'
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = ''
+                      e.currentTarget.style.boxShadow = cores.cardShadow
+                      e.currentTarget.style.borderColor = card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder
+                    }}
                     style={{
                       background: cores.cardBg,
                       border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder}`,
@@ -1269,7 +1279,7 @@ useEffect(() => {
                       padding: isMobile ? '16px 18px' : 'clamp(10px, 1vw, 20px) clamp(12px, 1.2vw, 24px)',
                       boxShadow: cores.cardShadow,
                       cursor: card.label === tx.metLabels[3] || card.href ? 'pointer' : 'default',
-                      transition: 'border-color .2s',
+                      transition: 'transform .18s, box-shadow .18s, border-color .18s',
                       display: isMobile ? 'flex' : undefined,
                       alignItems: isMobile ? 'center' : undefined,
                       justifyContent: isMobile ? 'space-between' : undefined,
