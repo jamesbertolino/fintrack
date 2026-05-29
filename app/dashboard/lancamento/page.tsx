@@ -1890,9 +1890,28 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
           )}
 
           {historico.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-              Nenhum lançamento ainda.<br />Use o formulário ao lado para começar.
+            <div style={{ padding: '2rem 1.5rem', color: 'rgba(255,255,255,.4)', fontSize: 12 }}>
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>📋</div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,.6)', marginBottom: 6 }}>Nenhum lançamento ainda</div>
+                <div style={{ fontSize: 12, lineHeight: 1.6 }}>Preencha o formulário ao lado para registrar sua primeira transação.</div>
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', paddingTop: 20 }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 12, color: 'rgba(255,255,255,.25)' }}>Dicas rápidas</div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                  {[
+                    { keys: 'Tab', desc: 'Navegar entre campos' },
+                    { keys: 'Ctrl + N', desc: 'Abrir lançamento de qualquer tela' },
+                    { keys: 'Atalhos', desc: 'Clique nos chips para preencher automaticamente' },
+                    { keys: 'Voz', desc: 'Dite o valor e descrição sem digitar' },
+                  ].map(d => (
+                    <div key={d.keys} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <kbd style={{ fontSize: 10, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, padding: '2px 7px', color: 'rgba(255,255,255,.4)', whiteSpace: 'nowrap' as const, flexShrink: 0 }}>{d.keys}</kbd>
+                      <span style={{ color: 'rgba(255,255,255,.35)' }}>{d.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <>

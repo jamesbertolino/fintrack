@@ -241,12 +241,33 @@ export default function DividasPage() {
 
               {/* Lista */}
               {dividas.length === 0 && !adicionando ? (
-                <div style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                  <div style={{ fontSize: 32 }}>💳</div>
-                  <div style={{ color: cores.textMuted, fontSize: 13 }}>Nenhuma dívida cadastrada.</div>
-                  <button onClick={() => setAdd(true)} style={{ padding: '7px 18px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 20, color: '#f87171', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                    + Adicionar dívida
-                  </button>
+                <div style={{ padding: '2rem' }}>
+                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <div style={{ fontSize: 36, marginBottom: 10 }}>💳</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: cores.text, marginBottom: 6 }}>Nenhuma dívida cadastrada</div>
+                    <div style={{ fontSize: 12, color: cores.textMuted, lineHeight: 1.6, maxWidth: 320, margin: '0 auto 16px' }}>
+                      Registre suas dívidas para simular estratégias de quitação e calcular quando ficará livre delas.
+                    </div>
+                    <button onClick={() => setAdd(true)} style={{ padding: '9px 22px', background: cores.accent, border: 'none', borderRadius: 8, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                      + Adicionar dívida
+                    </button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {[
+                      { emoji: '💳', label: 'Cartão de crédito', desc: 'Rotativo e parcelado' },
+                      { emoji: '🏦', label: 'Financiamento',      desc: 'Imóvel ou veículo' },
+                      { emoji: '📋', label: 'Crédito pessoal',    desc: 'Empréstimo bancário' },
+                    ].map(t => (
+                      <div key={t.label} style={{ background: 'rgba(255,255,255,.03)', border: `1px solid ${cores.border}`, borderRadius: 10, padding: '12px', textAlign: 'center', cursor: 'pointer', transition: 'border-color .15s' }}
+                        onClick={() => setAdd(true)}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = cores.accent + '55')}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = cores.border)}>
+                        <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: cores.text, marginBottom: 2 }}>{t.label}</div>
+                        <div style={{ fontSize: 11, color: cores.textMuted }}>{t.desc}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 dividas.map((d, i) => (

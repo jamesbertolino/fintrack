@@ -180,8 +180,13 @@ export default function CategoriasPage() {
           {loading ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted, fontSize: 13 }}>Carregando...</div>
           ) : customCats.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted, fontSize: 13 }}>
-              Nenhuma categoria personalizada. Crie a primeira!
+            <div style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 32 }}>🏷️</div>
+              <div style={{ fontSize: 13, color: cores.textMuted }}>Nenhuma categoria personalizada ainda.</div>
+              <button onClick={() => { setForm(FORM_VAZIO); setEditId(null); setErro(''); setShowForm(true) }}
+                style={{ padding: '8px 20px', background: cores.accent, border: 'none', borderRadius: 8, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                + Criar primeira categoria
+              </button>
             </div>
           ) : (
             customCats.map((c, i) => (
