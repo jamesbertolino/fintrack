@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   const valorInicial = parseFloat(saldo_inicial) || 0
   if (valorInicial > 0 && data) {
-    await supabase.from('transactions').insert({
+    const { error: errTx } = await supabase.from('transactions').insert({
       user_id:   user.id,
       descricao: 'Saldo inicial',
       valor:     valorInicial,
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       origem:    'saldo_inicial',
       data_hora: new Date().toISOString(),
     })
+    if (errTx) return NextResponse.json({ error: `Conta criada, mas saldo inicial não registrado: ${errTx.message}` }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, conta: data })

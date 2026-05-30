@@ -67,7 +67,8 @@ export async function DELETE(
 
   // Usa service role para remover FK em whatsapp_logs antes de deletar
   const service = getServiceClient()
-  await service.from('whatsapp_logs').update({ transacao_id: null }).eq('transacao_id', id)
+  const { error: errFk } = await service.from('whatsapp_logs').update({ transacao_id: null }).eq('transacao_id', id)
+  if (errFk) return NextResponse.json({ error: `Erro ao desvincular logs: ${errFk.message}` }, { status: 500 })
 
   const { error } = await service.from('transactions').delete().eq('id', id).eq('user_id', user.id)
 

@@ -28,10 +28,12 @@ export async function POST(request: NextRequest) {
 
   if (!profile) return NextResponse.json({ ok: true })
 
-  await supabase
+  const { error } = await supabase
     .from('profiles')
     .update({ xp_bonus: (profile.xp_bonus || 0) + XP_REFERRAL })
     .eq('id', referrer_id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true, xp: XP_REFERRAL })
 }

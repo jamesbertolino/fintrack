@@ -128,17 +128,18 @@ export default function ContasPage() {
 
   async function excluirConta(id: string) {
     if (!confirm('Excluir esta conta?')) return
-    await fetch(`/api/contas/${id}`, { method: 'DELETE' })
-    carregar()
+    const res = await fetch(`/api/contas/${id}`, { method: 'DELETE' })
+    if (res.ok) carregar()
+    else { const d = await res.json().catch(() => ({})); setErro(d.error || 'Erro ao excluir conta') }
   }
 
   async function toggleSaldoVisivel(id: string, atual: boolean) {
-    await fetch(`/api/contas/${id}`, {
+    const res = await fetch(`/api/contas/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mostrar_saldo: !atual }),
     })
-    setContas(prev => prev.map(c => c.id === id ? { ...c, mostrar_saldo: !atual } : c))
+    if (res.ok) setContas(prev => prev.map(c => c.id === id ? { ...c, mostrar_saldo: !atual } : c))
   }
 
   const inputStyle = {

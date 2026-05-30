@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         .eq('id', pendente.user_id)
         .single()
 
-      await supabase.from('transactions').insert({
+      const { error: errTx } = await supabase.from('transactions').insert({
         user_id:           pendente.user_id,
         descricao:         interpretacao.descricao.toUpperCase(),
         valor:             interpretacao.tipo === 'debito' ? -Math.abs(interpretacao.valor) : Math.abs(interpretacao.valor),
@@ -146,6 +146,11 @@ export async function POST(request: NextRequest) {
         tipo_visibilidade: respostaPendente,
         conta_id:          profilePadrao?.conta_padrao_id || null,
       })
+
+      if (errTx) {
+        await enviarMensagem(instancia, remoteJid, '❌ Erro ao registrar lançamento. Tente novamente.')
+        return NextResponse.json({ ok: false, error: errTx.message })
+      }
 
       await supabase.from('whatsapp_pendentes').delete().eq('id', pendente.id)
 
