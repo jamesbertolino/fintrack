@@ -809,7 +809,9 @@ useEffect(() => {
                       {resultados.map(t => (
                         <div
                           key={t.id}
+                          role="button" tabIndex={0}
                           onClick={() => { router.push('/dashboard/gastos'); setBuscaAb(false); setBuscaQuery('') }}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push('/dashboard/gastos'); setBuscaAb(false); setBuscaQuery('') } }}
                           style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', borderTop: '1px solid rgba(255,255,255,.04)', transition: 'background .1s' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -830,7 +832,9 @@ useEffect(() => {
                       ))}
                       {transacoes.filter(t => t.descricao.toLowerCase().includes(q) || t.categoria.toLowerCase().includes(q)).length > 12 && (
                         <div
+                          role="button" tabIndex={0}
                           onClick={() => { router.push('/dashboard/gastos'); setBuscaAb(false); setBuscaQuery('') }}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push('/dashboard/gastos'); setBuscaAb(false); setBuscaQuery('') } }}
                           style={{ padding: '10px 16px', textAlign: 'center', fontSize: 12, color: tx.accentColor, cursor: 'pointer', borderTop: '1px solid rgba(255,255,255,.05)' }}>
                           Ver todos os resultados em Gastos →
                         </div>
@@ -848,7 +852,9 @@ useEffect(() => {
                     { label: m ? 'Edito do Reino' : 'Orçamento', href: '/dashboard/orcamento', icon: m ? '⚖️' : '📊' },
                     { label: m ? 'Quests' : 'Metas', href: '/dashboard/metas', icon: m ? '🎯' : '🎯' },
                   ].map(item => (
-                    <div key={item.href} onClick={() => { router.push(item.href); setBuscaAb(false) }}
+                    <div key={item.href} role="button" tabIndex={0}
+                      onClick={() => { router.push(item.href); setBuscaAb(false) }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(item.href); setBuscaAb(false) } }}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', transition: 'background .1s' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.05)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -1297,7 +1303,10 @@ useEffect(() => {
                   { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,            icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false },
                 ] as const).map(card => (
                   <div key={card.label}
+                    role={card.label === tx.metLabels[3] || card.href ? 'button' : undefined}
+                    tabIndex={card.label === tx.metLabels[3] || card.href ? 0 : undefined}
                     onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
+                    onKeyDown={card.label === tx.metLabels[3] ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExtratoXP(true) } } : card.href ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(card.href!) } } : undefined}
                     onMouseEnter={e => {
                       e.currentTarget.style.transform = 'translateY(-3px)'
                       e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,.35), 0 0 0 1px ${card.cor}55`

@@ -579,11 +579,14 @@ export default function MetasPage() {
                   </div>
                 </div>
                 {/* Toggle ativo */}
-                <div onClick={() => toggleAlerta(a.id, a.ativo)} style={{
-                  width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
-                  background: a.ativo ? '#16a34a' : 'rgba(255,255,255,.1)',
-                  position: 'relative', transition: 'background .2s', flexShrink: 0, marginTop: 2,
-                }}>
+                <div role="switch" aria-checked={a.ativo} aria-label="Ativar/desativar alerta" tabIndex={0}
+                  onClick={() => toggleAlerta(a.id, a.ativo)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAlerta(a.id, a.ativo) } }}
+                  style={{
+                    width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+                    background: a.ativo ? '#16a34a' : 'rgba(255,255,255,.1)',
+                    position: 'relative', transition: 'background .2s', flexShrink: 0, marginTop: 2,
+                  }}>
                   <div style={{
                     position: 'absolute', top: 3, left: a.ativo ? 18 : 3,
                     width: 14, height: 14, borderRadius: '50%', background: '#fff',
