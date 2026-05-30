@@ -88,12 +88,12 @@ ${topCat.map(([cat, val]) => `- ${cat}: R$ ${val.toFixed(2)} (${despesas > 0 ? M
 Orçamentos configurados:
 ${(orcamentos || []).map(o => {
   const gasto = porCategoria[o.categoria] || 0
-  const pct   = Math.round((gasto / o.limite) * 100)
-  return `- ${o.categoria}: R$ ${gasto.toFixed(2)} de R$ ${o.limite.toFixed(2)} (${pct}%)${pct > 100 ? ' ⚠️ EXCEDIDO' : ''}`
+  const pct   = o.limite > 0 ? Math.round((gasto / o.limite) * 100) : 0
+  return `- ${o.categoria}: R$ ${gasto.toFixed(2)} de R$ ${(o.limite ?? 0).toFixed(2)} (${pct}%)${pct > 100 ? ' ⚠️ EXCEDIDO' : ''}`
 }).join('\n') || '- Nenhum orçamento cadastrado'}
 
 Metas ativas:
-${(metas || []).map(m => `- ${m.nome}: R$ ${m.valor_atual} de R$ ${m.valor_total} (${Math.round((m.valor_atual / m.valor_total) * 100)}%)`).join('\n') || '- Nenhuma meta cadastrada'}
+${(metas || []).map(m => `- ${m.nome}: R$ ${m.valor_atual} de R$ ${m.valor_total} (${m.valor_total > 0 ? Math.round((m.valor_atual / m.valor_total) * 100) : 0}%)`).join('\n') || '- Nenhuma meta cadastrada'}
 
 === FORMATO DO RELATÓRIO ===
 Responda EXATAMENTE nesse formato com 4 seções separadas por "---":

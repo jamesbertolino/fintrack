@@ -132,7 +132,8 @@ export async function verificarConquistas(
   }
 
   if (paraInserir.length > 0) {
-    await supabase.from('conquistas_usuario').insert(paraInserir)
+    const { error: errInsert } = await supabase.from('conquistas_usuario').insert(paraInserir)
+    if (errInsert) return []
 
     // Soma XP das novas conquistas
     const xpGanho = novas.reduce((a, c) => a + c.xp, 0)

@@ -75,7 +75,7 @@ Gastos por categoria:
 ${topCat.map(([cat, val]) => `- ${cat}: R$ ${val.toFixed(2)} (${despesas > 0 ? Math.round((val / despesas) * 100) : 0}% das despesas)`).join('\n') || 'Sem gastos registrados'}
 
 Metas ativas:
-${metas?.map(m => `- ${m.nome}: R$ ${m.valor_atual} de R$ ${m.valor_total} (${Math.round((m.valor_atual / m.valor_total) * 100)}%)`).join('\n') || 'Nenhuma meta cadastrada'}
+${metas?.map(m => `- ${m.nome}: R$ ${m.valor_atual} de R$ ${m.valor_total} (${m.valor_total > 0 ? Math.round((m.valor_atual / m.valor_total) * 100) : 0}%)`).join('\n') || 'Nenhuma meta cadastrada'}
 
 Prioridades financeiras do usuário (em ordem de importância):
 ${prioridades.length > 0 ? prioridades.map(p => `${p.ordem}. ${p.titulo}`).join('\n') : 'Não definidas ainda'}

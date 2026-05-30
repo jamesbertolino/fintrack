@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b[1] - a[1])
     .map(([nome, valor]) => {
       const limite = orc.find(o => o.categoria === nome)?.valor_limite ?? null
-      return { nome, valor, limite, pct: limite ? Math.round((valor / limite) * 100) : null }
+      return { nome, valor, limite, pct: limite > 0 ? Math.round((valor / limite) * 100) : null }
     })
 
   return NextResponse.json({

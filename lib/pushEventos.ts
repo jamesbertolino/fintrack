@@ -97,7 +97,7 @@ export function verificarEventosPosLancamento(
             .gte('data_hora', inicioMes)
 
           const gasto = (txs || []).reduce((a, t) => a + Math.abs(t.valor), 0)
-          const pct   = Math.round((gasto / orc.valor_limite) * 100)
+          const pct   = orc.valor_limite > 0 ? Math.round((gasto / orc.valor_limite) * 100) : 0
 
           // Notifica ao ultrapassar (101%) para evitar spam em cada lançamento
           if (pct >= 100 && pct <= 120) {

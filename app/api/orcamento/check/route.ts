@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   const gasto      = (txs || []).reduce((s, t) => s + Math.abs(t.valor), 0)
   const limite     = orc.valor_planejado
   const percentual = limite > 0 ? gasto / limite : 0
-  const excedido   = gasto >= limite
+  const excedido   = limite > 0 && gasto >= limite
 
   return NextResponse.json({ limite, gasto, percentual, excedido })
 }

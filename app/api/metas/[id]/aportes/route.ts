@@ -38,7 +38,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // update valor_atual on goals
   const novoValor = (meta.valor_atual || 0) + valor
-  await supabase.from('goals').update({ valor_atual: novoValor }).eq('id', id)
+  const { error: errMeta } = await supabase.from('goals').update({ valor_atual: novoValor }).eq('id', id)
+  if (errMeta) return NextResponse.json({ error: errMeta.message }, { status: 500 })
 
   return NextResponse.json({ aporte, valor_atual: novoValor })
 }
@@ -55,13 +56,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { data: aporte } = await supabase.from('meta_aportes').select('valor, meta_id').eq('id', aporte_id).eq('user_id', user.id).single()
   if (!aporte) return NextResponse.json({ error: 'Aporte não encontrado' }, { status: 404 })
 
-  await supabase.from('meta_aportes').delete().eq('id', aporte_id).eq('user_id', user.id)
+  const { error: errDel } = await supabase.from('meta_aportes').delete().eq('id', aporte_id).eq('user_id', user.id)
+  if (errDel) return NextResponse.json({ error: errDel.message }, { status: 500 })
 
   // revert valor_atual
   const { data: meta } = await supabase.from('goals').select('valor_atual').eq('id', id).single()
   if (meta) {
     const novoValor = Math.max(0, (meta.valor_atual || 0) - aporte.valor)
-    await supabase.from('goals').update({ valor_atual: novoValor }).eq('id', id)
+    const { error: errMeta } = await supabase.from('goals').update({ valor_atual: novoValor }).eq('id', id)
+    if (errMeta) return NextResponse.json({ error: errMeta.message }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true })

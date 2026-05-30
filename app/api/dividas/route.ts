@@ -44,6 +44,7 @@ export async function DELETE(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await request.json()
-  await supabase.from('dividas').update({ ativo: false }).eq('id', id).eq('user_id', user.id)
+  const { error } = await supabase.from('dividas').update({ ativo: false }).eq('id', id).eq('user_id', user.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
