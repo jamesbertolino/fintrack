@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.poupaup.com.br'),
-  title: 'PoupaUp — Poupe. Evolua. Conquiste.',
+  title: 'PoupaUp — Poupar. Evoluir. Conquistar.',
   description: 'Controle financeiro familiar com IA e WhatsApp',
   icons: {
     icon: [
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'PoupaUp',
-    description: 'Poupe. Evolua. Conquiste.',
+    description: 'Poupar. Evoluir. Conquistar.',
     images: ['/logo.png'],
   },
 }
