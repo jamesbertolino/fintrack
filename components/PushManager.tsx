@@ -55,11 +55,12 @@ export default function PushManager({ inline = false }: Props) {
       })
 
       const json = sub.toJSON()
-      await fetch('/api/push/subscribe', {
+      const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
       })
+      if (!res.ok) throw new Error('subscribe failed')
 
       setEstado('granted')
     } catch {
@@ -74,12 +75,12 @@ export default function PushManager({ inline = false }: Props) {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) {
-        await fetch('/api/push/subscribe', {
+        const res = await fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ endpoint: sub.endpoint }),
         })
-        await sub.unsubscribe()
+        if (res.ok) await sub.unsubscribe()
       }
       setEstado('default')
     } catch { /* silencioso */ }

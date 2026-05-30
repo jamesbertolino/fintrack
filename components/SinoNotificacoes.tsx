@@ -42,16 +42,19 @@ export default function SinoNotificacoes() {
   const naoLidas = notifs.filter(n => !n.lida).length
 
   const carregar = useCallback(async () => {
-    const res = await fetch('/api/notificacoes')
-    const data = await res.json()
-    const novas = data.notificacoes || []
+    try {
+      const res = await fetch('/api/notificacoes')
+      if (!res.ok) return
+      const data = await res.json()
+      const novas = data.notificacoes || []
 
-    // Animar sino se chegou nova notificação
-    if (novas.filter((n: Notificacao) => !n.lida).length > naoLidas) {
-      setAnim(true)
-      setTimeout(() => setAnim(false), 600)
-    }
-    setNotifs(novas)
+      // Animar sino se chegou nova notificação
+      if (novas.filter((n: Notificacao) => !n.lida).length > naoLidas) {
+        setAnim(true)
+        setTimeout(() => setAnim(false), 600)
+      }
+      setNotifs(novas)
+    } catch { /* silencioso — polling best-effort */ }
   }, [naoLidas])
 
   useEffect(() => {
@@ -82,21 +85,24 @@ export default function SinoNotificacoes() {
   async function marcarLida(id: string, e: React.MouseEvent) {
     e.stopPropagation()
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n))
-    await fetch('/api/notificacoes', {
+    const res = await fetch('/api/notificacoes', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
     })
+    if (!res.ok) setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: false } : n))
   }
 
   async function marcarTodas(e: React.MouseEvent) {
     e.stopPropagation()
+    const snapshot = notifs
     setNotifs(prev => prev.map(n => ({ ...n, lida: true })))
-    await fetch('/api/notificacoes', {
+    const res = await fetch('/api/notificacoes', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ todas: true }),
     })
+    if (!res.ok) setNotifs(snapshot)
   }
 
   return (
