@@ -448,7 +448,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
                 style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
-              <span style={{ color: 'rgba(255,255,255,.25)', fontSize: 11 }}>até</span>
+              <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 11 }}>até</span>
               <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) setPeriodo('custom') }}
                 style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
               {periodo === 'custom' && (
@@ -456,7 +456,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #3a1a1a', background: 'rgba(239,68,68,.1)', color: '#f87171', fontSize: 11, cursor: 'pointer' }}>✕</button>
               )}
             </div>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.25)', marginLeft: 'auto' }}>{labelPeriodo(periodo)}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginLeft: 'auto' }}>{labelPeriodo(periodo)}</span>
           </div>
         )}
 
@@ -471,7 +471,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             <div key={m.label} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{m.label}</div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.25)' }}>{labelPeriodo(periodo)}</div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,.4)' }}>{labelPeriodo(periodo)}</div>
               </div>
               <div style={{ fontSize: 20, fontWeight: 500, color: m.cor }}>{m.val}</div>
             </div>
@@ -528,7 +528,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: CORES[cat] || '#6b7280' }} />
                         <span style={{ fontSize: 12, color: catDrilldown === cat ? '#fff' : 'rgba(255,255,255,.7)', fontWeight: catDrilldown === cat ? 600 : 400 }}>{cat}</span>
-                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,.25)' }}>▾ detalhar</span>
+                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,.4)' }}>▾ detalhar</span>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{fmtBRL(val)}</span>
                     </div>
@@ -740,9 +740,9 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Lançamentos detalhados</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 100px', gap: 0 }}>
                   {/* header */}
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Descrição</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Data</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a', textAlign: 'right' }}>Valor</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Descrição</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Data</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a', textAlign: 'right' }}>Valor</div>
                   {/* rows */}
                   {transacoesCat.map(t => (
                     <>
@@ -767,7 +767,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 6 }}>
               {topGastos.map((t, i) => (
                 <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,.02)' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.18)', fontWeight: 700, width: 18, textAlign: 'center', flexShrink: 0 }}>#{i + 1}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', fontWeight: 700, width: 18, textAlign: 'center', flexShrink: 0 }}>#{i + 1}</div>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: CORES[t.categoria] || '#6b7280', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.descricao}</div>
@@ -1106,7 +1106,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 <div />
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>
                   {filtroAtivo
-                    ? <span>Saldo da seleção <span style={{ color: 'rgba(255,255,255,.25)' }}>· {labelPeriodo(periodo)}: {saldoPeriodo >= 0 ? '+' : '-'}{fmtBRL(Math.abs(saldoPeriodo))}</span></span>
+                    ? <span>Saldo da seleção <span style={{ color: 'rgba(255,255,255,.4)' }}>· {labelPeriodo(periodo)}: {saldoPeriodo >= 0 ? '+' : '-'}{fmtBRL(Math.abs(saldoPeriodo))}</span></span>
                     : <span style={{ fontWeight: 500, color: 'rgba(255,255,255,.5)' }}>Saldo do período</span>
                   }
                 </div>

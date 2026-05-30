@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface Banco {
   id: string
@@ -58,6 +59,7 @@ export default function ContasPage() {
   const [bancos, setBancos]       = useState<Banco[]>([])
   const [loading, setLoading]     = useState(true)
   const [modalAberto, setModal]   = useState(false)
+  const trapConta = useFocusTrap(modalAberto)
   const [salvando, setSalvando]   = useState(false)
   const [erro, setErro]           = useState('')
   const [sucesso, setSucesso]     = useState('')
@@ -281,7 +283,7 @@ export default function ContasPage() {
       {/* Modal nova conta */}
       {modalAberto && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="modal-nova-conta-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div ref={trapConta} role="dialog" aria-modal="true" aria-labelledby="modal-nova-conta-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div id="modal-nova-conta-titulo" style={{ fontSize: 16, fontWeight: 600 }}>Nova conta</div>
               <button onClick={() => { setModal(false); setErro('') }} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18 }}>✕</button>

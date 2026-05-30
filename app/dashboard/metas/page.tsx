@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -124,11 +125,14 @@ export default function MetasPage() {
     valor_atual: '0', contribuicao_mensal: '', prazo: '', categoria_vinculada: '',
   })
 
+  const trapMeta    = useFocusTrap(showForm)
+
   // aportes
   const [metaAporte,   setMetaAporte]   = useState<Meta | null>(null)
   const [aportes,      setAportes]      = useState<Aporte[]>([])
   const [loadAportes,  setLoadAportes]  = useState(false)
   const [formAporte,   setFormAporte]   = useState({ valor: '', nota: '', data: new Date().toISOString().slice(0, 10) })
+  const trapAportes = useFocusTrap(!!metaAporte)
   const [salvandoAporte, setSalvandoAporte] = useState(false)
   const [erroAporte,   setErroAporte]   = useState('')
 
@@ -532,7 +536,7 @@ export default function MetasPage() {
                             background: pct >= marco ? 'rgba(74,222,128,.15)' : 'rgba(255,255,255,.03)',
                             border: `1px solid ${pct >= marco ? 'rgba(74,222,128,.3)' : '#1a3a1a'}`,
                             borderRadius: 6, fontSize: 10,
-                            color: pct >= marco ? '#4ade80' : 'rgba(255,255,255,.2)',
+                            color: pct >= marco ? '#4ade80' : 'rgba(255,255,255,.35)',
                           }}>
                             {marco}%
                           </div>
@@ -662,7 +666,7 @@ export default function MetasPage() {
                                 <span style={{ color: '#4ade80', fontWeight: 600 }}>+{fmtBRL(a.valor)}</span>
                               </div>
                             ))}
-                            {m.aportes.length > 3 && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.25)' }}>+{m.aportes.length - 3} mais...</div>}
+                            {m.aportes.length > 3 && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)' }}>+{m.aportes.length - 3} mais...</div>}
                           </div>
                         </div>
                       )}
@@ -683,7 +687,7 @@ export default function MetasPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 50, padding: '1rem',
         }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="modal-meta-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div ref={trapMeta} role="dialog" aria-modal="true" aria-labelledby="modal-meta-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div id="modal-meta-titulo" style={{ fontSize: 16, fontWeight: 500 }}>{metaSel ? 'Editar meta' : 'Nova meta'}</div>
               <button onClick={() => { setShowForm(false); resetForm() }} aria-label="Fechar formulário" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18, lineHeight: 1 }}>×</button>
@@ -764,7 +768,7 @@ export default function MetasPage() {
       {/* ── MODAL APORTES ── */}
       {metaAporte && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="modal-aportes-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div ref={trapAportes} role="dialog" aria-modal="true" aria-labelledby="modal-aportes-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <div id="modal-aportes-titulo" style={{ fontSize: 15, fontWeight: 600 }}>💰 Aportes — {metaAporte.nome}</div>

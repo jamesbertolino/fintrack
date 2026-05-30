@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCores, useTema } from '@/components/ThemeProvider'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useToast, Toasts } from '@/components/Toast'
 
 interface Orcamento {
@@ -80,6 +81,7 @@ export default function OrcamentoPage() {
   const [iaAberto, setIaAberto]       = useState(false)
 
   const [confirmSugestao, setConfirmSugestao] = useState<SugestaoIA | null>(null)
+  const trapSugestao = useFocusTrap(!!confirmSugestao)
 
   const accentColor = m ? '#D4AF37' : cores.accent
   const accentMuted = m ? 'rgba(212,175,55,.6)' : `${cores.accent}99`
@@ -587,7 +589,7 @@ export default function OrcamentoPage() {
       {confirmSugestao && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setConfirmSugestao(null)}>
-          <div role="dialog" aria-modal="true" aria-label="Confirmar sugestão de orçamento"
+          <div ref={trapSugestao} role="dialog" aria-modal="true" aria-label="Confirmar sugestão de orçamento"
             style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, padding: '24px 20px 20px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
