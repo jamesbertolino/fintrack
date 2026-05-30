@@ -76,6 +76,13 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   // ─── swipe mobile ───
   const swipeTouchX   = useRef<Record<string, number>>({})
   const [swipeOffset, setSwipeOffset] = useState<Record<string, number>>({})
+  const [swipeHintVisto, setSwipeHintVisto] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('swipe_hint_visto') === '1'
+  )
+  function fecharSwipeHint() {
+    localStorage.setItem('swipe_hint_visto', '1')
+    setSwipeHintVisto(true)
+  }
   function onSwipeStart(id: string, e: React.TouchEvent) {
     swipeTouchX.current[id] = e.touches[0].clientX
   }
@@ -926,6 +933,13 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
           ) : isMobile ? (
             /* ── Layout mobile: cards por transação ── */
             <div>
+              {/* Hint swipe — aparece uma vez */}
+              {!swipeHintVisto && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(248,113,113,.07)', borderBottom: '1px solid rgba(248,113,113,.15)' }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>← Arraste para deletar</span>
+                  <button onClick={fecharSwipeHint} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 16, lineHeight: 1, padding: '0 4px' }} aria-label="Fechar dica">×</button>
+                </div>
+              )}
               {/* Header seleção */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderBottom: '1px solid #1a3a1a' }}>
                 <input type="checkbox"

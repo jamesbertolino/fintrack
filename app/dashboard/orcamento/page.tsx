@@ -227,9 +227,9 @@ export default function OrcamentoPage() {
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 8, padding: '4px 6px' }}>
-            <button onClick={() => setMes(mesPrev(mes))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 16, lineHeight: 1, padding: '0 2px' }}>‹</button>
+            <button onClick={() => setMes(mesPrev(mes))} aria-label="Mês anterior" style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 16, lineHeight: 1, padding: '4px 10px', minWidth: 32 }}>‹</button>
             <span style={{ fontSize: 11, fontWeight: 500, color: cores.text, minWidth: 90, textAlign: 'center', textTransform: 'capitalize' }}>{mesLabel(mes)}</span>
-            <button onClick={() => setMes(mesNext(mes))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 16, lineHeight: 1, padding: '0 2px' }}>›</button>
+            <button onClick={() => setMes(mesNext(mes))} aria-label="Próximo mês" style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 16, lineHeight: 1, padding: '4px 10px', minWidth: 32 }}>›</button>
           </div>
 
           <button className="orc-ia-btn" onClick={analisarIA} disabled={carregandoIA}

@@ -141,7 +141,7 @@ export default function SinoNotificacoes() {
       {aberto && (
         <div style={{
           position: 'absolute', top: 42, right: 0,
-          width: 340, maxHeight: 420, overflowY: 'auto',
+          width: 340, maxWidth: 'calc(100vw - 16px)', maxHeight: 420, overflowY: 'auto',
           background: cores.surface, border: `1px solid ${cores.border}`,
           borderRadius: 12, zIndex: 100,
           boxShadow: cores.cardShadow,

@@ -462,21 +462,22 @@ export default function MetasPage() {
                             {m.tipo === 'acumulacao' ? 'Acumulação' : m.tipo === 'emergencia' ? 'Emergência' : 'Limite mensal'}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => abrirAportes(m)} style={{ background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#4ade80', fontSize: 11, fontWeight: 600 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 200 }}>
+                          <button onClick={() => abrirAportes(m)} style={{ background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: '#4ade80', fontSize: 11, fontWeight: 600 }}>
                             + Aportar
                           </button>
                           <button
                             onClick={() => toggleCompartilhar(m)}
                             disabled={toggling === m.id}
+                            aria-label={compartilhadas[m.id] ? 'Parar de compartilhar' : 'Compartilhar com família'}
                             title={compartilhadas[m.id] ? 'Parar de compartilhar' : 'Compartilhar com família'}
-                            style={{ background: compartilhadas[m.id] ? 'rgba(251,191,36,.12)' : 'rgba(255,255,255,.05)', border: `1px solid ${compartilhadas[m.id] ? 'rgba(251,191,36,.4)' : 'rgba(255,255,255,.1)'}`, borderRadius: 6, padding: '5px 8px', cursor: toggling === m.id ? 'default' : 'pointer', color: compartilhadas[m.id] ? '#fbbf24' : 'rgba(255,255,255,.35)', fontSize: 13, opacity: toggling === m.id ? 0.5 : 1 }}>
+                            style={{ background: compartilhadas[m.id] ? 'rgba(251,191,36,.12)' : 'rgba(255,255,255,.05)', border: `1px solid ${compartilhadas[m.id] ? 'rgba(251,191,36,.4)' : 'rgba(255,255,255,.1)'}`, borderRadius: 6, padding: '6px 8px', cursor: toggling === m.id ? 'default' : 'pointer', color: compartilhadas[m.id] ? '#fbbf24' : 'rgba(255,255,255,.35)', fontSize: 13, opacity: toggling === m.id ? 0.5 : 1 }}>
                             {compartilhadas[m.id] ? '👨‍👩‍👧' : '🔗'}
                           </button>
-                          <button onClick={() => editarMeta(m)} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: 'rgba(255,255,255,.5)', fontSize: 11 }}>
+                          <button onClick={() => editarMeta(m)} style={{ background: 'rgba(255,255,255,.06)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'rgba(255,255,255,.5)', fontSize: 11 }}>
                             Editar
                           </button>
-                          <button onClick={() => excluirMeta(m.id)} style={{ background: 'rgba(239,68,68,.1)', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: '#f87171', fontSize: 11 }}>
+                          <button onClick={() => excluirMeta(m.id)} style={{ background: 'rgba(239,68,68,.1)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: '#f87171', fontSize: 11 }}>
                             Excluir
                           </button>
                         </div>
