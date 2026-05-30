@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { usePerfil } from '@/hooks/usePerfil'
+import { useToast, Toasts } from '@/components/Toast'
 
 interface Meta {
   id: string
@@ -99,6 +100,7 @@ export default function MetasPage() {
   const router = useRouter()
   const supabase = createClient()
   const { fmtMes } = usePerfil()
+  const { show, toasts, fechar } = useToast()
 
   const [metas, setMetas]         = useState<Meta[]>([])
   const [alertas, setAlertas]     = useState<AlertaRegra[]>([])
@@ -237,6 +239,7 @@ export default function MetasPage() {
     setAportes(prev => [d.aporte, ...prev])
     setFormAporte(p => ({ ...p, valor: '', nota: '' }))
     setSalvandoAporte(false)
+    show(`Aporte de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)} registrado`)
   }
 
   async function removerAporte(aporte_id: string, valor: number) {
@@ -250,6 +253,7 @@ export default function MetasPage() {
     const novoValor = Math.max(0, (metaAporte?.valor_atual || 0) - valor)
     setMetas(prev => prev.map(m => m.id === metaAporte!.id ? { ...m, valor_atual: novoValor } : m))
     setMetaAporte(prev => prev ? { ...prev, valor_atual: novoValor } : prev)
+    show('Aporte removido')
   }
 
   function calcProjecaoAportes(meta: Meta, historicoAportes: Aporte[]) {
@@ -300,6 +304,7 @@ export default function MetasPage() {
 
     setSalvando(false)
     setShowForm(false)
+    show(metaSel ? 'Meta atualizada' : 'Meta criada')
     setMetaSel(null)
     resetForm()
     carregar()
@@ -307,6 +312,7 @@ export default function MetasPage() {
 
   async function excluirMeta(id: string) {
     await supabase.from('goals').update({ ativo: false }).eq('id', id)
+    show('Meta excluída')
     carregar()
   }
 
@@ -847,6 +853,7 @@ export default function MetasPage() {
           </div>
         </div>
       )}
+      <Toasts toasts={toasts} fechar={fechar} />
     </div>
   )
 }

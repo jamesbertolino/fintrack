@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCores, useTema } from '@/components/ThemeProvider'
+import { useToast, Toasts } from '@/components/Toast'
 
 interface Orcamento {
   id: string
@@ -52,6 +53,7 @@ export default function OrcamentoPage() {
   const cores    = useCores()
   const { tema } = useTema()
   const m        = tema === 'medieval'
+  const { show, toasts, fechar } = useToast()
 
   const mesAtual = new Date().toISOString().slice(0, 7)
   const [mes, setMes]                 = useState(mesAtual)
@@ -119,6 +121,7 @@ export default function OrcamentoPage() {
     setNovoValor('')
     setFormAberto(false)
     setAdicionando(false)
+    show(`${novaCategoria} adicionado ao orçamento`)
     carregar()
   }
 
@@ -131,6 +134,7 @@ export default function OrcamentoPage() {
     })
     setEditandoId(null)
     setSalvando(null)
+    show('Limite atualizado')
     carregar()
   }
 
@@ -138,6 +142,7 @@ export default function OrcamentoPage() {
     setDeletando(id)
     await fetch(`/api/orcamento/${id}`, { method: 'DELETE' })
     setDeletando(null)
+    show('Categoria removida do orçamento')
     carregar()
   }
 
@@ -150,8 +155,8 @@ export default function OrcamentoPage() {
     })
     const data = await res.json()
     setDuplicando(false)
-    if (!data.ok) alert(data.error)
-    else carregar()
+    if (!data.ok) show(data.error || 'Erro ao duplicar orçamento', 'erro')
+    else { show('Orçamento do mês anterior copiado'); carregar() }
   }
 
   async function aplicarSugestao(s: SugestaoIA) {
@@ -168,9 +173,10 @@ export default function OrcamentoPage() {
     })
     const data = await res.json()
     if (!res.ok || data.error) {
-      alert(`Erro ao aplicar sugestão: ${data.error || res.statusText}`)
+      show(`Erro ao aplicar sugestão: ${data.error || res.statusText}`, 'erro')
       return
     }
+    show(`Sugestão de ${s.categoria} aplicada`)
     carregar()
   }
 
@@ -670,6 +676,7 @@ export default function OrcamentoPage() {
           .orc-footer > div:nth-child(7) { display: none !important; }
         }
       `}</style>
+      <Toasts toasts={toasts} fechar={fechar} />
     </div>
   )
 }

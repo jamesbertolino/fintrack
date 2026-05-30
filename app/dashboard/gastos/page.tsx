@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { usePerfil } from '@/hooks/usePerfil'
+import { useToast, Toasts } from '@/components/Toast'
 
 interface Transacao {
   id: string
@@ -47,6 +48,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const router = useRouter()
   const supabase = createClient()
   const { fmtData, fmtMes } = usePerfil()
+  const { show, toasts, fechar } = useToast()
 
   const [transacoes, setTransacoes]   = useState<Transacao[]>([])
   const [loading, setLoading]         = useState(true)
@@ -291,9 +293,10 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   async function deletar(id: string) {
     if (!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return
     setDeletando(id)
-    await fetch(`/api/lancamento/${id}`, { method: 'DELETE' })
+    const res = await fetch(`/api/lancamento/${id}`, { method: 'DELETE' })
     setDeletando(null)
-    carregar()
+    if (res.ok) { show('Lançamento excluído'); carregar() }
+    else show('Erro ao excluir lançamento', 'erro')
   }
 
   async function moverParaConta() {
@@ -308,6 +311,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
         })
       )
     )
+    show(`${selecionados.length} lançamento${selecionados.length > 1 ? 's' : ''} movido${selecionados.length > 1 ? 's' : ''}`)
     setSelecionados([])
     setContaDestino('')
     setMovendo(false)
@@ -364,6 +368,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
     setSalvandoEdicao(false)
     setModalAberto(false)
     setTransacaoEditando(null)
+    show('Lançamento atualizado')
     carregar()
   }
 
@@ -1168,6 +1173,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
           </div>
         </div>
       )}
+      <Toasts toasts={toasts} fechar={fechar} />
     </div>
   )
 }
