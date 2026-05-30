@@ -1,19 +1,16 @@
 'use client'
 
-import Image from 'next/image'
-
 interface PoupaUpLogoProps {
   mode?: 'full' | 'icon' | 'compact'
 }
 
 function Velocimetro({ size }: { size: number }) {
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src="/velocimetro.jpg"
       alt="PoupaUp"
-      width={size}
-      height={size}
-      style={{ objectFit: 'cover', borderRadius: 10, flexShrink: 0 }}
+      style={{ height: size, width: 'auto', objectFit: 'contain', borderRadius: 6, flexShrink: 0, display: 'block' }}
     />
   )
 }

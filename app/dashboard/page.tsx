@@ -396,9 +396,9 @@ const CORES: Record<string, string> = {
 
 const LogoPoupaUp = ({ collapsed }: { collapsed: boolean }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-    <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 8, overflow: 'hidden' }}>
+    <div style={{ height: 36, flexShrink: 0 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/velocimetro.png" alt="PoupaUp" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <img src="/velocimetro.png" alt="PoupaUp" style={{ height: '100%', width: 'auto', objectFit: 'contain', display: 'block' }} />
     </div>
     {!collapsed && (
       <div style={{ lineHeight: 1 }}>
