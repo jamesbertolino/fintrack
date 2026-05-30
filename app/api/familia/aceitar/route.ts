@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
 
   if (memErr) return NextResponse.json({ error: memErr.message }, { status: 500 })
 
-  await supabase.from('familia_convites').update({ aceito: true }).eq('id', convite.id)
+  const { error: convErr } = await supabase.from('familia_convites').update({ aceito: true }).eq('id', convite.id)
+  if (convErr) return NextResponse.json({ error: convErr.message }, { status: 500 })
 
   return NextResponse.json({ ok: true, permissao: convite.permissao })
 }

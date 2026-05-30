@@ -66,10 +66,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Marca como ativo
-  await supabase
+  const { error: updErr } = await supabase
     .from('grupo_membros')
     .update({ user_id, status: 'ativo' })
     .eq('id', membro.id)
+  if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
 
   // Busca nome do grupo para retornar ao cliente
   const { data: grupo } = await supabase
