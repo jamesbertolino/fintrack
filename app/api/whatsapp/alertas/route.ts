@@ -97,10 +97,11 @@ export async function GET(request: NextRequest) {
 
   // Marca imediatamente como "enviado" para evitar reenvios caso o PATCH não seja chamado
   const idsSelecionados = selecionadas.map(a => a.id)
-  await supabase
+  const { error: errMarca } = await supabase
     .from('notifications')
     .update({ enviado_whatsapp: true, whatsapp_enviado_at: new Date().toISOString() })
     .in('id', idsSelecionados)
+  if (errMarca) return NextResponse.json({ error: errMarca.message }, { status: 500 })
 
   // Monta alertas para envio — inclui membros do grupo se houver
   const alertas: {

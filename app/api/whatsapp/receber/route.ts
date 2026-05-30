@@ -266,6 +266,7 @@ export async function POST(request: NextRequest) {
   await supabase.from('transactions')
     .update({ tipo_visibilidade: tipoVisibilidade })
     .eq('id', dadosIA.transacao_id)
+    // erro ignorado — visibilidade é metadado opcional, transação já foi salva
 
   // Envia resposta de volta para o grupo
   const resposta = (dadosIA.resposta as string) || ''

@@ -32,13 +32,15 @@ export async function PATCH(
   if (!Object.keys(campos).length)
     return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('transactions')
     .update(campos)
     .eq('id', id)
     .eq('user_id', user.id)
+    .select('id')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!updated?.length) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
 
   logAudit({ user_id: user.id, action: 'transaction.update', resource_id: id, metadata: campos })
 

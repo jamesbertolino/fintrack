@@ -54,8 +54,11 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json', 'x-n8n-secret': parseSecret },
       body: JSON.stringify({ numero, mensagem }),
     })
-    await parseRes.json()
-  } catch {
+    if (!parseRes.ok) {
+      console.error('[messages-upsert] parse retornou', parseRes.status, 'para', numero)
+    }
+  } catch (err) {
+    console.error('[messages-upsert] falha ao repassar mensagem de', numero, err)
   }
 
   return NextResponse.json({ ok: true })
