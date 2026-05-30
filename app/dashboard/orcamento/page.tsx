@@ -587,7 +587,8 @@ export default function OrcamentoPage() {
       {confirmSugestao && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setConfirmSugestao(null)}>
-          <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, padding: '24px 20px 20px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
+          <div role="dialog" aria-modal="true" aria-label="Confirmar sugestão de orçamento"
+            style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, padding: '24px 20px 20px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.4)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span style={{ fontSize: 24 }}>💡</span>

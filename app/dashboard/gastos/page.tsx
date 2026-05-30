@@ -548,7 +548,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 {porMes.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>
                     Sem dados suficientes —{' '}
-                    <span role="button" tabIndex={0} style={{ color: '#4ade80', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setPeriodo('365')} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPeriodo('365') } }}>ampliar para 1 ano</span>
+                    <button type="button" onClick={() => setPeriodo('365')} style={{ color: '#4ade80', cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, fontSize: 'inherit' }}>ampliar para 1 ano</button>
                   </div>
                 ) : (
                   <>
@@ -589,7 +589,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 {catsComparativo.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>
                     Sem dados para comparar —{' '}
-                    <span role="button" tabIndex={0} style={{ color: '#4ade80', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setPeriodo('90')} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPeriodo('90') } }}>ver últimos 90 dias</span>
+                    <button type="button" onClick={() => setPeriodo('90')} style={{ color: '#4ade80', cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, fontSize: 'inherit' }}>ver últimos 90 dias</button>
                   </div>
                 ) : catsComparativo.map(cat => {
                   const atual = porCategoria.find(([c]) => c === cat)?.[1] || 0

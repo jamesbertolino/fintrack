@@ -38,7 +38,7 @@ export function Toasts({ toasts, fechar }: { toasts: ToastMsg[]; fechar: (id: nu
   return (
     <>
       <style>{`@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div style={{ position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom,0px) + 80px)', right: 20, zIndex: 1100, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340, width: 'calc(100vw - 40px)' }}>
+      <div role="status" aria-live="polite" aria-atomic="false" style={{ position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom,0px) + 80px)', right: 20, zIndex: 1100, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340, width: 'calc(100vw - 40px)' }}>
         {toasts.map(t => {
           const c = CORES[t.tipo]
           return (

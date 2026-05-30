@@ -222,7 +222,7 @@ export default function ContasPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={logoUrl}
-                        alt={banco?.nome_curto || ''}
+                        alt={banco?.nome_curto || 'Logo do banco'}
                         width={28}
                         height={28}
                         style={{ objectFit: 'contain', borderRadius: 6 }}
@@ -281,10 +281,10 @@ export default function ContasPage() {
       {/* Modal nova conta */}
       {modalAberto && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="modal-nova-conta-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: 16, fontWeight: 600 }}>Nova conta</div>
-              <button onClick={() => { setModal(false); setErro('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18 }}>✕</button>
+              <div id="modal-nova-conta-titulo" style={{ fontSize: 16, fontWeight: 600 }}>Nova conta</div>
+              <button onClick={() => { setModal(false); setErro('') }} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18 }}>✕</button>
             </div>
 
             {erro && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erro}</div>}
@@ -376,7 +376,9 @@ export default function ContasPage() {
               </div>
 
               <div
+                role="checkbox" aria-checked={form.mostrar_saldo} aria-label="Mostrar saldo desta conta no painel" tabIndex={0}
                 onClick={() => setForm(p => ({ ...p, mostrar_saldo: !p.mostrar_saldo }))}
+                onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setForm(p => ({ ...p, mostrar_saldo: !p.mostrar_saldo })) } }}
                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, cursor: 'pointer', marginBottom: '1.25rem' }}
               >
                 <div style={{ width: 18, height: 18, borderRadius: 4, border: `1.5px solid ${form.mostrar_saldo ? '#16a34a' : '#1a3a1a'}`, background: form.mostrar_saldo ? '#16a34a' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all .15s' }}>

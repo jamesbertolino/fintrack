@@ -683,9 +683,9 @@ export default function MetasPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 50, padding: '1rem',
         }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="modal-meta-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: 16, fontWeight: 500 }}>{metaSel ? 'Editar meta' : 'Nova meta'}</div>
+              <div id="modal-meta-titulo" style={{ fontSize: 16, fontWeight: 500 }}>{metaSel ? 'Editar meta' : 'Nova meta'}</div>
               <button onClick={() => { setShowForm(false); resetForm() }} aria-label="Fechar formulário" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18, lineHeight: 1 }}>×</button>
             </div>
 
@@ -764,10 +764,10 @@ export default function MetasPage() {
       {/* ── MODAL APORTES ── */}
       {metaAporte && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }}>
-          <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="modal-aportes-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>💰 Aportes — {metaAporte.nome}</div>
+                <div id="modal-aportes-titulo" style={{ fontSize: 15, fontWeight: 600 }}>💰 Aportes — {metaAporte.nome}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>
                   {fmtBRL(metaAporte.valor_atual)} de {fmtBRL(metaAporte.valor_total)} ({metaAporte.valor_total > 0 ? Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100) : 0}%)
                 </div>
