@@ -545,7 +545,10 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             {abaGrafico === 'evolucao' && (
               <div>
                 {porMes.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>Sem dados suficientes</div>
+                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>
+                    Sem dados suficientes —{' '}
+                    <span style={{ color: '#4ade80', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setPeriodo('365')}>ampliar para 1 ano</span>
+                  </div>
                 ) : (
                   <>
                     <div style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
@@ -583,7 +586,10 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   </div>
                 </div>
                 {catsComparativo.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>Sem dados suficientes para comparar</div>
+                  <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,.3)', fontSize: 12 }}>
+                    Sem dados para comparar —{' '}
+                    <span style={{ color: '#4ade80', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setPeriodo('90')}>ver últimos 90 dias</span>
+                  </div>
                 ) : catsComparativo.map(cat => {
                   const atual = porCategoria.find(([c]) => c === cat)?.[1] || 0
                   const ant   = porCategoriaAnt[cat] || 0
@@ -932,9 +938,37 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
 
           {/* Tabela */}
           {filtradas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,.3)', fontSize: 13 }}>
-              Nenhuma transação encontrada com os filtros aplicados
-            </div>
+            transacoes.length === 0 ? (
+              /* Sem transações no período */
+              <div style={{ textAlign: 'center', padding: '3rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 40 }}>📊</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Nenhuma transação no período</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', maxWidth: 280, lineHeight: 1.6 }}>
+                  Tente um período maior ou adicione sua primeira transação.
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
+                  <button onClick={() => { setPeriodo('365'); setDataInicio(''); setDataFim('') }}
+                    style={{ padding: '8px 16px', background: 'rgba(255,255,255,.06)', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.5)', fontSize: 12, cursor: 'pointer' }}>
+                    Ver último ano
+                  </button>
+                  <button onClick={() => router.push('/dashboard/lancamento')}
+                    style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    + Adicionar transação
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Filtros sem resultado */
+              <div style={{ textAlign: 'center', padding: '3rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 36 }}>🔍</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,.6)' }}>Nenhuma transação com esses filtros</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.3)' }}>{transacoes.length} transação{transacoes.length !== 1 ? 'ões' : ''} no período, mas nenhuma corresponde à busca.</div>
+                <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }}
+                  style={{ marginTop: 6, padding: '8px 20px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)', borderRadius: 8, color: '#f87171', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  Limpar filtros
+                </button>
+              </div>
+            )
           ) : isMobile ? (
             /* ── Layout mobile: cards por transação ── */
             <div>
