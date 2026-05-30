@@ -458,6 +458,7 @@ export default function Dashboard() {
   const [metas, setMetas]           = useState<Meta[]>([])
   const [contas, setContas]         = useState<Conta[]>([])
   const [orcamentos, setOrcamentos] = useState<OrcamentoItem[]>([])
+  const [orcExpanded, setOrcExpanded] = useState(false)
   const [orcRealizado, setOrcReal]  = useState<Record<string, number>>({})
   const [dividas, setDividas]       = useState<{ saldo: number; taxa_juros: number }[]>([])
   const [loading, setLoading]       = useState(true)
@@ -1535,7 +1536,7 @@ useEffect(() => {
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {orcamentos.slice(0, 5).map(o => {
+                          {(orcExpanded ? orcamentos : orcamentos.slice(0, 5)).map(o => {
                             const real = orcRealizado[o.categoria] || 0
                             const pct  = o.valor_planejado > 0 ? Math.min((real / o.valor_planejado) * 100, 100) : 0
                             const over = real > o.valor_planejado
@@ -1556,7 +1557,16 @@ useEffect(() => {
                               </div>
                             )
                           })}
-                          {orcamentos.length > 5 && <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', textAlign: 'center' }}>+{orcamentos.length - 5} mais</div>}
+                          {orcamentos.length > 5 && (
+                            <button
+                              onClick={() => setOrcExpanded(v => !v)}
+                              style={{ width: '100%', background: 'none', border: '1px solid rgba(255,255,255,.08)', borderRadius: 8, padding: '6px', cursor: 'pointer', fontSize: 11, color: tx.accentColor, textAlign: 'center', transition: 'background .15s' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.04)')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                            >
+                              {orcExpanded ? '▲ Recolher' : `+${orcamentos.length - 5} mais ▼`}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )
