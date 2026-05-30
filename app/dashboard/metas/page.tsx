@@ -5,6 +5,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
+import { SkeletonMetas } from '@/components/Skeleton'
 import { usePerfil } from '@/hooks/usePerfil'
 import { useToast, Toasts } from '@/components/Toast'
 
@@ -358,12 +359,7 @@ export default function MetasPage() {
     parseFloat(form.contribuicao_mensal) || 0
   )
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-      <PoupaUpLogo mode="compact" />
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando metas...</div>
-    </div>
-  )
+  if (loading) return <SkeletonMetas />
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>

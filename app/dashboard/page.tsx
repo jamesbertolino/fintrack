@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
+import { SkeletonDashboard } from '@/components/Skeleton'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
 import TarefasWidget from '@/components/TarefasWidget'
@@ -688,14 +689,7 @@ useEffect(() => {
     router.push('/login')
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, fontFamily: 'system-ui, sans-serif' }}>
-      <PoupaUpLogo mode="compact" />
-      <div style={{ fontSize: 13, color: m ? 'rgba(212,175,55,.5)' : cores.textMuted, fontFamily: m ? 'var(--font-cinzel, Georgia, serif)' : 'system-ui, sans-serif', letterSpacing: m ? '0.1em' : 0 }}>
-        {m ? 'Convocando o Reino...' : 'Carregando seu painel...'}
-      </div>
-    </div>
-  )
+  if (loading) return <SkeletonDashboard />
 
   type NavItem = { id: string; label: string; icon: string; href?: string; tour?: string }
   type NavGroup = { id: string; label: string; icon: string; items: NavItem[] }

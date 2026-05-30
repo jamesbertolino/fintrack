@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
+import { SkeletonGastos } from '@/components/Skeleton'
 import { usePerfil } from '@/hooks/usePerfil'
 import { useToast, Toasts } from '@/components/Toast'
 
@@ -372,12 +373,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
     carregar()
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
-      <PoupaUpLogo mode="compact" />
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)' }}>Carregando gastos...</div>
-    </div>
-  )
+  if (loading) return <SkeletonGastos />
 
   return (
     <div className="dashboard-page-body" style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
