@@ -792,7 +792,7 @@ useEffect(() => {
                   style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: '#fff', caretColor: tx.accentColor }}
                 />
                 {buscaQuery && (
-                  <button onClick={() => setBuscaQuery('')} title="Limpar busca" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }}>×</button>
+                  <button onClick={() => setBuscaQuery('')} aria-label="Limpar busca" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 16, lineHeight: 1, padding: '2px 4px', flexShrink: 0 }}>×</button>
                 )}
                 <kbd onClick={() => { setBuscaAb(false); setBuscaQuery('') }} style={{ fontSize: 10, background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, padding: '2px 7px', color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>ESC</kbd>
               </div>
@@ -873,7 +873,7 @@ useEffect(() => {
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>✨ Relatório IA</div>
                 {relatorioMes && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>{relatorioMes}</div>}
               </div>
-              <button onClick={() => setRelAb(false)} style={{ background: 'rgba(255,255,255,.07)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setRelAb(false)} aria-label="Fechar relatório" style={{ background: 'rgba(255,255,255,.07)', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: 'rgba(255,255,255,.6)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
 
             {relatorioLoad && (
@@ -1158,7 +1158,7 @@ useEffect(() => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem', borderBottom: `1px solid ${cores.border}`, background: cores.topbarBg, gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {!isMobile && (
-              <button onClick={() => setSidebar(!sidebarAberta)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setSidebar(!sidebarAberta)} aria-label={sidebarAberta ? 'Recolher menu' : 'Expandir menu'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
               </button>
             )}
@@ -1172,7 +1172,7 @@ useEffect(() => {
             {/* Busca global */}
             <button
               onClick={() => setBuscaAb(true)}
-              title="Buscar (Ctrl+K)"
+              aria-label="Buscar lançamentos (Ctrl+K)"
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '5px 10px', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 12 }}>
               <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.3"/><path d="M8.5 8.5l3 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
               {!isMobile && <span style={{ fontSize: 11 }}>Buscar</span>}
@@ -1182,7 +1182,7 @@ useEffect(() => {
             {!isMobile && (
               <button
                 onClick={() => router.push('/dashboard/tv')}
-                title="Modo TV / Kiosk"
+                aria-label="Modo TV / Kiosk"
                 style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 8, padding: '5px 10px', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 12 }}
               >
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="2" width="11" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.3"/><path d="M4.5 10.5h4M6.5 10v.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
@@ -1272,7 +1272,7 @@ useEffect(() => {
                   ? '⭐ Upgrade realizado com sucesso! Bem-vindo ao plano Pro.'
                   : '❌ Upgrade cancelado. Seu plano não foi alterado.'}
               </span>
-              <button onClick={() => setUpgradeBanner(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+              <button onClick={() => setUpgradeBanner(null)} aria-label="Fechar aviso" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.4)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
             </div>
           )}
 

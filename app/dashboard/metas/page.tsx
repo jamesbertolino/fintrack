@@ -683,7 +683,7 @@ export default function MetasPage() {
           <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{ fontSize: 16, fontWeight: 500 }}>{metaSel ? 'Editar meta' : 'Nova meta'}</div>
-              <button onClick={() => { setShowForm(false); resetForm() }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18, lineHeight: 1 }}>×</button>
+              <button onClick={() => { setShowForm(false); resetForm() }} aria-label="Fechar formulário" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18, lineHeight: 1 }}>×</button>
             </div>
 
             {erro && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erro}</div>}
@@ -769,7 +769,7 @@ export default function MetasPage() {
                   {fmtBRL(metaAporte.valor_atual)} de {fmtBRL(metaAporte.valor_total)} ({metaAporte.valor_total > 0 ? Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100) : 0}%)
                 </div>
               </div>
-              <button onClick={() => setMetaAporte(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 20, lineHeight: 1 }}>×</button>
+              <button onClick={() => setMetaAporte(null)} aria-label="Fechar aportes" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 20, lineHeight: 1 }}>×</button>
             </div>
 
             {/* Barra de progresso */}
@@ -845,7 +845,7 @@ export default function MetasPage() {
                         {a.nota && <span style={{ marginLeft: 6 }}>· {a.nota}</span>}
                       </div>
                     </div>
-                    <button onClick={() => removerAporte(a.id, a.valor)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,.5)', fontSize: 15, padding: 4, lineHeight: 1 }} title="Remover aporte">✕</button>
+                    <button onClick={() => removerAporte(a.id, a.valor)} aria-label="Remover aporte" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,.5)', fontSize: 15, padding: 4, lineHeight: 1 }}>✕</button>
                   </div>
                 ))}
               </div>

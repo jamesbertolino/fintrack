@@ -252,7 +252,7 @@ export default function OrcamentoPage() {
           <div style={{ background: `${accentColor}08`, border: `1px solid ${accentColor}28`, borderRadius: 12, padding: '1rem', marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: accentColor, fontFamily: fontDisplay }}>{m ? '🔮 Profecias do Oráculo' : '🤖 Análise Inteligente'}</div>
-              <button onClick={() => setIaAberto(false)} style={{ background: 'none', border: 'none', color: cores.textMuted, cursor: 'pointer', fontSize: 18 }}>×</button>
+              <button onClick={() => setIaAberto(false)} aria-label="Fechar análise" style={{ background: 'none', border: 'none', color: cores.textMuted, cursor: 'pointer', fontSize: 18 }}>×</button>
             </div>
             {carregandoIA ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: cores.textMuted, fontSize: 12 }}>

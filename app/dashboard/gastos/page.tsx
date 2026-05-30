@@ -492,7 +492,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
               {' · '}<span>Os totais acima refletem o período completo</span>
             </span>
             <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }}
-              title="Limpar todos os filtros"
+              aria-label="Limpar todos os filtros"
               style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', fontSize: 18, lineHeight: 1 }}>×</button>
           </div>
         )}
@@ -708,7 +708,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                     {transacoesCat.length} transaç{transacoesCat.length === 1 ? 'ão' : 'ões'} · total {fmtBRL(totalCat)}
                   </span>
                 </div>
-                <button onClick={() => setCatDrilldown(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 20, lineHeight: 1 }}>×</button>
+                <button onClick={() => setCatDrilldown(null)} aria-label="Fechar detalhes de categoria" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 20, lineHeight: 1 }}>×</button>
               </div>
 
               {/* Resumo por estabelecimento */}
@@ -932,6 +932,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                 {excluindoLote ? 'Excluindo...' : 'Excluir selecionados'}
               </button>
               <button onClick={() => setSelecionados([])}
+                aria-label="Cancelar seleção"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 18, lineHeight: 1 }}>×</button>
             </div>
           )}
