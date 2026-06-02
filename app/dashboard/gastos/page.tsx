@@ -74,6 +74,8 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const [excluindoLote, setExcluindoLote] = useState(false)
 
   const [deletando, setDeletando] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmLote, setConfirmLote]     = useState(false)
 
   // ─── swipe mobile ───
   const swipeTouchX   = useRef<Record<string, number>>({})
@@ -282,16 +284,19 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
 
   async function excluirSelecionados() {
     if (!selecionados.length) return
-    if (!confirm(`Excluir ${selecionados.length} transaç${selecionados.length > 1 ? 'ões' : 'ão'}? Esta ação não pode ser desfeita.`)) return
+    if (!confirmLote) { setConfirmLote(true); return }
+    setConfirmLote(false)
     setExcluindoLote(true)
     await Promise.all(selecionados.map(id => fetch(`/api/lancamento/${id}`, { method: 'DELETE' })))
+    show(`${selecionados.length} lançamento${selecionados.length > 1 ? 's excluídos' : ' excluído'}`)
     setSelecionados([])
     setExcluindoLote(false)
     carregar()
   }
 
   async function deletar(id: string) {
-    if (!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return
+    if (confirmDelete !== id) { setConfirmDelete(id); return }
+    setConfirmDelete(null)
     setDeletando(id)
     const res = await fetch(`/api/lancamento/${id}`, { method: 'DELETE' })
     setDeletando(null)
@@ -336,6 +341,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
     a.download = `lancamentos_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.csv`
     a.click()
     URL.revokeObjectURL(url)
+    show(`${filtradas.length} transaç${filtradas.length !== 1 ? 'ões exportadas' : 'ão exportada'} para CSV`)
   }
 
   // ─── modal edição ───
@@ -923,10 +929,18 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   </button>
                 </>
               )}
-              <button onClick={excluirSelecionados} disabled={excluindoLote}
-                style={{ padding: '5px 12px', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 6, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>
-                {excluindoLote ? 'Excluindo...' : 'Excluir selecionados'}
-              </button>
+              {confirmLote ? (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#f87171' }}>Confirmar exclusão?</span>
+                  <button onClick={excluirSelecionados} style={{ padding: '4px 10px', background: '#dc2626', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Sim</button>
+                  <button onClick={() => setConfirmLote(false)} style={{ padding: '4px 10px', background: 'transparent', border: '1px solid rgba(255,255,255,.2)', borderRadius: 6, color: 'rgba(255,255,255,.5)', fontSize: 11, cursor: 'pointer' }}>Não</button>
+                </div>
+              ) : (
+                <button onClick={excluirSelecionados} disabled={excluindoLote}
+                  style={{ padding: '5px 12px', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 6, color: '#f87171', fontSize: 12, cursor: 'pointer' }}>
+                  {excluindoLote ? 'Excluindo...' : 'Excluir selecionados'}
+                </button>
+              )}
               <button onClick={() => setSelecionados([])}
                 aria-label="Cancelar seleção"
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.3)', fontSize: 18, lineHeight: 1 }}>×</button>
@@ -1030,10 +1044,17 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                     </div>
                   </div>
 
-                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 6, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}>
-                    <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
+                  {confirmDelete === t.id ? (
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                      <button onClick={() => deletar(t.id)} style={{ padding: '3px 8px', background: '#dc2626', border: 'none', borderRadius: 5, color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Excluir</button>
+                      <button onClick={() => setConfirmDelete(null)} style={{ padding: '3px 6px', background: 'transparent', border: '1px solid rgba(255,255,255,.15)', borderRadius: 5, color: 'rgba(255,255,255,.4)', fontSize: 10, cursor: 'pointer' }}>✕</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 6, flexShrink: 0, opacity: deletando === t.id ? 0.4 : 1 }}>
+                      <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  )}
                   </div>
                 </div>
               ))}

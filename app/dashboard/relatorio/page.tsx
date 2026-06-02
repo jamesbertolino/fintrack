@@ -213,7 +213,15 @@ export default function RelatorioPage() {
         </div>
 
         {loading && <div style={{ textAlign: 'center', padding: '4rem', color: cores.textMuted }}>Carregando...</div>}
-        {erro    && <div style={{ textAlign: 'center', padding: '4rem', color: '#f87171' }}>{erro}</div>}
+        {erro && (
+          <div style={{ textAlign: 'center', padding: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 32 }}>⚠️</div>
+            <div style={{ color: '#f87171', fontSize: 13 }}>{erro}</div>
+            <button onClick={buscar} style={{ padding: '8px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              Tentar novamente
+            </button>
+          </div>
+        )}
 
         {dados && !loading && (
           <div style={{ maxWidth: 860, margin: '0 auto', padding: isMobile ? '1rem' : '2rem 1.5rem' }}>

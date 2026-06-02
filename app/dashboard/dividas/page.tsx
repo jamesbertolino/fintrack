@@ -111,7 +111,8 @@ export default function DividasPage() {
   const [adicionando, setAdd]     = useState(false)
   const [salvando,  setSalvando]  = useState(false)
   const [erro,      setErro]      = useState('')
-  const [tabAberta, setTabAberta] = useState<string | null>(null)
+  const [tabAberta, setTabAberta]     = useState<string | null>(null)
+  const [confirmRemover, setConfirmRem] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/dividas')
@@ -144,9 +145,10 @@ export default function DividasPage() {
   }
 
   async function removerDivida(id: string) {
-    if (!confirm('Remover esta dívida? Esta ação não pode ser desfeita.')) return
-    await fetch('/api/dividas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
-    setDividas(prev => prev.filter(d => d.id !== id))
+    if (confirmRemover !== id) { setConfirmRem(id); return }
+    setConfirmRem(null)
+    const res = await fetch('/api/dividas', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    if (res.ok) setDividas(prev => prev.filter(d => d.id !== id))
   }
 
   const neve      = simular(dividas, extra, 'neve')
@@ -283,7 +285,14 @@ export default function DividasPage() {
                       </div>
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: '#f87171', fontVariantNumeric: 'tabular-nums' }}>{fmt(d.saldo)}</div>
-                    <button onClick={() => removerDivida(d.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 16, padding: 4 }} title="Remover">✕</button>
+                    {confirmRemover === d.id ? (
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <button onClick={() => removerDivida(d.id)} style={{ padding: '3px 8px', background: '#dc2626', border: 'none', borderRadius: 5, color: '#fff', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}>Confirmar</button>
+                        <button onClick={() => setConfirmRem(null)} style={{ padding: '3px 6px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 5, color: cores.textMuted, fontSize: 10, cursor: 'pointer' }}>✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => removerDivida(d.id)} aria-label="Remover dívida" style={{ background: 'none', border: 'none', cursor: 'pointer', color: cores.textMuted, fontSize: 16, padding: 4 }}>✕</button>
+                    )}
                   </div>
                 ))
               )}
