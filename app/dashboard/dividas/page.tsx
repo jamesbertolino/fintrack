@@ -162,7 +162,7 @@ export default function DividasPage() {
   const iW = W - PAD.l - PAD.r
   const iH = H - PAD.t - PAD.b
 
-  const mesesNeve      = neve.meses.map(m => neve.meses[0] ? Object.values(m.saldos).reduce((a, v) => a + v, 0) : 0)
+  const mesesNeve      = neve.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
   const mesesAvalanche = avalanche.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
   const maxVal = totalSaldo || 1
 

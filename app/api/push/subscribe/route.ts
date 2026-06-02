@@ -24,10 +24,11 @@ export async function POST(request: NextRequest) {
   }
 
   const svc = getServiceClient()
-  await svc.from('push_subscriptions').upsert(
+  const { error } = await svc.from('push_subscriptions').upsert(
     { user_id: user.id, endpoint, p256dh: keys.p256dh, auth: keys.auth },
     { onConflict: 'user_id,endpoint' }
   )
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }
@@ -39,7 +40,8 @@ export async function DELETE(request: NextRequest) {
 
   const { endpoint } = await request.json() as { endpoint: string }
   const svc = getServiceClient()
-  await svc.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint)
+  const { error } = await svc.from('push_subscriptions').delete().eq('user_id', user.id).eq('endpoint', endpoint)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

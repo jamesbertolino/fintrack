@@ -64,6 +64,7 @@ export async function GET() {
         : a.pct >= 100 ? 'concluido' : 'falhou'
       if (novoStatus === 'concluido' || novoStatus === 'falhou') {
         await supabase.from('desafios_usuario').update({ status: novoStatus }).eq('id', a.id)
+        // erro ignorado — falha de status não bloqueia a resposta do dashboard
         if (novoStatus === 'concluido') {
           logAudit({ user_id: user.id, action: 'desafio.concluido', resource_id: a.id, metadata: { desafio_id: a.desafio_id, xp: a.desafio?.xp } })
         }

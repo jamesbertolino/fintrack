@@ -33,7 +33,8 @@ export async function PATCH(request: NextRequest) {
       .eq('lida', false)
 
     xpGanho = (naoLidas || []).reduce((a, n) => a + (n.xp_recompensa || 0), 0)
-    await supabase.from('notifications').update({ lida: true }).eq('user_id', user.id).eq('lida', false)
+    const { error: e1 } = await supabase.from('notifications').update({ lida: true }).eq('user_id', user.id).eq('lida', false)
+    if (e1) return NextResponse.json({ error: e1.message }, { status: 500 })
   } else if (id) {
     const { data: notif } = await supabase
       .from('notifications')
@@ -44,7 +45,8 @@ export async function PATCH(request: NextRequest) {
 
     if (notif && !notif.lida) {
       xpGanho = notif.xp_recompensa || 0
-      await supabase.from('notifications').update({ lida: true }).eq('id', id).eq('user_id', user.id)
+      const { error: e2 } = await supabase.from('notifications').update({ lida: true }).eq('id', id).eq('user_id', user.id)
+      if (e2) return NextResponse.json({ error: e2.message }, { status: 500 })
     }
   }
 
@@ -56,9 +58,10 @@ export async function PATCH(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    await supabase.from('profiles')
+    const { error: e3 } = await supabase.from('profiles')
       .update({ xp_bonus: (profile?.xp_bonus || 0) + xpGanho })
       .eq('id', user.id)
+    if (e3) return NextResponse.json({ error: e3.message }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, xpGanho })
@@ -70,7 +73,8 @@ export async function DELETE(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await request.json()
-  await supabase.from('notifications').delete().eq('id', id).eq('user_id', user.id)
+  const { error } = await supabase.from('notifications').delete().eq('id', id).eq('user_id', user.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

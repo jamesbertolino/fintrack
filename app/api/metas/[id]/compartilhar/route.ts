@@ -39,7 +39,8 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   const { id } = await params
-  await getSvc().from('meta_compartilhamentos').delete().eq('meta_id', id).eq('criado_por', user.id)
+  const { error } = await getSvc().from('meta_compartilhamentos').delete().eq('meta_id', id).eq('criado_por', user.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 
