@@ -175,3 +175,53 @@ export function SkeletonMetas() {
     </div>
   )
 }
+
+// ── Perfil ───────────────────────────────────────────────────────────────────
+export function SkeletonPerfil() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{skelStyle}</style>
+
+      {/* Topbar */}
+      <div style={{ height: 52, background: '#0a1a0a', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', padding: '0 1.5rem', gap: 10 }}>
+        <Skel w={80} h={10} />
+        <Skel w={1} h={14} style={{ background: 'rgba(255,255,255,.1)' }} />
+        <Skel w={50} h={12} />
+      </div>
+
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '1.5rem' }}>
+        {/* Avatar card */}
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 14, padding: '1.25rem', display: 'flex', alignItems: 'center', gap: 16, marginBottom: '1.5rem' }}>
+          <Skel w={56} h={56} radius={28} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Skel w="40%" h={16} />
+            <Skel w="55%" h={10} />
+            <Skel w="30%" h={18} radius={10} />
+          </div>
+        </div>
+        {/* Abas */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: '1.25rem', overflowX: 'hidden' }}>
+          {[90, 100, 110, 80, 70, 60, 80].map((w, i) => <Skel key={i} w={w} h={32} radius={6} />)}
+        </div>
+        {/* Form card */}
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {[0,1].map(i => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <Skel w="40%" h={8} />
+                <Skel h={38} radius={8} />
+              </div>
+            ))}
+          </div>
+          {[0,1].map(i => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <Skel w="35%" h={8} />
+              <Skel h={38} radius={8} />
+            </div>
+          ))}
+          <Skel w={140} h={38} radius={8} />
+        </div>
+      </div>
+    </div>
+  )
+}

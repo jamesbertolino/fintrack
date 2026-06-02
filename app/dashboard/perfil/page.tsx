@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState, Suspense, lazy } from 'react'
+import { useToast, Toasts } from '@/components/Toast'
+import { SkeletonPerfil } from '@/components/Skeleton'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -124,6 +126,11 @@ export default function PerfilPage() {
   const [senhaForm, setSenhaForm] = useState({ nova: '', confirmar: '' })
   const { tema, alterarTema: alterarTemaCtx } = useTema()
   const cores = useCores()
+  const { show, toasts, fechar: fecharToast } = useToast()
+
+  // Bridge estado legado → toast
+  useEffect(() => { if (sucesso) { show(sucesso); setSucesso('') } }, [sucesso, show])
+  useEffect(() => { if (erro && !loading) { show(erro, 'erro'); setErro('') } }, [erro, loading, show])
 
   async function assinarPlano(plano: string) {
     setAssinando(plano)
@@ -645,22 +652,19 @@ export default function PerfilPage() {
     textTransform: 'uppercase' as const, letterSpacing: '.05em',
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
-      {erro ? (
-        <>
-          <div style={{ fontSize: 32 }}>⚠️</div>
-          <div style={{ fontSize: 14, color: '#f87171', fontFamily: 'system-ui', textAlign: 'center', maxWidth: 320 }}>{erro}</div>
-          <button onClick={() => { setErro(''); setLoading(true); carregar() }}
-            style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: cores.accent, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            Tentar novamente
-          </button>
-        </>
-      ) : (
-        <div style={{ fontSize: 13, color: cores.textMuted, fontFamily: 'system-ui' }}>Carregando perfil...</div>
-      )}
-    </div>
-  )
+  if (loading) {
+    if (erro) return (
+      <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 32 }}>⚠️</div>
+        <div style={{ fontSize: 14, color: '#f87171', fontFamily: 'system-ui', textAlign: 'center', maxWidth: 320 }}>{erro}</div>
+        <button onClick={() => { setErro(''); setLoading(true); carregar() }}
+          style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: cores.accent, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          Tentar novamente
+        </button>
+      </div>
+    )
+    return <SkeletonPerfil />
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: 13, color: cores.text }}>
@@ -723,12 +727,7 @@ export default function PerfilPage() {
           </div>
         </div>
 
-        {/* Feedback */}
-        {sucesso && <div style={{ background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#4ade80', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          {sucesso}
-        </div>}
-        {erro && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erro}</div>}
+        {/* Feedback via toast — gerenciado pelo bridge useEffect acima */}
 
         {/* ── DADOS PESSOAIS ── */}
         {abaSel === 'perfil' && (
@@ -736,17 +735,18 @@ export default function PerfilPage() {
             <form onSubmit={salvarPerfil}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={labelStyle}>Nome</label>
-                  <input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Seu nome" required style={inputStyle} />
+                  <label htmlFor="perfil-nome" style={labelStyle}>Nome</label>
+                  <input id="perfil-nome" value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Seu nome" required style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Sobrenome</label>
-                  <input value={form.sobrenome} onChange={e => setForm(p => ({ ...p, sobrenome: e.target.value }))} placeholder="Seu sobrenome" style={inputStyle} />
+                  <label htmlFor="perfil-sobrenome" style={labelStyle}>Sobrenome</label>
+                  <input id="perfil-sobrenome" value={form.sobrenome} onChange={e => setForm(p => ({ ...p, sobrenome: e.target.value }))} placeholder="Seu sobrenome" style={inputStyle} />
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>WhatsApp</label>
+                <label htmlFor="perfil-whatsapp" style={labelStyle}>WhatsApp</label>
                 <input
+                  id="perfil-whatsapp"
                   value={form.whatsapp}
                   onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))}
                   placeholder="5511999999999 (DDI + DDD + número)"
@@ -758,8 +758,8 @@ export default function PerfilPage() {
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle}>E-mail</label>
-                <input value={email} disabled style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }} />
+                <label htmlFor="perfil-email" style={labelStyle}>E-mail</label>
+                <input id="perfil-email" value={email} disabled style={{ ...inputStyle, opacity: 0.5, cursor: 'not-allowed' }} />
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 4 }}>O e-mail não pode ser alterado por aqui.</div>
               </div>
               <button type="submit" disabled={salvando} style={{ padding: '10px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
@@ -891,6 +891,7 @@ export default function PerfilPage() {
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Idioma</div>
               <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 12 }}>Idioma usado nas datas e formatações do app</div>
               <select
+                aria-label="Idioma do aplicativo"
                 value={form.idioma}
                 onChange={e => setForm(p => ({ ...p, idioma: e.target.value }))}
                 style={{ ...inputStyle, cursor: 'pointer', marginBottom: 12 }}
@@ -995,6 +996,7 @@ export default function PerfilPage() {
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Fuso horário</div>
               <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 12 }}>Usado para exibir datas e horas corretamente no app e nas mensagens WhatsApp</div>
               <select
+                aria-label="Fuso horário"
                 value={form.timezone}
                 onChange={e => setForm(p => ({ ...p, timezone: e.target.value }))}
                 style={{ ...inputStyle, cursor: 'pointer', marginBottom: 12 }}
@@ -1620,12 +1622,12 @@ export default function PerfilPage() {
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 14 }}>Alterar senha</div>
               <form onSubmit={alterarSenha}>
                 <div style={{ marginBottom: 12 }}>
-                  <label style={labelStyle}>Nova senha</label>
-                  <input type="password" value={senhaForm.nova} onChange={e => setSenhaForm(p => ({ ...p, nova: e.target.value }))} placeholder="mínimo 8 caracteres" required style={inputStyle} />
+                  <label htmlFor="senha-nova" style={labelStyle}>Nova senha</label>
+                  <input id="senha-nova" type="password" value={senhaForm.nova} onChange={e => setSenhaForm(p => ({ ...p, nova: e.target.value }))} placeholder="mínimo 8 caracteres" required style={inputStyle} />
                 </div>
                 <div style={{ marginBottom: 16 }}>
-                  <label style={labelStyle}>Confirmar nova senha</label>
-                  <input type="password" value={senhaForm.confirmar} onChange={e => setSenhaForm(p => ({ ...p, confirmar: e.target.value }))} placeholder="repita a senha" required style={inputStyle} />
+                  <label htmlFor="senha-confirmar" style={labelStyle}>Confirmar nova senha</label>
+                  <input id="senha-confirmar" type="password" value={senhaForm.confirmar} onChange={e => setSenhaForm(p => ({ ...p, confirmar: e.target.value }))} placeholder="repita a senha" required style={inputStyle} />
                 </div>
                 <button type="submit" disabled={salvando} style={{ padding: '10px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 500, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
                   {salvando ? 'Alterando...' : 'Alterar senha'}
@@ -1737,6 +1739,7 @@ export default function PerfilPage() {
           onFechar={() => setModalAv(false)}
         />
       )}
+      <Toasts toasts={toasts} fechar={fecharToast} />
     </div>
   )
 }
