@@ -129,7 +129,9 @@ export default function PerfilPage() {
   const { show, toasts, fechar: fecharToast } = useToast()
 
   // Bridge estado legado → toast
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (sucesso) { show(sucesso); setSucesso('') } }, [sucesso, show])
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { if (erro && !loading) { show(erro, 'erro'); setErro('') } }, [erro, loading, show])
 
   async function assinarPlano(plano: string) {

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState, useMemo, Suspense, useRef } from 'rea
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { SkeletonGastos } from '@/components/Skeleton'
 import { usePerfil } from '@/hooks/usePerfil'
 import { useToast, Toasts } from '@/components/Toast'

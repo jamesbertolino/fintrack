@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
-import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { SkeletonDashboard } from '@/components/Skeleton'
 import SinoNotificacoes from '@/components/SinoNotificacoes'
 import Avatar from '@/components/Avatar'
