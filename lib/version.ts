@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.41.1'
-export const APP_BUILD   = '2026.05.29'
+export const APP_VERSION = '2.42.0'
+export const APP_BUILD   = '2026.06.02'
 
 /**
  * Histórico de versões
@@ -108,4 +108,7 @@ export const APP_BUILD   = '2026.05.29'
  * 2.40.0 · 2026.05.26 — Feature: reconhecimento de voz no lançamento — mic button, Web Speech API pt-BR, IA converte frase em débito/crédito estruturado
  * 2.40.1 · 2026.05.27 — UX: histórico de importações compacto — seção colapsável, linhas de 36px, painel expandido por lote, máx 5 visíveis
  * 2.40.2 · 2026.05.27 — UX mobile lançamento: voz inline, atalhos/categorias scroll horizontal, opções avançadas colapsáveis, upload retraído, guia 4 passos oculto
+ * 2.41.0 · 2026.05.29 — UX alto impacto: melhorias em 3 telas + bumps anteriores
+ * 2.41.1 · 2026.05.29 — Fix: 5 correções UX + bump v2.41.1
+ * 2.42.0 · 2026.06.02 — Qualidade: 30+ bugs corrigidos (divisão zero, falhas silenciosas, race conditions), skeleton loaders em 4 telas, sistema de toasts em 4 telas, acessibilidade (aria-labels, role=dialog, focus trap, labels htmlFor), memoização (useMemo em dashboard/orçamento), confirmações inline substituindo confirm(), landing page redesenhada com gráfico animado, logo corrigida, melhorias UX mobile
  */
