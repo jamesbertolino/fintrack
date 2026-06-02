@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useEffect, useState, useCallback, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -508,7 +508,7 @@ useEffect(() => {
   const { receitas, despesas, saldo } = xp
 
   // Tendência vs mês anterior
-  const tendencia = (() => {
+  const tendencia = useMemo(() => {
     const hoje = new Date()
     const anoA = hoje.getFullYear(), mesA = hoje.getMonth()
     const anoB = mesA === 0 ? anoA - 1 : anoA, mesB = mesA === 0 ? 11 : mesA - 1
@@ -529,10 +529,10 @@ useEffect(() => {
       despesas: delta(despesas, prev.despesas),
       temPrev:  prev.receitas > 0 || prev.despesas > 0,
     }
-  })()
+  }, [transacoes, saldo, receitas, despesas])
 
   // Previsão de fechamento do mês
-  const previsaoMes = (() => {
+  const previsaoMes = useMemo(() => {
     const hoje = new Date()
     const diaAtual   = hoje.getDate()
     const diasNoMes  = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
@@ -542,23 +542,18 @@ useEffect(() => {
     const projecao      = despesas + mediaDiaria * diasRestam
     const diferenca     = projecao - receitas
     return { projecao, mediaDiaria, diasRestam, noNegativo: diferenca > 0, diferenca }
-  })()
+  }, [despesas, receitas])
 
   // Range de datas para link do card (primeira e última transação)
-  const gastosHref = (() => {
-    if (!transacoes.length) return '/dashboard/gastos'
-    const datas = transacoes.map(t => t.data_hora).sort()
-    const de  = datas[0].slice(0, 10)
+  const { gastosHref, receitasHref } = useMemo(() => {
+    if (!transacoes.length) return { gastosHref: '/dashboard/gastos', receitasHref: '/dashboard/gastos' }
+    const de  = transacoes.reduce((min, t) => t.data_hora < min ? t.data_hora : min, transacoes[0].data_hora).slice(0, 10)
     const ate = new Date().toISOString().slice(0, 10)
-    return `/dashboard/gastos?tipo=debito&de=${de}&ate=${ate}`
-  })()
-  const receitasHref = (() => {
-    if (!transacoes.length) return '/dashboard/gastos'
-    const datas = transacoes.map(t => t.data_hora).sort()
-    const de  = datas[0].slice(0, 10)
-    const ate = new Date().toISOString().slice(0, 10)
-    return `/dashboard/gastos?tipo=credito&de=${de}&ate=${ate}`
-  })()
+    return {
+      gastosHref:   `/dashboard/gastos?tipo=debito&de=${de}&ate=${ate}`,
+      receitasHref: `/dashboard/gastos?tipo=credito&de=${de}&ate=${ate}`,
+    }
+  }, [transacoes])
   const xpTotal      = xp.xpTotal
   const nivel        = calcularNivel(xpTotal)
   const nomeNivel    = getNomeNivel(nivel, m)
@@ -594,11 +589,16 @@ useEffect(() => {
     fontDisplay:  m ? 'var(--font-cinzel, Georgia, serif)' : 'inherit',
   }
 
-  const porCategoria = transacoes.filter(t => t.tipo === 'debito').reduce((acc, t) => {
-    acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc
-  }, {} as Record<string, number>)
-  const maxCategoria = Math.max(...Object.values(porCategoria), 1)
-  const insights     = gerarInsights(transacoes, saldo)
+  const { porCategoria, maxCategoria, insights } = useMemo(() => {
+    const por = transacoes.filter(t => t.tipo === 'debito').reduce((acc, t) => {
+      acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc
+    }, {} as Record<string, number>)
+    return {
+      porCategoria: por,
+      maxCategoria: Math.max(...Object.values(por), 1),
+      insights:     gerarInsights(transacoes, saldo),
+    }
+  }, [transacoes, saldo])
 
   const carregarDados = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()

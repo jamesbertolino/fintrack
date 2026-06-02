@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCores, useTema } from '@/components/ThemeProvider'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -182,13 +182,22 @@ export default function OrcamentoPage() {
     carregar()
   }
 
-  const totalPlanejado  = orcamentos.reduce((a, o) => a + o.valor_planejado, 0)
-  const totalRealizado  = orcamentos.reduce((a, o) => a + (realizado[o.categoria] || 0), 0)
-  const economia        = totalPlanejado - totalRealizado
-  const categoriasAcima = orcamentos.filter(o => (realizado[o.categoria] || 0) > o.valor_planejado).length
+  const { totalPlanejado, totalRealizado, economia, categoriasAcima } = useMemo(() => {
+    const planejado = orcamentos.reduce((a, o) => a + o.valor_planejado, 0)
+    const realiz    = orcamentos.reduce((a, o) => a + (realizado[o.categoria] || 0), 0)
+    return {
+      totalPlanejado:  planejado,
+      totalRealizado:  realiz,
+      economia:        planejado - realiz,
+      categoriasAcima: orcamentos.filter(o => (realizado[o.categoria] || 0) > o.valor_planejado).length,
+    }
+  }, [orcamentos, realizado])
+
   // Categorias disponíveis = do histórico + não cadastradas ainda neste mês
-  const todasCategorias = [...new Set([...categoriasHistorico])]
-  const categoriasDisponiveis = todasCategorias.filter(c => !orcamentos.find(o => o.categoria === c))
+  const categoriasDisponiveis = useMemo(() => {
+    const orcSet = new Set(orcamentos.map(o => o.categoria))
+    return [...new Set(categoriasHistorico)].filter(c => !orcSet.has(c))
+  }, [orcamentos, categoriasHistorico])
 
   const inp: React.CSSProperties = {
     padding: '7px 10px', background: cores.inputBg, border: `1px solid ${cores.inputBorder}`,
