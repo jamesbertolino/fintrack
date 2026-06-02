@@ -935,7 +935,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
   const tips = useTips()
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 15, color: '#fff' }}>
 
       {/* ─── Modal: confirmação de potenciais duplicatas ─── */}
       {modalDuplicatas && (() => {

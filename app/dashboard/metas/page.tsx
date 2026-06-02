@@ -91,7 +91,7 @@ function AportarRapido({ metaId, onAportar }: { metaId: string; onAportar: (id: 
         style={{ width: 90, padding: '5px 8px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 6, color: '#fff', fontSize: 11, outline: 'none' }}
       />
       <button type="submit" disabled={salvando} style={{ padding: '5px 10px', background: 'rgba(74,222,128,.15)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, color: '#4ade80', fontSize: 11, fontWeight: 600, cursor: salvando ? 'default' : 'pointer', opacity: salvando ? 0.6 : 1 }}>
-        {salvando ? '...' : '+ Aportar'}
+        {salvando ? '...' : '+ Depositar'}
       </button>
     </form>
   )
@@ -243,7 +243,7 @@ export default function MetasPage() {
     setAportes(prev => [d.aporte, ...prev])
     setFormAporte(p => ({ ...p, valor: '', nota: '' }))
     setSalvandoAporte(false)
-    show(`Aporte de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)} registrado`)
+    show(`Depósito de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)} registrado`)
   }
 
   async function removerAporte(aporte_id: string, valor: number) {
@@ -257,7 +257,7 @@ export default function MetasPage() {
     const novoValor = Math.max(0, (metaAporte?.valor_atual || 0) - valor)
     setMetas(prev => prev.map(m => m.id === metaAporte!.id ? { ...m, valor_atual: novoValor } : m))
     setMetaAporte(prev => prev ? { ...prev, valor_atual: novoValor } : prev)
-    show('Aporte removido')
+    show('Depósito removido')
   }
 
   function calcProjecaoAportes(meta: Meta, historicoAportes: Aporte[]) {
@@ -361,7 +361,7 @@ export default function MetasPage() {
   if (loading) return <SkeletonMetas />
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 15, color: '#fff' }}>
 
       {/* Topbar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1.5rem', borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
@@ -469,7 +469,7 @@ export default function MetasPage() {
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 200 }}>
                           <button onClick={() => abrirAportes(m)} style={{ background: 'rgba(74,222,128,.12)', border: '1px solid rgba(74,222,128,.3)', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: '#4ade80', fontSize: 11, fontWeight: 600 }}>
-                            + Aportar
+                            + Depositar
                           </button>
                           <button
                             onClick={() => toggleCompartilhar(m)}
@@ -648,7 +648,7 @@ export default function MetasPage() {
                         {pct >= 100 && <span style={{ fontSize: 10, background: 'rgba(74,222,128,.15)', color: '#4ade80', padding: '1px 8px', borderRadius: 4 }}>✓ Concluída!</span>}
                       </div>
 
-                      {/* Aportes recentes */}
+                      {/* Depósitos recentes */}
                       {m.aportes.length > 0 && (
                         <div style={{ borderTop: '1px solid #1a3a1a', paddingTop: 10 }}>
                           <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
@@ -767,7 +767,7 @@ export default function MetasPage() {
           <div ref={trapAportes} role="dialog" aria-modal="true" aria-labelledby="modal-aportes-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <div id="modal-aportes-titulo" style={{ fontSize: 15, fontWeight: 600 }}>💰 Aportes — {metaAporte.nome}</div>
+                <div id="modal-aportes-titulo" style={{ fontSize: 15, fontWeight: 600 }}>💰 Depósitos — {metaAporte.nome}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 2 }}>
                   {fmtBRL(metaAporte.valor_atual)} de {fmtBRL(metaAporte.valor_total)} ({metaAporte.valor_total > 0 ? Math.round(metaAporte.valor_atual / metaAporte.valor_total * 100) : 0}%)
                 </div>
@@ -793,7 +793,7 @@ export default function MetasPage() {
 
             {/* Formulário novo aporte */}
             <form onSubmit={registrarAporte} style={{ background: 'rgba(255,255,255,.03)', border: '1px solid #1a3a1a', borderRadius: 10, padding: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>Novo aporte</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>Novo depósito</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <div>
                   <label htmlFor="aporte-valor" style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Valor (R$)</label>

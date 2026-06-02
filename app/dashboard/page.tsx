@@ -739,7 +739,7 @@ useEffect(() => {
   const collapsed    = !isMobile && !sidebarAberta
 
   return (
-    <div className="dashboard-page-root" style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: isMobile ? 15 : 'clamp(13px, 0.9vw, 17px)', position: 'relative', color: cores.text }}>
+    <div className="dashboard-page-root" style={{ display: 'flex', minHeight: '100vh', background: cores.pageBg, fontFamily: 'system-ui, sans-serif', fontSize: isMobile ? 16 : 'clamp(15px, 1vw, 17px)', position: 'relative', color: cores.text }}>
 
       {/* Overlay IA analisando */}
       {iaAnalisando && (

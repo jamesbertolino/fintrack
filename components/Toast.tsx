@@ -23,7 +23,7 @@ export function useToast() {
   const show = useCallback((msg: string, tipo: Tipo = 'sucesso') => {
     const id = ++counter.current
     setToasts(prev => [...prev, { id, msg, tipo }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3800)
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 7000)
   }, [])
 
   const fechar = useCallback((id: number) => {

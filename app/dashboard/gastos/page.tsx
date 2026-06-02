@@ -381,7 +381,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   if (loading) return <SkeletonGastos />
 
   return (
-    <div className="dashboard-page-body" style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 13, color: '#fff' }}>
+    <div className="dashboard-page-body" style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 15, color: '#fff' }}>
 
       {/* Topbar */}
       <div style={{ borderBottom: '1px solid #1a3a1a', background: '#0a1a0a' }}>
@@ -1109,12 +1109,21 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   <div style={{ fontSize: 12, fontWeight: 500, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', textAlign: 'right', alignSelf: 'center' }}>
                     {t.tipo === 'credito' ? '+' : '-'}{fmtBRL(Math.abs(t.valor))}
                   </div>
-                  <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.2)', padding: 4, alignSelf: 'center', opacity: deletando === t.id ? 0.4 : 1 }}
-                    onMouseEnter={e => { e.stopPropagation(); (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
-                    onMouseLeave={e => { e.stopPropagation(); (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.2)' }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </button>
+                  {confirmDelete === t.id ? (
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', alignSelf: 'center' }}>
+                      <button onClick={() => deletar(t.id)} style={{ padding: '3px 8px', background: '#dc2626', border: 'none', borderRadius: 5, color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Confirmar</button>
+                      <button onClick={() => setConfirmDelete(null)} style={{ padding: '3px 6px', background: 'transparent', border: '1px solid rgba(255,255,255,.15)', borderRadius: 5, color: 'rgba(255,255,255,.4)', fontSize: 11, cursor: 'pointer' }}>Cancelar</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => deletar(t.id)} disabled={deletando === t.id}
+                      aria-label="Excluir lançamento"
+                      style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.35)', padding: '3px 6px', alignSelf: 'center', opacity: deletando === t.id ? 0.4 : 1, fontSize: 11, borderRadius: 4 }}
+                      onMouseEnter={e => { e.stopPropagation(); (e.currentTarget as HTMLButtonElement).style.color = '#f87171' }}
+                      onMouseLeave={e => { e.stopPropagation(); (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,.35)' }}>
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M6 7v3M8 7v3M3 4l1 7a1 1 0 001 1h4a1 1 0 001-1l1-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Excluir
+                    </button>
+                  )}
                 </div>
               ))}
 
