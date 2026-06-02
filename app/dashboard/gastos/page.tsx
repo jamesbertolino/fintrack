@@ -412,10 +412,10 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
             </div>
             {filtroExpandido && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) { setPeriodo('custom'); setFiltroExpandido(false) } }}
+                <input type="date" aria-label="Data de início" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) { setPeriodo('custom'); setFiltroExpandido(false) } }}
                   style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
                 <span style={{ color: 'rgba(255,255,255,.3)', fontSize: 11, flexShrink: 0 }}>→</span>
-                <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) { setPeriodo('custom'); setFiltroExpandido(false) } }}
+                <input type="date" aria-label="Data de fim" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) { setPeriodo('custom'); setFiltroExpandido(false) } }}
                   style={{ flex: 1, background: 'rgba(255,255,255,.05)', border: '1px solid #1a3a1a', borderRadius: 8, padding: '8px', color: '#fff', fontSize: 12, minHeight: 38, colorScheme: 'dark' }} />
                 {periodo === 'custom' && (
                   <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim(''); setFiltroExpandido(false) }}
@@ -442,10 +442,10 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
               ))}
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
+              <input type="date" aria-label="Data de início" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
                 style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
               <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 11 }}>até</span>
-              <input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) setPeriodo('custom') }}
+              <input type="date" aria-label="Data de fim" value={dataFim} onChange={e => { setDataFim(e.target.value); if (dataInicio && e.target.value) setPeriodo('custom') }}
                 style={{ background: periodo === 'custom' ? 'rgba(22,163,74,.15)' : 'rgba(255,255,255,.04)', border: `1px solid ${periodo === 'custom' ? '#16a34a55' : '#1a3a1a'}`, borderRadius: 8, padding: '6px 10px', color: '#fff', fontSize: 12, colorScheme: 'dark' }} />
               {periodo === 'custom' && (
                 <button onClick={() => { setPeriodo('30'); setDataInicio(''); setDataFim('') }}

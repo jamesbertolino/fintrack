@@ -295,8 +295,9 @@ export default function ContasPage() {
             <form onSubmit={salvarConta}>
               {/* Busca banco */}
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Banco</label>
+                <label htmlFor="busca-banco" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Banco</label>
                 <input
+                  id="busca-banco"
                   value={buscaBanco}
                   onChange={e => setBusca(e.target.value)}
                   placeholder="Buscar banco pelo nome ou código..."
@@ -342,31 +343,32 @@ export default function ContasPage() {
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nome da conta</label>
-                <input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: Conta corrente, Nubank, Poupança..." required style={inputStyle} />
+                <label htmlFor="conta-nome" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nome da conta</label>
+                <input id="conta-nome" value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: Conta corrente, Nubank, Poupança..." required style={inputStyle} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Tipo</label>
-                  <select value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  <label htmlFor="conta-tipo" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Tipo</label>
+                  <select id="conta-tipo" value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
                     {TIPOS.map(t => <option key={t} value={t} style={{ textTransform: 'capitalize' }}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimos 4 dígitos</label>
-                  <input value={form.numero} onChange={e => setForm(p => ({ ...p, numero: e.target.value.slice(0, 4) }))} placeholder="1234" maxLength={4} style={inputStyle} />
+                  <label htmlFor="conta-numero" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimos 4 dígitos</label>
+                  <input id="conta-numero" value={form.numero} onChange={e => setForm(p => ({ ...p, numero: e.target.value.slice(0, 4) }))} placeholder="1234" maxLength={4} style={inputStyle} />
                 </div>
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Agência (opcional)</label>
-                <input value={form.agencia} onChange={e => setForm(p => ({ ...p, agencia: e.target.value }))} placeholder="Ex: 0001" style={inputStyle} />
+                <label htmlFor="conta-agencia" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Agência (opcional)</label>
+                <input id="conta-agencia" value={form.agencia} onChange={e => setForm(p => ({ ...p, agencia: e.target.value }))} placeholder="Ex: 0001" style={inputStyle} />
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldo inicial (opcional)</label>
+                <label htmlFor="conta-saldo" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Saldo inicial (opcional)</label>
                 <input
+                  id="conta-saldo"
                   type="number"
                   value={form.saldo_inicial}
                   onChange={e => setForm(p => ({ ...p, saldo_inicial: e.target.value }))}

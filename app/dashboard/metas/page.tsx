@@ -719,8 +719,9 @@ export default function MetasPage() {
                 { label: 'Contribuição mensal (R$)', key: 'contribuicao_mensal', type: 'number', placeholder: '500' },
               ].map(f => (
                 <div key={f.key} style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>{f.label}</label>
+                  <label htmlFor={`meta-${f.key}`} style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>{f.label}</label>
                   <input
+                    id={`meta-${f.key}`}
                     type={f.type} placeholder={f.placeholder}
                     value={form[f.key as keyof typeof form]}
                     onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
@@ -730,8 +731,8 @@ export default function MetasPage() {
               ))}
 
               <div style={{ marginBottom: 14 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Prazo (opcional)</label>
-                <input type="month" value={form.prazo} onChange={e => setForm(p => ({ ...p, prazo: e.target.value }))}
+                <label htmlFor="meta-prazo" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.5)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Prazo (opcional)</label>
+                <input id="meta-prazo" type="month" value={form.prazo} onChange={e => setForm(p => ({ ...p, prazo: e.target.value }))}
                   style={{ width: '100%', padding: '9px 12px', background: '#0a1a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }}
                 />
               </div>
@@ -796,8 +797,9 @@ export default function MetasPage() {
               <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 12 }}>Novo aporte</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Valor (R$)</label>
+                  <label htmlFor="aporte-valor" style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Valor (R$)</label>
                   <input
+                    id="aporte-valor"
                     value={formAporte.valor}
                     onChange={e => setFormAporte(p => ({ ...p, valor: e.target.value }))}
                     placeholder="0,00"
@@ -805,8 +807,9 @@ export default function MetasPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data</label>
+                  <label htmlFor="aporte-data" style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Data</label>
                   <input
+                    id="aporte-data"
                     type="date"
                     value={formAporte.data}
                     onChange={e => setFormAporte(p => ({ ...p, data: e.target.value }))}
@@ -815,8 +818,9 @@ export default function MetasPage() {
                 </div>
               </div>
               <div style={{ marginBottom: 10 }}>
-                <label style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nota (opcional)</label>
+                <label htmlFor="aporte-nota" style={{ display: 'block', fontSize: 10, color: 'rgba(255,255,255,.4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nota (opcional)</label>
                 <input
+                  id="aporte-nota"
                   value={formAporte.nota}
                   onChange={e => setFormAporte(p => ({ ...p, nota: e.target.value }))}
                   placeholder="Ex: Bônus de abril, 13º salário..."

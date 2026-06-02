@@ -555,13 +555,13 @@ export default function OrcamentoPage() {
             </button>
           ) : (
             <div className="orc-add-form" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '12px 14px', background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 10, width: '100%' }}>
-              <select value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)} style={{ ...inp, width: 160 }}>
+              <select aria-label="Categoria do orçamento" value={novaCategoria} onChange={e => setNovaCategoria(e.target.value)} style={{ ...inp, width: 160 }}>
                 <option value="">Categoria…</option>
                 {categoriasDisponiveis.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 120 }}>
                 <span style={{ color: cores.textMuted, fontSize: 12 }}>R$</span>
-                <input type="number" min="0" step="0.01" placeholder="0,00" value={novoValor} onChange={e => setNovoValor(e.target.value)}
+                <input type="number" min="0" step="0.01" placeholder="0,00" aria-label="Valor do orçamento" value={novoValor} onChange={e => setNovoValor(e.target.value)}
                   style={{ ...inp }} />
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
