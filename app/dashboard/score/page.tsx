@@ -71,7 +71,7 @@ export default function ScorePage() {
         fetch('/api/contas'),
       ])
 
-      const contasDados = await contasRes.json()
+      const contasDados = contasRes.ok ? await contasRes.json() : { contas: [] }
       const saldoTotal  = (contasDados.contas || [])
         .filter((c: { mostrar_saldo: boolean }) => c.mostrar_saldo)
         .reduce((a: number, c: { saldo: number }) => a + c.saldo, 0)

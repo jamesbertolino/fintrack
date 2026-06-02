@@ -59,7 +59,7 @@ export default function PlanejamentoPage() {
       if (tx)  setTransacoes(tx)
       if (mt)  setMetas(mt)
 
-      const contasDados = await contasRes.json()
+      const contasDados = contasRes.ok ? await contasRes.json() : { contas: [] }
       const saldo = (contasDados.contas || [])
         .filter((c: { mostrar_saldo: boolean }) => c.mostrar_saldo)
         .reduce((a: number, c: { saldo: number }) => a + c.saldo, 0)
