@@ -24,10 +24,14 @@ export async function POST() {
   const stripe = getStripe()
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id as string,
-    return_url: `${baseUrl}/dashboard/perfil`,
-  })
-
-  return NextResponse.json({ url: session.url })
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id as string,
+      return_url: `${baseUrl}/dashboard/perfil`,
+    })
+    return NextResponse.json({ url: session.url })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Erro no Stripe'
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }

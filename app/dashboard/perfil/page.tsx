@@ -302,8 +302,9 @@ export default function PerfilPage() {
 
   async function familiaRemoverMembro(id: string) {
     setFamiliaRem(id)
-    await fetch(`/api/familia/membro/${id}`, { method: 'DELETE' })
-    setFamiliaMembros(prev => prev.filter(m => m.id !== id))
+    const res = await fetch(`/api/familia/membro/${id}`, { method: 'DELETE' })
+    if (res.ok) setFamiliaMembros(prev => prev.filter(m => m.id !== id))
+    else { const d = await res.json().catch(() => ({})); setErro(d.error || 'Erro ao remover membro') }
     setFamiliaRem(null)
   }
 
@@ -404,7 +405,8 @@ export default function PerfilPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user || !webhook) return
     const novoAtivo = !webhook.ativo
-    await supabase.from('webhook_configs').update({ ativo: novoAtivo }).eq('user_id', user.id)
+    const { error } = await supabase.from('webhook_configs').update({ ativo: novoAtivo }).eq('user_id', user.id)
+    if (error) { setErro('Erro ao atualizar webhook'); return }
     setWebhook(prev => prev ? { ...prev, ativo: novoAtivo } : prev)
   }
 
@@ -624,12 +626,13 @@ export default function PerfilPage() {
 
   async function salvarPushPrefs(novas: typeof pushPrefs) {
     setSalvandoPushPrefs(true)
-    await fetch('/api/push/preferencias', {
+    const res = await fetch('/api/push/preferencias', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(novas),
     })
-    setPushPrefs(novas)
+    if (res.ok) setPushPrefs(novas)
+    else setErro('Erro ao salvar preferências de notificação')
     setSalvandoPushPrefs(false)
   }
 

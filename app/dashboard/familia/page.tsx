@@ -167,13 +167,15 @@ export default function FamiliaPage() {
       body: JSON.stringify({ nome: formOrigem.nome, tipo: formOrigem.tipo, saldo_inicial: parseFloat(formOrigem.saldo_inicial.replace(',','.')) || 0 }),
     })
     const d = await res.json()
+    if (!res.ok) { setErroMov(d.error || 'Erro ao criar fonte'); setSalvandoOrigem(false); return }
     if (d.origem) { setOrigens(prev => [...prev, d.origem]); setShowFormOrigem(false); setFormOrigem({ nome: '', tipo: 'conta_bancaria', saldo_inicial: '' }) }
     setSalvandoOrigem(false)
   }
 
   async function removerOrigem(id: string) {
-    await fetch(`/api/familia/origens/${id}`, { method: 'DELETE' })
-    setOrigens(prev => prev.filter(o => o.id !== id))
+    const res = await fetch(`/api/familia/origens/${id}`, { method: 'DELETE' })
+    if (res.ok) setOrigens(prev => prev.filter(o => o.id !== id))
+    else setErroMov('Erro ao remover fonte')
   }
 
   async function criarMovimento(e: React.FormEvent) {
@@ -200,7 +202,8 @@ export default function FamiliaPage() {
   }
 
   async function removerMovimento(id: string, origem_id: string, tipo: string, valor: number) {
-    await fetch('/api/familia/movimentos', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    const res = await fetch('/api/familia/movimentos', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    if (!res.ok) { setErroMov('Erro ao remover lançamento'); return }
     setMovimentos(prev => prev.filter(m => m.id !== id))
     setOrigens(prev => prev.map(o => o.id === origem_id
       ? { ...o, saldo_atual: o.saldo_atual + (tipo === 'entrada' ? -valor : valor) }
