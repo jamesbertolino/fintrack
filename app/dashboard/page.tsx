@@ -618,18 +618,15 @@ useEffect(() => {
     if (!user) { router.push('/login'); return }
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
-      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus, is_admin').eq('id', user.id).single(),
+      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus, is_admin, modo_interface').eq('id', user.id).single(),
       supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
 
-    // modo_interface lido separado — coluna pode não existir ainda no banco
-    let profModo: { modo_interface?: string } | null = null
-    try { const r = await supabase.from('profiles').select('modo_interface').eq('id', user.id).single(); profModo = r.data } catch { /* coluna não existe ainda */ }
 
     if (prof) {
       if (prof.setup_completo === false) { router.push('/setup'); return }
-      setProfile({ ...prof, modo_interface: profModo?.modo_interface as 'simples' | 'completo' | undefined })
+      setProfile(prof)
     }
     if (tx)   setTransacoes(tx)
     if (mt)   setMetas(mt)
