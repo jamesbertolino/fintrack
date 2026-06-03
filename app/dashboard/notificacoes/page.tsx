@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCores, useTema } from '@/components/ThemeProvider'
 import { usePerfil } from '@/hooks/usePerfil'
+import { useToast, Toasts } from '@/components/Toast'
+import { Skel, skelStyle } from '@/components/Skeleton'
 
 interface Notificacao {
   id: string
@@ -56,11 +58,14 @@ export default function NotificacoesPage() {
   const accentColor  = m ? '#D4AF37' : cores.accent
   const fontDisplay  = m ? 'var(--font-cinzel, Georgia, serif)' : 'inherit'
 
+  const { show, toasts, fechar } = useToast()
+
   const [notifs, setNotifs]           = useState<Notificacao[]>([])
   const [loading, setLoading]         = useState(true)
   const [filtro, setFiltro]           = useState<'todas' | 'nao_lidas'>('todas')
   const [iaAnalisando, setIaAnalisando] = useState(false)
   const [xpFlash, setXpFlash]         = useState<number | null>(null)
+  const [apagarLidasConf, setApagarLidasConf] = useState(false)
 
   const carregar = useCallback(async () => {
     const res  = await fetch('/api/notificacoes')
@@ -74,20 +79,33 @@ export default function NotificacoesPage() {
   async function marcarLida(id: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n))
     const res  = await fetch('/api/notificacoes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    if (!res.ok) { setNotifs(prev => prev.map(n => n.id === id ? { ...n, lida: false } : n)); return }
     const data = await res.json()
     if (data.xpGanho > 0) mostrarXpFlash(data.xpGanho)
   }
 
   async function marcarTodasLidas() {
+    const snapshot = notifs
     setNotifs(prev => prev.map(n => ({ ...n, lida: true })))
     const res  = await fetch('/api/notificacoes', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ todas: true }) })
+    if (!res.ok) { setNotifs(snapshot); show('Erro ao marcar notificações', 'erro'); return }
     const data = await res.json()
     if (data.xpGanho > 0) mostrarXpFlash(data.xpGanho)
   }
 
   async function apagar(id: string) {
     setNotifs(prev => prev.filter(n => n.id !== id))
-    await fetch('/api/notificacoes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    const res = await fetch('/api/notificacoes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    if (!res.ok) { await carregar(); show('Erro ao apagar notificação', 'erro') }
+  }
+
+  async function apagarTodasLidas() {
+    const lidas = notifs.filter(n => n.lida)
+    if (!lidas.length) return
+    setNotifs(prev => prev.filter(n => !n.lida))
+    setApagarLidasConf(false)
+    await Promise.all(lidas.map(n => fetch('/api/notificacoes', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: n.id }) })))
+    show(`${lidas.length} notificaç${lidas.length !== 1 ? 'ões apagadas' : 'ão apagada'}`)
   }
 
   function mostrarXpFlash(xp: number) {
@@ -102,10 +120,11 @@ export default function NotificacoesPage() {
     setIaAnalisando(false)
     if (data.ok) {
       await carregar()
+      show('Notificações geradas pela IA!')
     } else if (data.limite) {
-      alert('Limite de 2 análises diárias atingido. Volte amanhã!')
+      show('Limite de 2 análises diárias atingido. Volte amanhã!', 'info')
     } else {
-      alert(data.error || 'Erro ao gerar notificações.')
+      show(data.error || 'Erro ao gerar notificações.', 'erro')
     }
   }
 
@@ -168,9 +187,22 @@ export default function NotificacoesPage() {
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {naoLidas > 0 && (
-            <button onClick={marcarTodasLidas} style={{ fontSize: 11, padding: '7px 12px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 8, color: cores.textMuted, cursor: 'pointer' }}>
+            <button onClick={marcarTodasLidas} style={{ fontSize: 12, padding: '9px 14px', minHeight: 44, background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 8, color: cores.textMuted, cursor: 'pointer' }}>
               ✓ Marcar todas como lidas
             </button>
+          )}
+          {notifs.some(n => n.lida) && (
+            apagarLidasConf ? (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#f87171' }}>Apagar todas as lidas?</span>
+                <button onClick={apagarTodasLidas} style={{ padding: '6px 12px', background: '#dc2626', border: 'none', borderRadius: 6, color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>Sim</button>
+                <button onClick={() => setApagarLidasConf(false)} style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 6, color: cores.textMuted, fontSize: 11, cursor: 'pointer' }}>Não</button>
+              </div>
+            ) : (
+              <button onClick={() => setApagarLidasConf(true)} style={{ fontSize: 12, padding: '9px 14px', minHeight: 44, background: 'transparent', border: `1px solid rgba(239,68,68,.3)`, borderRadius: 8, color: '#f87171', cursor: 'pointer' }}>
+                🗑 Apagar lidas
+              </button>
+            )
           )}
           <button onClick={gerarComIA} disabled={iaAnalisando}
             style={{ fontSize: 11, padding: '7px 14px', background: `${accentColor}18`, border: `1px solid ${accentColor}44`, borderRadius: 8, color: accentColor, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, minHeight: 44 }}>
@@ -197,7 +229,19 @@ export default function NotificacoesPage() {
 
         {/* Lista */}
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: cores.textMuted }}>Carregando...</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <style>{skelStyle}</style>
+            {[0,1,2,3].map(i => (
+              <div key={i} style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '12px 14px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <Skel w={38} h={38} radius={10} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <Skel w="50%" h={12} />
+                  <Skel h={10} />
+                  <Skel w="30%" h={9} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : filtradas.length === 0 ? (
           <div style={{ background: cores.cardBg, border: `1px dashed ${cores.cardBorder}`, borderRadius: 12, padding: '3.5rem', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>{m ? '📯' : '🔔'}</div>
@@ -253,20 +297,18 @@ export default function NotificacoesPage() {
                   </div>
 
                   {/* Ações */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                     {!n.lida && (
-                      <button onClick={e => { e.stopPropagation(); marcarLida(n.id) }} style={{
-                        fontSize: 10, padding: '4px 9px', background: `${accentColor}15`, border: `1px solid ${accentColor}33`,
-                        borderRadius: 5, color: accentColor, cursor: 'pointer', fontWeight: 600,
-                      }}>
-                        ✓ lida
+                      <button onClick={e => { e.stopPropagation(); marcarLida(n.id) }}
+                        aria-label="Marcar como lida"
+                        style={{ fontSize: 11, padding: '8px 12px', minHeight: 36, background: `${accentColor}15`, border: `1px solid ${accentColor}33`, borderRadius: 7, color: accentColor, cursor: 'pointer', fontWeight: 600 }}>
+                        ✓ Lida
                       </button>
                     )}
-                    <button onClick={e => { e.stopPropagation(); apagar(n.id) }} style={{
-                      fontSize: 10, padding: '4px 9px', background: 'transparent', border: `1px solid ${cores.border}`,
-                      borderRadius: 5, color: cores.textFaint, cursor: 'pointer',
-                    }}>
-                      apagar
+                    <button onClick={e => { e.stopPropagation(); apagar(n.id) }}
+                      aria-label="Apagar notificação"
+                      style={{ fontSize: 11, padding: '8px 12px', minHeight: 36, background: 'transparent', border: `1px solid ${cores.border}`, borderRadius: 7, color: cores.textFaint, cursor: 'pointer' }}>
+                      Apagar
                     </button>
                   </div>
                 </div>
@@ -275,6 +317,7 @@ export default function NotificacoesPage() {
           </div>
         )}
       </div>
+      <Toasts toasts={toasts} fechar={fechar} />
     </div>
   )
 }
