@@ -225,3 +225,50 @@ export function SkeletonPerfil() {
     </div>
   )
 }
+
+// ── Orçamento — inline (dentro do card) ──────────────────────────────────────
+export function SkeletonOrcamento() {
+  return (
+    <div style={{ padding: '1rem' }}>
+      <style>{skelStyle}</style>
+      {[0, 1, 2, 3].map(i => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 4px', borderBottom: '1px solid rgba(255,255,255,.05)' }}>
+          <Skel w="25%" h={12} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <Skel h={8} radius={4} />
+            <Skel w="60%" h={6} radius={3} />
+          </div>
+          <Skel w={60} h={10} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Dívidas — full-page ───────────────────────────────────────────────────────
+export function SkeletonDividas() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{skelStyle}</style>
+      <div style={{ height: 52, background: '#0a1a0a', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', padding: '0 1.5rem', gap: 12 }}>
+        <Skel w={24} h={24} radius={4} />
+        <Skel w={120} h={14} />
+      </div>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Skel w="40%" h={14} />
+              <Skel w="60%" h={10} />
+            </div>
+            <Skel w={80} h={20} />
+          </div>
+        ))}
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Skel w="35%" h={14} />
+          <Skel h={120} radius={8} />
+        </div>
+      </div>
+    </div>
+  )
+}

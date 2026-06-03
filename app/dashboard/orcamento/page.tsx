@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCores, useTema } from '@/components/ThemeProvider'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { SkeletonOrcamento } from '@/components/Skeleton'
 import { useToast, Toasts } from '@/components/Toast'
 
 interface Orcamento {
@@ -366,7 +367,7 @@ export default function OrcamentoPage() {
           </div>
 
           {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted }}>Carregando...</div>
+            <SkeletonOrcamento />
           ) : orcamentos.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: cores.textMuted }}>
               <div style={{ fontSize: 36, marginBottom: 10 }}>📊</div>

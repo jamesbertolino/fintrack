@@ -5,6 +5,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { useCores, useTema } from '@/components/ThemeProvider'
+import { SkeletonDividas } from '@/components/Skeleton'
 
 interface Divida {
   id: string
@@ -195,7 +196,7 @@ export default function DividasPage() {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: cores.textMuted }}>Carregando...</div>
+          <SkeletonDividas />
         ) : (
           <>
             {/* ── Lista de dívidas ── */}
