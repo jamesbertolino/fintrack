@@ -105,7 +105,7 @@ export default function SetupPage() {
       if (comTransacao && txDesc.trim() && txValor) {
         const val = parseFloat(txValor.replace(',', '.'))
         if (!isNaN(val) && val > 0) {
-          await supabase.from('transactions').insert({
+          const { error: txErr } = await supabase.from('transactions').insert({
             user_id:     userId,
             conta_id:    contaId || null,
             descricao:   txDesc.trim(),
@@ -114,10 +114,12 @@ export default function SetupPage() {
             categoria:   'Outros',
             tipo:        txTipo,
           })
+          if (txErr) throw new Error(txErr.message)
         }
       }
 
-      await supabase.from('profiles').update({ setup_completo: true }).eq('id', userId)
+      const { error: profErr } = await supabase.from('profiles').update({ setup_completo: true }).eq('id', userId)
+      if (profErr) throw new Error(profErr.message)
       router.push('/dashboard')
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro desconhecido')
