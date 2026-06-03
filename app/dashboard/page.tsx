@@ -378,6 +378,7 @@ interface Profile {
   prioridades?: PrioridadeComMetrica[]
   xp_bonus?: number
   is_admin?: boolean
+  modo_interface?: 'simples' | 'completo'
 }
 
 interface Conta {
@@ -569,6 +570,7 @@ useEffect(() => {
   const nivel        = calcularNivel(xpTotal)
   const nomeNivel    = getNomeNivel(nivel, m)
   const proxNomeNivel = nivel.proximoNivel ? getNomeNivel(nivel.proximoNivel, m) : null
+  const simples      = profile?.modo_interface === 'simples'
 
   const nome = profile?.nome || (m ? 'Nobre Guerreiro' : 'usuário')
   const tx = {
@@ -616,7 +618,7 @@ useEffect(() => {
     if (!user) { router.push('/login'); return }
 
     const [{ data: prof }, { data: tx }, { data: mt }] = await Promise.all([
-      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus, is_admin').eq('id', user.id).single(),
+      supabase.from('profiles').select('nome, plano, avatar_url, setup_completo, xp_bonus, is_admin, modo_interface').eq('id', user.id).single(),
       supabase.from('transactions').select('*').eq('user_id', user.id).order('data_hora', { ascending: false }),
       supabase.from('goals').select('*').eq('user_id', user.id).eq('ativo', true).limit(4),
     ])
@@ -1378,8 +1380,8 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* ── Abas ── */}
-              {(() => {
+              {/* ── Abas — ocultas no modo simples ── */}
+              {!simples && (() => {
                 const abas = [
                   { id: 'resumo'   as const, label: m ? '⚔ Resumo'   : '📊 Resumo',   icon: '📊' },
                   { id: 'analise'  as const, label: m ? '🔮 Análise'  : '🔍 Análise',  icon: '🔍' },
@@ -1410,8 +1412,8 @@ useEffect(() => {
               {/* ── ABA RESUMO ── */}
               {abaInicio === 'resumo' && (
                 <div>
-                  {/* Gráfico saldo */}
-                  {transacoes.length > 1 && (
+                  {/* Gráfico saldo — oculto no modo simples */}
+                  {!simples && transacoes.length > 1 && (
                     <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
@@ -1577,8 +1579,8 @@ useEffect(() => {
                     )
                   })()}
 
-                  {/* Calendário */}
-                  {transacoes.length > 0 && (
+                  {/* Calendário — oculto no modo simples */}
+                  {!simples && transacoes.length > 0 && (
                     <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <span style={{ fontSize: 11, fontWeight: 500, color: tx.accentMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', fontFamily: tx.fontDisplay }}>
@@ -1590,8 +1592,8 @@ useEffect(() => {
                     </div>
                   )}
 
-                  {/* Comparativo */}
-                  {transacoes.length > 0 && (() => {
+                  {/* Comparativo — oculto no modo simples */}
+                  {!simples && transacoes.length > 0 && (() => {
                     const comp = <ComparativoMes transacoes={transacoes} accentColor={tx.accentColor} isMobile={isMobile} m={m} />
                     if (!comp) return null
                     const nomePrev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toLocaleDateString('pt-BR', { month: 'long' })

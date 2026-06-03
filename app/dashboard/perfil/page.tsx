@@ -99,6 +99,7 @@ export default function PerfilPage() {
   const [prioridadesSelecionadas, setPrioridadesSelecionadas] = useState<string[]>([])
   const [metricsExpandidoIdx, setMetricsExpandidoIdx] = useState<number | null>(null)
   const [metricasEdit, setMetricasEdit] = useState<Record<number, { valor_alvo: string; valor_atual: string; contribuicao_mensal: string; prazo_meses: string }>>({})
+  const [modoInterface, setModoInterface] = useState<'simples' | 'completo'>('completo')
   const [grupo, setGrupo]           = useState<Grupo | null>(null)
   const [membros, setMembros]       = useState<GrupoMembro[]>([])
   const [novoNumero, setNovoNum]    = useState('')
@@ -183,6 +184,7 @@ export default function PerfilPage() {
       setForm({ nome: prof.nome || '', sobrenome: prof.sobrenome || '', whatsapp: prof.whatsapp || '', timezone: prof.timezone || 'America/Sao_Paulo', idioma: prof.idioma || 'pt-BR' })
       setContaPadrao(prof.conta_padrao_id || '')
       setNotificacoesCelular(prof.notificacoes_celular !== false)
+      setModoInterface(prof.modo_interface === 'simples' ? 'simples' : 'completo')
       const prios: Array<{ tipo: string; titulo: string; icon: string; ordem: number }> = Array.isArray(prof.prioridades) ? prof.prioridades : []
       setPrioridades(prios)
       setPrioridadesSelecionadas(prios.map((p: { tipo: string }) => p.tipo))
@@ -777,6 +779,40 @@ export default function PerfilPage() {
         {/* ── CONFIGURAÇÕES ── */}
         {abaSel === 'configuracoes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Modo da interface */}
+            <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Modo do aplicativo</div>
+              <div style={{ fontSize: 12, color: cores.textMuted, marginBottom: 16 }}>Escolha como prefere ver o painel</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {([
+                  { id: 'simples' as const,   emoji: '🎯', titulo: 'Simples e direto',             desc: 'Só saldo, receitas e gastos. Interface limpa.' },
+                  { id: 'completo' as const,  emoji: '📊', titulo: 'Completo com todos os recursos', desc: 'Gráficos, metas, conquistas, missões e análises.' },
+                ]).map(op => {
+                  const sel = modoInterface === op.id
+                  return (
+                    <button key={op.id} onClick={async () => {
+                      setModoInterface(op.id)
+                      await supabase.from('profiles').update({ modo_interface: op.id } as Record<string, string>).eq('id', currentUserId)
+                      setSucesso('Modo atualizado!')
+                    }} style={{
+                      background: sel ? `${cores.accent}12` : 'rgba(255,255,255,.02)',
+                      border: `2px solid ${sel ? cores.accent : cores.border}`,
+                      borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+                      transition: 'all .2s',
+                    }}>
+                      <span style={{ fontSize: 24, flexShrink: 0 }}>{op.emoji}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: sel ? cores.accent : cores.text, marginBottom: 2 }}>{op.titulo}</div>
+                        <div style={{ fontSize: 11, color: cores.textMuted }}>{op.desc}</div>
+                      </div>
+                      {sel && <span style={{ color: cores.accent, fontSize: 18, flexShrink: 0 }}>✓</span>}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
             {/* Tema */}
             <div style={{ background: cores.surface, border: `1px solid ${cores.borderMid}`, borderRadius: 12, padding: '1.25rem' }}>

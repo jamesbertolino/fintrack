@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 
-type Passo   = 'carregando' | 1 | 2 | 3
+type Passo   = 'carregando' | 0 | 1 | 2 | 3
 type Objetivo = 'poupar' | 'quitar' | 'investir'
+type ModoInterface = 'simples' | 'completo'
 
 const OBJETIVOS: { id: Objetivo; emoji: string; titulo: string; descricao: string }[] = [
   { id: 'poupar',   emoji: '🏰', titulo: 'Guardar dinheiro',   descricao: 'Quero construir uma reserva e ter controle dos meus gastos' },
@@ -20,6 +21,7 @@ export default function SetupPage() {
   const supabase = createClient()
 
   const [passo, setPasso]               = useState<Passo>('carregando')
+  const [modo, setModo]                 = useState<ModoInterface | null>(null)
   const [objetivo, setObjetivo]         = useState<Objetivo | null>(null)
   const [nomeConta, setNomeConta]       = useState('Conta Principal')
   const [tipoConta, setTipoConta]       = useState<'corrente' | 'poupanca' | 'carteira'>('corrente')
@@ -47,15 +49,21 @@ export default function SetupPage() {
 
       if (profile?.setup_completo) { router.push('/dashboard'); return }
 
-      setPasso(1)
+      setPasso(0)
     }
     init()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  async function avancarPara1() {
+    if (!modo) return
+    await supabase.from('profiles').update({ modo_interface: modo } as Record<string, string>).eq('id', userId).then(() => {})
+    setPasso(1)
+    setErro('')
+  }
+
   async function avancarPara2() {
     if (!objetivo) return
-    // Salva objetivo no profile (ignora erro se coluna não existir)
     await supabase.from('profiles').update({ objetivo } as Record<string, string>).eq('id', userId).then(() => {})
     setPasso(2)
     setErro('')
@@ -158,8 +166,8 @@ export default function SetupPage() {
     )
   }
 
-  const totalPassos = 3
-  const passoNum = passo as number
+  const totalPassos = 4
+  const passoNum = (passo as number) + 1
 
   return (
     <div style={wrap}>
@@ -194,6 +202,59 @@ export default function SetupPage() {
       </div>
 
       <div style={card}>
+
+        {/* ── PASSO 0: Modo da interface ────────────────────────────────────── */}
+        {passo === 0 && (
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Como prefere usar o app?</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,.45)', marginBottom: '1.75rem', lineHeight: 1.6 }}>
+              Você pode mudar isso a qualquer momento nas configurações.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: '1.75rem' }}>
+              {([
+                {
+                  id: 'simples' as ModoInterface,
+                  emoji: '🎯',
+                  titulo: 'Simples e direto',
+                  desc: 'Veja apenas saldo, receitas e gastos. Interface limpa, sem complicações.',
+                },
+                {
+                  id: 'completo' as ModoInterface,
+                  emoji: '📊',
+                  titulo: 'Completo com todos os recursos',
+                  desc: 'Gráficos, metas, conquistas, missões, relatórios e análises detalhadas.',
+                },
+              ]).map(op => {
+                const sel = modo === op.id
+                return (
+                  <button
+                    key={op.id}
+                    onClick={() => setModo(op.id)}
+                    style={{
+                      background: sel ? 'rgba(22,163,74,.12)' : 'rgba(255,255,255,.03)',
+                      border: `2px solid ${sel ? '#16a34a' : 'rgba(255,255,255,.1)'}`,
+                      borderRadius: 14, padding: '18px 16px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
+                      transition: 'all .2s',
+                    }}
+                  >
+                    <div style={{ fontSize: 32, flexShrink: 0 }}>{op.emoji}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: sel ? '#4ade80' : '#fff', marginBottom: 4 }}>{op.titulo}</div>
+                      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', lineHeight: 1.5 }}>{op.desc}</div>
+                    </div>
+                    {sel && <div style={{ fontSize: 22, color: '#4ade80', flexShrink: 0 }}>✓</div>}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button onClick={avancarPara1} disabled={!modo} style={btnPrimary(!!modo)}>
+              Continuar →
+            </button>
+          </div>
+        )}
 
         {/* ── PASSO 1: Objetivo financeiro ──────────────────────────────────── */}
         {passo === 1 && (
@@ -231,6 +292,9 @@ export default function SetupPage() {
 
             <button onClick={avancarPara2} disabled={!objetivo} style={btnPrimary(!!objetivo)}>
               Continuar →
+            </button>
+            <button style={{ ...btnSecondary, marginTop: 10 }} onClick={() => { setPasso(0); setErro('') }}>
+              ← Voltar
             </button>
           </div>
         )}
