@@ -533,15 +533,27 @@ useEffect(() => {
   // Previsão de fechamento do mês
   const previsaoMes = useMemo(() => {
     const hoje = new Date()
+    const ano  = hoje.getFullYear()
+    const mes  = hoje.getMonth()
     const diaAtual   = hoje.getDate()
-    const diasNoMes  = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate()
+    const diasNoMes  = new Date(ano, mes + 1, 0).getDate()
     const diasRestam = diasNoMes - diaAtual
-    if (diaAtual < 3 || despesas === 0) return null
-    const mediaDiaria   = despesas / diaAtual
-    const projecao      = despesas + mediaDiaria * diasRestam
-    const diferenca     = projecao - receitas
+    if (diaAtual < 3) return null
+
+    // Usa apenas transações do mês atual — não o histórico completo
+    const txMes = transacoes.filter(t => {
+      const d = new Date(t.data_hora)
+      return d.getFullYear() === ano && d.getMonth() === mes
+    })
+    const despesasMes = txMes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
+    const receitasMes = txMes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
+
+    if (despesasMes === 0) return null
+    const mediaDiaria = despesasMes / diaAtual
+    const projecao    = despesasMes + mediaDiaria * diasRestam
+    const diferenca   = projecao - receitasMes
     return { projecao, mediaDiaria, diasRestam, noNegativo: diferenca > 0, diferenca }
-  }, [despesas, receitas])
+  }, [transacoes])
 
   // Range de datas para link do card (primeira e última transação)
   const { gastosHref, receitasHref } = useMemo(() => {
