@@ -111,6 +111,7 @@ export default function MetasPage() {
   const [salvando, setSalvando]   = useState(false)
   const [erro, setErro]           = useState('')
   const [abaSel, setAbaSel]       = useState<'metas' | 'alertas' | 'familia'>('metas')
+  const [sortMetas, setSortMetas] = useState<'progresso' | 'nome' | 'valor'>('progresso')
   const [userId, setUserId]       = useState('')
 
   // compartilhamento familiar
@@ -453,8 +454,31 @@ export default function MetasPage() {
                 </button>
               </div>
             ) : (
+              <>
+                {/* Ordenação */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)' }}>Ordenar:</span>
+                  {([
+                    { id: 'progresso', label: '% Progresso' },
+                    { id: 'nome',      label: 'Nome A-Z' },
+                    { id: 'valor',     label: 'Valor' },
+                  ] as const).map(op => (
+                    <button key={op.id} onClick={() => setSortMetas(op.id)} style={{
+                      padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 11,
+                      background: sortMetas === op.id ? '#16a34a' : 'rgba(255,255,255,.07)',
+                      color: sortMetas === op.id ? '#fff' : 'rgba(255,255,255,.45)',
+                    }}>{op.label}</button>
+                  ))}
+                </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
-                {metas.map(m => {
+                {[...metas].sort((a, b) => {
+                  if (sortMetas === 'nome') return a.nome.localeCompare(b.nome)
+                  if (sortMetas === 'valor') return b.valor_total - a.valor_total
+                  // progresso: % crescente (mais perto de concluir primeiro)
+                  const pctA = a.valor_total > 0 ? a.valor_atual / a.valor_total : 0
+                  const pctB = b.valor_total > 0 ? b.valor_atual / b.valor_total : 0
+                  return pctB - pctA
+                }).map(m => {
                   const pct = m.valor_total > 0 ? Math.min(Math.round((m.valor_atual / m.valor_total) * 100), 100) : 0
                   const prev = calcPrevisao(m.valor_total, m.valor_atual, m.contribuicao_mensal || 0)
                   const cor = pct >= 100 ? '#4ade80' : pct >= 50 ? '#22d3ee' : '#16a34a'
@@ -541,6 +565,7 @@ export default function MetasPage() {
                   )
                 })}
               </div>
+              </>
             )}
           </>
         )}

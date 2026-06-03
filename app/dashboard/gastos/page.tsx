@@ -62,6 +62,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const [dataInicio, setDataInicio]   = useState(deInicial ?? '')
   const [dataFim, setDataFim]         = useState(ateInicial ?? '')
   const [abaGrafico, setAbaGrafico]   = useState<'categoria' | 'evolucao' | 'comparativo'>('categoria')
+  const [sortOrder, setSortOrder]     = useState<'data_desc' | 'data_asc' | 'valor_desc' | 'valor_asc' | 'categoria'>('data_desc')
   const [catDrilldown, setCatDrilldown] = useState<string | null>(null)
   const [filtroExpandido, setFiltroExpandido] = useState(false)
   const [userId, setUserId]           = useState('')
@@ -198,14 +199,25 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const totalDespesasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0), [transacoes])
   const saldoPeriodo          = totalReceitasPeriodo - totalDespesasPeriodo
 
-  // ─── transações filtradas ───
-  const filtradas = useMemo(() => transacoes.filter(t => {
-    if (catFiltro !== 'Todas' && t.categoria?.toLowerCase() !== catFiltro.toLowerCase()) return false
-    if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
-    if (busca && !t.descricao.toLowerCase().includes(busca.toLowerCase())) return false
-    if (contaFiltro && t.conta_id !== contaFiltro) return false
-    return true
-  }), [transacoes, catFiltro, tipoFiltro, busca, contaFiltro])
+  // ─── transações filtradas + ordenadas ───
+  const filtradas = useMemo(() => {
+    const f = transacoes.filter(t => {
+      if (catFiltro !== 'Todas' && t.categoria?.toLowerCase() !== catFiltro.toLowerCase()) return false
+      if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
+      if (busca && !t.descricao.toLowerCase().includes(busca.toLowerCase())) return false
+      if (contaFiltro && t.conta_id !== contaFiltro) return false
+      return true
+    })
+    return [...f].sort((a, b) => {
+      switch (sortOrder) {
+        case 'data_asc':    return a.data_hora.localeCompare(b.data_hora)
+        case 'valor_desc':  return Math.abs(b.valor) - Math.abs(a.valor)
+        case 'valor_asc':   return Math.abs(a.valor) - Math.abs(b.valor)
+        case 'categoria':   return a.categoria.localeCompare(b.categoria)
+        default:            return b.data_hora.localeCompare(a.data_hora) // data_desc
+      }
+    })
+  }, [transacoes, catFiltro, tipoFiltro, busca, contaFiltro, sortOrder])
 
   const filtroAtivo = catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca !== '' || contaFiltro !== ''
 
@@ -886,6 +898,16 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
                 </select>
               )}
+              <select aria-label="Ordenar por" value={sortOrder} onChange={e => setSortOrder(e.target.value as typeof sortOrder)} style={{
+                padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
+                borderRadius: 8, color: 'rgba(255,255,255,.7)', fontSize: 12, outline: 'none', cursor: 'pointer',
+              }}>
+                <option value="data_desc" style={{ background: '#111' }}>📅 Mais recente</option>
+                <option value="data_asc"  style={{ background: '#111' }}>📅 Mais antiga</option>
+                <option value="valor_desc" style={{ background: '#111' }}>💰 Maior valor</option>
+                <option value="valor_asc"  style={{ background: '#111' }}>💰 Menor valor</option>
+                <option value="categoria"  style={{ background: '#111' }}>🏷️ Categoria A-Z</option>
+              </select>
               {filtroAtivo && (
                 <button onClick={() => { setCatFiltro('Todas'); setTipoFiltro('todos'); setBusca(''); setContaFiltro('') }} style={{
                   padding: '6px 10px', background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.2)',
