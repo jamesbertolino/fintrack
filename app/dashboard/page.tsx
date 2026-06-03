@@ -463,6 +463,9 @@ export default function Dashboard() {
   const [orcRealizado, setOrcReal]  = useState<Record<string, number>>({})
   const [dividas, setDividas]       = useState<{ saldo: number; taxa_juros: number }[]>([])
   const [loading, setLoading]       = useState(true)
+  const [guiaDismissed, setGuiaDismissed] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('onboarding_guia_dismissed') === '1'
+  )
   const [paginaAtiva, setPagina]    = useState('inicio')
   const [abaInicio, setAbaInicio]   = useState<'resumo' | 'analise' | 'progresso'>('resumo')
   const [buscaQuery, setBuscaQuery] = useState('')
@@ -1302,6 +1305,62 @@ useEffect(() => {
                   {new Intl.DateTimeFormat(idioma, { weekday: 'long', day: 'numeric', month: 'long', timeZone: timezone }).format(new Date())}
                 </div>
               </div>
+
+              {/* ── Guia de primeiros passos ── */}
+              {!guiaDismissed && (() => {
+                const passos = [
+                  { id: 'conta',     feito: contas.length > 0,      emoji: '🏦', label: 'Configurar conta bancária',  href: '/dashboard/contas',    desc: 'Vincule sua conta para controlar saldos' },
+                  { id: 'lancamento',feito: transacoes.length > 0,  emoji: '📝', label: 'Registrar primeiro gasto',   href: '/dashboard/lancamento', desc: 'Lance uma receita ou despesa' },
+                  { id: 'orcamento', feito: orcamentos.length > 0,  emoji: '📊', label: 'Criar um orçamento',         href: '/dashboard/orcamento',  desc: 'Defina limites por categoria' },
+                  { id: 'meta',      feito: metas.length > 0,       emoji: '🎯', label: 'Definir uma meta',           href: '/dashboard/metas',      desc: 'Sonho de viagem, reserva ou investimento' },
+                ]
+                const concluidos = passos.filter(p => p.feito).length
+                if (concluidos === passos.length) return null // tudo feito, não mostra
+
+                return (
+                  <div style={{ background: cores.cardBg, border: `1px solid ${tx.accentColor}30`, borderRadius: 14, padding: '1rem 1.25rem', marginBottom: '1rem', boxShadow: cores.cardShadow, position: 'relative' }}>
+                    <button onClick={() => { localStorage.setItem('onboarding_guia_dismissed', '1'); setGuiaDismissed(true) }}
+                      aria-label="Fechar guia"
+                      style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: cores.textFaint, fontSize: 18, lineHeight: 1 }}>×</button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: tx.accentColor, fontFamily: tx.fontDisplay }}>
+                        {m ? '⚔️ Jornada do Reino' : '🚀 Primeiros passos'}
+                      </div>
+                      <div style={{ fontSize: 11, color: cores.textMuted, background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 20, padding: '2px 10px' }}>
+                        {concluidos} de {passos.length}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)', gap: 8 }}>
+                      {passos.map(p => (
+                        <div key={p.id}
+                          onClick={() => !p.feito && router.push(p.href)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                            borderRadius: 10, cursor: p.feito ? 'default' : 'pointer',
+                            background: p.feito ? 'rgba(255,255,255,.03)' : `${tx.accentColor}08`,
+                            border: `1px solid ${p.feito ? cores.border : `${tx.accentColor}25`}`,
+                            opacity: p.feito ? 0.6 : 1,
+                            transition: 'all .15s',
+                          }}
+                          onMouseEnter={e => { if (!p.feito) e.currentTarget.style.background = `${tx.accentColor}14` }}
+                          onMouseLeave={e => { if (!p.feito) e.currentTarget.style.background = `${tx.accentColor}08` }}
+                        >
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: p.feito ? 'rgba(74,222,128,.15)' : cores.surface, border: `1px solid ${p.feito ? 'rgba(74,222,128,.3)' : cores.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: p.feito ? 14 : 16 }}>
+                            {p.feito ? '✓' : p.emoji}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 12, fontWeight: p.feito ? 400 : 600, color: p.feito ? cores.textMuted : cores.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.label}</div>
+                            {!p.feito && <div style={{ fontSize: 10, color: cores.textFaint, marginTop: 1 }}>{p.desc}</div>}
+                          </div>
+                          {!p.feito && <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0, color: tx.accentColor }}><path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
               <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
