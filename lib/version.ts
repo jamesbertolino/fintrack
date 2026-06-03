@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.46.0'
+export const APP_VERSION = '2.47.0'
 export const APP_BUILD   = '2026.06.03'
 
 /**
@@ -115,5 +115,6 @@ export const APP_BUILD   = '2026.06.03'
  * 2.43.0 · 2026.06.03 — UX: modo Simples/Completo escolhido no onboarding (novo passo 0); fix previsaoMes usava histórico completo em vez do mês atual; aba Avançado no perfil agrega Webhook+Segurança; tap targets 44px em metas e gastos mobile
  * 2.44.0 · 2026.06.03 — UX: skeleton em orçamento e dívidas; sort em gastos (data/valor/categoria) e metas (progresso/nome/valor); fix setup/concluir verifica erros; migration modo_interface
  * 2.45.0 · 2026.06.03 — Fix: lib/dbError.ts mapeia erros técnicos do Postgres para mensagens amigáveis; 12 APIs e componente perfil atualizados
- * 2.46.0 · 2026.06.03 — UX notificações: skeleton loader, toasts substituem alert(), apagar lidas em lote com confirmação inline, tap targets maiores, res.ok verificado (novo passo 0); fix previsaoMes usava histórico completo em vez do mês atual; aba Avançado no perfil agrega Webhook+Segurança; tap targets 44px em metas e gastos mobile (divisão zero, falhas silenciosas, race conditions), skeleton loaders em 4 telas, sistema de toasts em 4 telas, acessibilidade (aria-labels, role=dialog, focus trap, labels htmlFor), memoização (useMemo em dashboard/orçamento), confirmações inline substituindo confirm(), landing page redesenhada com gráfico animado, logo corrigida, melhorias UX mobile
+ * 2.46.0 · 2026.06.03 — UX notificações: skeleton loader, toasts substituem alert(), apagar lidas em lote com confirmação inline, tap targets maiores, res.ok verificado
+ * 2.47.0 · 2026.06.03 — UX: guia 'Primeiros passos' no dashboard (4 passos derivados de dados reais, clicável, dispensável, some ao concluir tudo) (novo passo 0); fix previsaoMes usava histórico completo em vez do mês atual; aba Avançado no perfil agrega Webhook+Segurança; tap targets 44px em metas e gastos mobile (divisão zero, falhas silenciosas, race conditions), skeleton loaders em 4 telas, sistema de toasts em 4 telas, acessibilidade (aria-labels, role=dialog, focus trap, labels htmlFor), memoização (useMemo em dashboard/orçamento), confirmações inline substituindo confirm(), landing page redesenhada com gráfico animado, logo corrigida, melhorias UX mobile
  */
