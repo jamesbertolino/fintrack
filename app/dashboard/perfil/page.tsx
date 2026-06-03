@@ -83,7 +83,7 @@ export default function PerfilPage() {
   const [salvando, setSalvando]     = useState(false)
   const [sucesso, setSucesso]       = useState('')
   const [erro, setErro]             = useState('')
-  const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades'>('perfil')
+  const [abaSel, setAbaSel]         = useState<'perfil' | 'configuracoes' | 'webhook' | 'grupo' | 'plano' | 'seguranca' | 'prioridades' | 'avancado'>('perfil')
   const isMobile = useIsMobile(640)
 
   // Família app
@@ -719,13 +719,12 @@ export default function PerfilPage() {
               { id: 'perfil',        label: 'Dados pessoais' },
               { id: 'prioridades',   label: '🎯 Prioridades' },
               { id: 'configuracoes', label: 'Configurações' },
-              { id: 'webhook',       label: 'Webhook' },
               { id: 'grupo',         label: '👥 Pessoas' },
               { id: 'plano',         label: 'Plano' },
-              { id: 'seguranca',     label: 'Segurança' },
+              { id: 'avancado',      label: '⚙️ Avançado' },
             ] as const).map(a => (
               <button key={a.id} onClick={() => { setAbaSel(a.id); setErro(''); setSucesso('') }} style={{
-                padding: '7px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                padding: '7px 12px', minHeight: 36, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
                 whiteSpace: 'nowrap',
                 background: abaSel === a.id ? '#16a34a' : 'transparent',
                 color: abaSel === a.id ? '#fff' : cores.textMuted,
@@ -1089,8 +1088,9 @@ export default function PerfilPage() {
         )}
 
         {/* ── WEBHOOK ── */}
-        {abaSel === 'webhook' && (
+        {(abaSel === 'webhook' || abaSel === 'avancado') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {abaSel === 'avancado' && <div style={{ fontSize: 13, fontWeight: 600, color: cores.textMuted, textTransform: 'uppercase', letterSpacing: '.06em', paddingTop: 4 }}>Webhook</div>}
 
             {/* Status */}
             <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
@@ -1657,8 +1657,9 @@ export default function PerfilPage() {
         })()}
 
         {/* ── SEGURANÇA ── */}
-        {abaSel === 'seguranca' && (
+        {(abaSel === 'seguranca' || abaSel === 'avancado') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {abaSel === 'avancado' && <div style={{ fontSize: 13, fontWeight: 600, color: cores.textMuted, textTransform: 'uppercase', letterSpacing: '.06em', paddingTop: 8 }}>Segurança</div>}
             <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 14 }}>Alterar senha</div>
               <form onSubmit={alterarSenha}>
