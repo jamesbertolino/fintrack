@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.42.1'
-export const APP_BUILD   = '2026.06.02'
+export const APP_VERSION = '2.43.0'
+export const APP_BUILD   = '2026.06.03'
 
 /**
  * Histórico de versões
@@ -111,5 +111,6 @@ export const APP_BUILD   = '2026.06.02'
  * 2.41.0 · 2026.05.29 — UX alto impacto: melhorias em 3 telas + bumps anteriores
  * 2.41.1 · 2026.05.29 — Fix: 5 correções UX + bump v2.41.1
  * 2.42.0 · 2026.06.02 — Qualidade: 30+ bugs corrigidos (divisão zero, falhas silenciosas, race conditions), skeleton loaders em 4 telas, sistema de toasts em 4 telas, acessibilidade (aria-labels, role=dialog, focus trap, labels htmlFor), memoização (useMemo em dashboard/orçamento), confirmações inline substituindo confirm(), landing page redesenhada com gráfico animado, logo corrigida, melhorias UX mobile
- * 2.42.1 · 2026.06.02 — UX idoso: fontSize 13→15-16px nas 4 telas principais, toast 3.8s→7s, 'Aporte'→'Depósito', botão Excluir com texto no desktop (divisão zero, falhas silenciosas, race conditions), skeleton loaders em 4 telas, sistema de toasts em 4 telas, acessibilidade (aria-labels, role=dialog, focus trap, labels htmlFor), memoização (useMemo em dashboard/orçamento), confirmações inline substituindo confirm(), landing page redesenhada com gráfico animado, logo corrigida, melhorias UX mobile
+ * 2.42.1 · 2026.06.02 — UX idoso: fontSize 13→15-16px nas 4 telas principais, toast 3.8s→7s, 'Aporte'→'Depósito', botão Excluir com texto no desktop
+ * 2.43.0 · 2026.06.03 — UX: modo Simples/Completo escolhido no onboarding (novo passo 0); fix previsaoMes usava histórico completo em vez do mês atual; aba Avançado no perfil agrega Webhook+Segurança; tap targets 44px em metas e gastos mobile (divisão zero, falhas silenciosas, race conditions), skeleton loaders em 4 telas, sistema de toasts em 4 telas, acessibilidade (aria-labels, role=dialog, focus trap, labels htmlFor), memoização (useMemo em dashboard/orçamento), confirmações inline substituindo confirm(), landing page redesenhada com gráfico animado, logo corrigida, melhorias UX mobile
  */
