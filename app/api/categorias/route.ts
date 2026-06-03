@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { CATEGORIAS_PADRAO } from '@/lib/categorias'
 
@@ -33,6 +34,6 @@ export async function POST(request: NextRequest) {
     tipo:    tipo   || 'ambos',
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar categoria') }, { status: 500 })
   return NextResponse.json({ categoria: data })
 }

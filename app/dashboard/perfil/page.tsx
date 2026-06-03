@@ -345,7 +345,7 @@ export default function PerfilPage() {
     }).eq('id', user.id)
 
     setSalvando(false)
-    if (error) { setErro('Erro ao salvar: ' + error.message); return }
+    if (error) { setErro('Não foi possível salvar o perfil. Tente novamente.'); return }
     setSucesso('Perfil atualizado com sucesso!')
     carregar()
     setTimeout(() => setSucesso(''), 3000)
@@ -353,7 +353,7 @@ export default function PerfilPage() {
 
   async function iniciarMfa() {
     const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', issuer: 'PoupaUp' })
-    if (error || !data) { setErro('Erro ao iniciar MFA: ' + error?.message); return }
+    if (error || !data) { setErro('Não foi possível configurar a verificação em dois passos. Tente novamente.'); return }
     setMfaUri(data.totp.uri)
     setMfaSecretKey(data.totp.secret)
     setMfaFactorId(data.id)
@@ -373,7 +373,7 @@ export default function PerfilPage() {
   async function desativarMfa() {
     if (!window.confirm('Deseja desativar a autenticação de dois fatores?')) return
     const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId })
-    if (error) { setErro('Erro ao desativar MFA: ' + error.message); return }
+    if (error) { setErro('Não foi possível desativar a verificação em dois passos. Tente novamente.'); return }
     setMfaAtivo(false); setMfaFactorId(''); setMfaEtapa('idle'); setSucesso('MFA desativado.')
     setTimeout(() => setSucesso(''), 3000)
   }
@@ -399,7 +399,7 @@ export default function PerfilPage() {
 
     const { error } = await supabase.auth.updateUser({ password: senhaForm.nova })
     setSalvando(false)
-    if (error) { setErro('Erro: ' + error.message); return }
+    if (error) { setErro('Não foi possível alterar a senha. Verifique os dados e tente novamente.'); return }
     setSucesso('Senha alterada com sucesso!')
     setSenhaForm({ nova: '', confirmar: '' })
     setTimeout(() => setSucesso(''), 3000)
@@ -615,7 +615,7 @@ export default function PerfilPage() {
     if (!user) { setSalvando(false); return }
     const { error } = await supabase.from('profiles').update(campos).eq('id', user.id)
     setSalvando(false)
-    if (error) { setErro('Erro ao salvar: ' + error.message); return }
+    if (error) { setErro('Não foi possível salvar o perfil. Tente novamente.'); return }
     setSucesso('Configurações salvas!')
     setTimeout(() => setSucesso(''), 3000)
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
@@ -14,6 +15,6 @@ export async function POST(request: NextRequest) {
     { onConflict: 'user_id,chave' }
   )
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar categoria') }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

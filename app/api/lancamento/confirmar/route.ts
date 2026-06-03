@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { logAudit } from '@/lib/auditLog'
 import { verificarConquistas } from '@/lib/verificarConquistas'
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: inserir.length, mensagem: 'Lançamentos já existem no sistema (inserção simultânea).' })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: dbErr(error, 'confirmar lançamentos') }, { status: 500 })
   }
 
   // Corrige contagem real inserida (pode diferir se houve erro parcial)

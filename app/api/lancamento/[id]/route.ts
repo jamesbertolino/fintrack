@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/auditLog'
@@ -39,7 +40,7 @@ export async function PATCH(
     .eq('user_id', user.id)
     .select('id')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar lançamento') }, { status: 500 })
   if (!updated?.length) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
 
   logAudit({ user_id: user.id, action: 'transaction.update', resource_id: id, metadata: campos })
@@ -70,11 +71,11 @@ export async function DELETE(
   // Usa service role para remover FK em whatsapp_logs antes de deletar
   const service = getServiceClient()
   const { error: errFk } = await service.from('whatsapp_logs').update({ transacao_id: null }).eq('transacao_id', id)
-  if (errFk) return NextResponse.json({ error: `Erro ao desvincular logs: ${errFk.message}` }, { status: 500 })
+  if (errFk) return NextResponse.json({ error: dbErr(errFk, 'excluir lançamento') }, { status: 500 })
 
   const { error } = await service.from('transactions').delete().eq('id', id).eq('user_id', user.id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar lançamento') }, { status: 500 })
 
   logAudit({ user_id: user.id, action: 'transaction.delete', resource_id: id })
 

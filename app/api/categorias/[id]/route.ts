@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -19,7 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .select()
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'atualizar categoria') }, { status: 500 })
   return NextResponse.json({ categoria: data })
 }
 

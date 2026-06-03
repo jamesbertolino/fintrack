@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET() {
@@ -13,7 +14,7 @@ export async function GET() {
     .eq('ativo', true)
     .order('created_at')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar dívida') }, { status: 500 })
   return NextResponse.json({ dividas: data || [] })
 }
 
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     user_id: user.id, nome, saldo, taxa_juros, pagamento_minimo,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar dívida') }, { status: 500 })
   return NextResponse.json({ divida: data })
 }
 
@@ -45,6 +46,6 @@ export async function DELETE(request: NextRequest) {
 
   const { id } = await request.json()
   const { error } = await supabase.from('dividas').update({ ativo: false }).eq('id', id).eq('user_id', user.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar dívida') }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

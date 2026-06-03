@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET() {
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
     mostrar_saldo: mostrar_saldo ?? true,
   }).select('*').single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'salvar conta') }, { status: 500 })
 
   const valorInicial = parseFloat(saldo_inicial) || 0
   if (valorInicial > 0 && data) {

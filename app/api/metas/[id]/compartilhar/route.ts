@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -28,7 +29,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ id: s
   if (!grupoId) return NextResponse.json({ error: 'Você não pertence a nenhuma família' }, { status: 400 })
 
   const { error } = await getSvc().from('meta_compartilhamentos').upsert({ meta_id: id, grupo_id: grupoId, criado_por: user.id }, { onConflict: 'meta_id,grupo_id' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'compartilhar meta') }, { status: 500 })
   return NextResponse.json({ ok: true, grupo_id: grupoId })
 }
 
@@ -40,7 +41,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params
   const { error } = await getSvc().from('meta_compartilhamentos').delete().eq('meta_id', id).eq('criado_por', user.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'compartilhar meta') }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
 

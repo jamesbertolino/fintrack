@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dbErr } from '@/lib/dbError'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 // POST /api/orcamento/duplicar — copia orçamentos do mês anterior para o mês atual
@@ -36,6 +37,6 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.from('orcamentos')
     .upsert(registros, { onConflict: 'user_id,categoria,mes' })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: dbErr(error, 'duplicar orçamento') }, { status: 500 })
   return NextResponse.json({ ok: true, copiados: registros.length })
 }
