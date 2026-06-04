@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, Suspense } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -310,9 +310,29 @@ function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: 
   )
 }
 
+// Componente separado para isolar useSearchParams no Suspense boundary
+function ShareTargetLoader({ onShare, onErro }: { onShare: (path: string) => void; onErro: (msg: string) => void }) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  useEffect(() => {
+    const sharePath = searchParams.get('share')
+    const shareErro = searchParams.get('share_erro')
+    if (shareErro) {
+      onErro(shareErro === 'tamanho' ? 'Arquivo muito grande. Máx 15MB.' : 'Erro ao receber arquivo compartilhado.')
+      router.replace('/dashboard/lancamento')
+    } else if (sharePath) {
+      onShare(sharePath)
+      router.replace('/dashboard/lancamento')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return null
+}
+
 export default function LancamentoPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = createClient()
   const { fmtDataHora } = usePerfil()
 
@@ -494,49 +514,21 @@ export default function LancamentoPage() {
       })
   }, [])
 
-  // ─── Web Share Target — auto-processa arquivo compartilhado pelo Android ───
-  useEffect(() => {
-    const sharePath = searchParams.get('share')
-    const shareErro = searchParams.get('share_erro')
+  // ─── Web Share Target — callback chamado pelo ShareTargetLoader ───────────
+  async function processarArquivoCompartilhado(sharePath: string) {
+    const client = createClient()
+    const { data: { user } } = await client.auth.getUser()
+    if (!user) return
 
-    async function carregarArquivoCompartilhado() {
-      if (shareErro) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setErro(shareErro === 'tamanho' ? 'Arquivo muito grande. Máx 15MB.' : 'Erro ao receber arquivo compartilhado.')
-        router.replace('/dashboard/lancamento')
-        return
-      }
+    const { data, error } = await client.storage.from('uploads').download(sharePath)
+    if (error || !data) { setErro('Não foi possível carregar o arquivo compartilhado.'); return }
 
-      if (!sharePath) return
-
-      const client = createClient()
-      const { data: { user } } = await client.auth.getUser()
-      if (!user) return
-
-      const { data, error } = await client.storage
-        .from('uploads')
-        .download(sharePath!)
-
-      if (error || !data) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setErro('Não foi possível carregar o arquivo compartilhado.')
-        router.replace('/dashboard/lancamento')
-        return
-      }
-
-      const nomeOriginal = sharePath!.split('/').pop() || 'arquivo'
-      const arquivo = new File([data], nomeOriginal, { type: data.type })
-
-      router.replace('/dashboard/lancamento')
-      setUploadAberto(true)
-      handleUpload(arquivo)
-
-      client.storage.from('uploads').remove([sharePath!]).then(() => null)
-    }
-
-    carregarArquivoCompartilhado()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const nomeOriginal = sharePath.split('/').pop() || 'arquivo'
+    const arquivo = new File([data], nomeOriginal, { type: data.type })
+    setUploadAberto(true)
+    handleUpload(arquivo)
+    client.storage.from('uploads').remove([sharePath]).then(() => null)
+  }
 
   const carregarHistorico = useCallback(async (contaFiltro?: string) => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -981,6 +973,10 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 15, color: '#fff' }}>
+
+      <Suspense fallback={null}>
+        <ShareTargetLoader onShare={processarArquivoCompartilhado} onErro={setErro} />
+      </Suspense>
 
       {/* ─── Modal: confirmação de potenciais duplicatas ─── */}
       {modalDuplicatas && (() => {
