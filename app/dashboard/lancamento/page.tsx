@@ -455,11 +455,19 @@ export default function LancamentoPage() {
         const res  = await fetch('/api/ia/voz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript }) })
         const data = await res.json()
         if (!res.ok || data.error) { setVozErro(data.error || 'Não entendi a frase'); return }
+        // Preenche os campos para feedback visual
         setTipo(data.tipo)
         setValor(data.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
         setDescricao(data.descricao)
         setCategoria(data.categoria)
         setVozErro('')
+        // Salva diretamente passando os valores — não depende do estado React ainda atualizado
+        const ok = await salvarInterno({ tipoOv: data.tipo, valorOv: data.valor, descricaoOv: data.descricao, categoriaOv: data.categoria })
+        if (ok) {
+          setVozTranscricao('')
+          carregarHistorico()
+          setTimeout(() => setSucesso(false), 2500)
+        }
       } catch { setVozErro('Erro ao processar. Tente novamente.') }
       finally   { setVozProcessando(false) }
     }
@@ -531,7 +539,7 @@ export default function LancamentoPage() {
     const d = await res.json()
     setImportacoes(d.importacoes || [])
     setLoadingImportacoes(false)
-  }, [])
+  }, [setImportacoes, setLoadingImportacoes])
 
   useEffect(() => {
     const client = createClient()
@@ -591,10 +599,11 @@ export default function LancamentoPage() {
   }, [supabase, router])
 
 useEffect(() => {
-  carregarHistorico(filtroContaId || undefined) // eslint-disable-line react-hooks/set-state-in-effect
+  carregarHistorico(filtroContaId || undefined)
 }, [carregarHistorico, filtroContaId])
 
-useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+// eslint-disable-next-line react-hooks/set-state-in-effect
+useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
 
   useEffect(() => {
     if (!userId) return
@@ -698,35 +707,43 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     setContaInlineAberta(false)
   }
 
-  async function salvar(e: React.FormEvent) {
-    e.preventDefault()
+  async function salvarInterno(opts?: { tipoOv?: string; valorOv?: number; descricaoOv?: string; categoriaOv?: string }) {
     setErro('')
-    const v = valorNumerico()
-    if (!v || v <= 0) { setErro('Digite um valor válido'); return }
-    if (!descricao.trim()) { setErro('Digite uma descrição'); return }
-    if (dataHora && new Date(dataHora) > new Date()) {
-      const ok = confirm('A data informada é no futuro. Deseja continuar?')
-      if (!ok) return
-    }
+    const v = opts?.valorOv ?? valorNumerico()
+    const desc = opts?.descricaoOv ?? descricao
+    const tip  = (opts?.tipoOv ?? tipo) as 'debito' | 'credito'
+    const cat  = opts?.categoriaOv ?? categoria
+    if (!v || v <= 0) { setErro('Digite um valor válido'); return false }
+    if (!desc.trim()) { setErro('Digite uma descrição'); return false }
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setSalvando(false); return false }
     const { error } = await supabase.from('transactions').insert({
       user_id: user.id,
-      descricao: descricao.trim().toUpperCase(),
-      valor: tipo === 'debito' ? -v : v,
-      tipo,
-      categoria,
+      descricao: desc.trim().toUpperCase(),
+      valor: tip === 'debito' ? -v : v,
+      tipo: tip,
+      categoria: cat,
       data_hora: inputParaUTC(dataHora, timezone),
       origem: 'manual',
       conta_id: contaSelecionada || null,
     })
-    if (error) { setErro('Erro ao salvar: ' + error.message); setSalvando(false); return }
+    if (error) { setErro('Erro ao salvar: ' + error.message); setSalvando(false); return false }
     setSalvando(false)
     setSucesso(true)
     setValor('')
     setDescricao('')
     setDataHora(dataLocalParaInput(timezone))
+    return true
+  }
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault()
+    if (dataHora && new Date(dataHora) > new Date()) {
+      const ok = confirm('A data informada é no futuro. Deseja continuar?')
+      if (!ok) return
+    }
+    await salvarInterno()
     carregarHistorico()
     setTimeout(() => setSucesso(false), 2500)
   }
