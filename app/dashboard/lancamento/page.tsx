@@ -857,11 +857,17 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
       // Confirmada pelo servidor via ref_externa — não precisa checar mais nada
       if (t.confirmada_duplicata) return t
 
+      // Importadas (OFX/CSV/PDF) têm ref_externa — datas são definitivas, não aplicar fuzzy.
+      // Parcelas com mesmo valor mas datas diferentes são sempre lançamentos distintos.
+      // O servidor já fez a verificação exata para esses casos.
+      if (t.ref_externa) return t
+
       const valorAbs = Math.abs(t.valor)
       const dataT = new Date(t.data_hora)
 
-      // Potencial duplicata no histórico (fuzzy: mesmo valor+descrição, MESMA DATA ±1 dia p/ fuso)
+      // Fuzzy só para lançamentos manuais (sem ref_externa): mesmo valor+descrição ±1 dia (fuso)
       const matchHistorico = existentes.find(e => {
+        if (e.origem !== 'manual') return false
         const diff = Math.abs(new Date(e.data_hora).getTime() - dataT.getTime())
         return Math.abs(e.valor) === valorAbs && diff <= 1 * 24 * 60 * 60 * 1000 &&
           e.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim()
@@ -871,7 +877,7 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
         conflito_data: matchHistorico.data_hora,
         conflito_descricao: matchHistorico.descricao,
       }
-      // Potencial duplicata dentro do próprio lote
+      // Potencial duplicata dentro do próprio lote (mesmo segundo — entrada duplicada)
       const duplicataLote = detectadas.some((other) =>
         other !== t &&
         Math.abs(other.valor) === valorAbs &&
