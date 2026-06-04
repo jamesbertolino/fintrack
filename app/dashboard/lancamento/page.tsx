@@ -90,6 +90,8 @@ interface TransacaoDetectada {
   e_pagamento_fatura?: boolean
   conciliacao_id?: string
   conciliacao_descricao?: string
+  conflito_data?: string          // data da transação existente que causou o potencial_duplicata
+  conflito_descricao?: string
 }
 
 const CATEGORIAS_DESPESA = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Outros']
@@ -849,11 +851,16 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
       const dataT = new Date(t.data_hora)
 
       // Potencial duplicata no histórico (fuzzy: mesmo valor+descrição±3 dias)
-      const duplicataHistorico = existentes.some(e => {
+      const matchHistorico = existentes.find(e => {
         const diff = Math.abs(new Date(e.data_hora).getTime() - dataT.getTime())
         return Math.abs(e.valor) === valorAbs && diff < 3 * 24 * 60 * 60 * 1000 &&
           e.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim()
       })
+      if (matchHistorico) return {
+        ...t, potencial_duplicata: true, duplicata_origem: 'historico' as const,
+        conflito_data: matchHistorico.data_hora,
+        conflito_descricao: matchHistorico.descricao,
+      }
       // Potencial duplicata dentro do próprio lote
       const duplicataLote = detectadas.some((other) =>
         other !== t &&
@@ -861,8 +868,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
         other.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim() &&
         Math.abs(new Date(other.data_hora).getTime() - dataT.getTime()) < 60 * 1000
       )
-      if (duplicataHistorico) return { ...t, potencial_duplicata: true, duplicata_origem: 'historico' as const }
-      if (duplicataLote)      return { ...t, potencial_duplicata: true, duplicata_origem: 'lote' as const }
+      if (duplicataLote) return { ...t, potencial_duplicata: true, duplicata_origem: 'lote' as const }
       return t
     })
   }
@@ -1809,7 +1815,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                         <div style={{ fontSize: 10, color: '#f97316', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
                           🔁 Verificar — {transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length} possíve{transacoesDetectadas.filter(t => t.potencial_duplicata && !t.confirmada_duplicata).length > 1 ? 'is duplicatas' : 'l duplicata'}
                         </div>
-                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Mesma data e valor de um lançamento já existente — verifique se é o mesmo.</div>
+                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>Valor igual a um lançamento existente — <strong style={{ color: '#fbbf24' }}>verifique a data</strong>: se for diferente, é um lançamento distinto e deve ser incluído.</div>
                       </div>
                       <button
                         onClick={descartarDuplicatas}
@@ -1827,9 +1833,18 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                               <input value={t.descricao} onChange={e => editarTransacao(i, 'descricao', e.target.value)}
                                 style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 12, fontWeight: 500, width: '100%', outline: 'none' }} />
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(249,115,22,.12)', color: '#f97316', border: '1px solid rgba(249,115,22,.25)' }}>
-                                  mesma data e valor já lançados
-                                </span>
+                                {t.conflito_data ? (
+                                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(249,115,22,.12)', color: '#f97316', border: '1px solid rgba(249,115,22,.25)' }}>
+                                    valor igual ao de {new Date(t.conflito_data).toLocaleDateString('pt-BR')}
+                                    {t.conflito_data.slice(0,10) !== t.data_hora.slice(0,10)
+                                      ? <strong style={{ color: '#fbbf24' }}> — datas diferentes, provável lançamento distinto</strong>
+                                      : ' — mesma data'}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: 'rgba(249,115,22,.12)', color: '#f97316', border: '1px solid rgba(249,115,22,.25)' }}>
+                                    mesmo valor e data já lançados
+                                  </span>
+                                )}
                                 {t.nao_categorizado ? (
                                   <select value={t.categoria} onChange={e => editarTransacao(i, 'categoria', e.target.value)}
                                     style={{ fontSize: 11, padding: '2px 8px', background: '#0a0a0a', border: '1px solid rgba(251,191,36,.35)', borderRadius: 6, color: '#fbbf24', outline: 'none', cursor: 'pointer' }}>
