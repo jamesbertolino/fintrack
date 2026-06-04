@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useCallback, useState } from 'react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -112,6 +112,14 @@ export default function MetasPage() {
   const [erro, setErro]           = useState('')
   const [abaSel, setAbaSel]       = useState<'metas' | 'alertas' | 'familia'>('metas')
   const [sortMetas, setSortMetas] = useState<'progresso' | 'nome' | 'valor'>('progresso')
+
+  const metasOrdenadas = useMemo(() => [...metas].sort((a, b) => {
+    if (sortMetas === 'nome')  return a.nome.localeCompare(b.nome)
+    if (sortMetas === 'valor') return b.valor_total - a.valor_total
+    const pctA = a.valor_total > 0 ? a.valor_atual / a.valor_total : 0
+    const pctB = b.valor_total > 0 ? b.valor_atual / b.valor_total : 0
+    return pctB - pctA
+  }), [metas, sortMetas])
   const [userId, setUserId]       = useState('')
 
   // compartilhamento familiar
@@ -172,7 +180,7 @@ export default function MetasPage() {
    
   }, [abaSel])
 
-  async function carregarFamilia() {
+  const carregarFamilia = useCallback(async function carregarFamilia() {
     setLoadFamilia(true)
     const [famRes, compRes] = await Promise.all([
       fetch('/api/familia'),
@@ -471,14 +479,7 @@ export default function MetasPage() {
                   ))}
                 </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
-                {[...metas].sort((a, b) => {
-                  if (sortMetas === 'nome') return a.nome.localeCompare(b.nome)
-                  if (sortMetas === 'valor') return b.valor_total - a.valor_total
-                  // progresso: % crescente (mais perto de concluir primeiro)
-                  const pctA = a.valor_total > 0 ? a.valor_atual / a.valor_total : 0
-                  const pctB = b.valor_total > 0 ? b.valor_atual / b.valor_total : 0
-                  return pctB - pctA
-                }).map(m => {
+                {metasOrdenadas.map(m => {
                   const pct = m.valor_total > 0 ? Math.min(Math.round((m.valor_atual / m.valor_total) * 100), 100) : 0
                   const prev = calcPrevisao(m.valor_total, m.valor_atual, m.contribuicao_mensal || 0)
                   const cor = pct >= 100 ? '#4ade80' : pct >= 50 ? '#22d3ee' : '#16a34a'

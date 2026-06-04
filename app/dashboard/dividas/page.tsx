@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
@@ -152,28 +152,35 @@ export default function DividasPage() {
     if (res.ok) setDividas(prev => prev.filter(d => d.id !== id))
   }
 
-  const neve      = simular(dividas, extra, 'neve')
-  const avalanche = simular(dividas, extra, 'avalanche')
+  // Simulações — as mais pesadas do app (até 600 iterações cada)
+  const neve      = useMemo(() => simular(dividas, extra, 'neve'),      [dividas, extra])
+  const avalanche = useMemo(() => simular(dividas, extra, 'avalanche'), [dividas, extra])
   const atual     = metodo === 'neve' ? neve : avalanche
   const outro     = metodo === 'neve' ? avalanche : neve
 
-  const totalSaldo  = dividas.reduce((a, d) => a + d.saldo, 0)
-  const totalMinimo = dividas.reduce((a, d) => a + d.pagamento_minimo, 0)
+  const { totalSaldo, totalMinimo } = useMemo(() => ({
+    totalSaldo:  dividas.reduce((a, d) => a + d.saldo, 0),
+    totalMinimo: dividas.reduce((a, d) => a + d.pagamento_minimo, 0),
+  }), [dividas])
 
   // Gráfico SVG — saldo total ao longo do tempo
   const W = 600, H = 160, PAD = { t: 16, b: 28, l: 56, r: 16 }
   const iW = W - PAD.l - PAD.r
   const iH = H - PAD.t - PAD.b
 
-  const mesesNeve      = neve.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
-  const mesesAvalanche = avalanche.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
-  const maxVal = totalSaldo || 1
-
-  function px(i: number, total: number) { return PAD.l + (i / Math.max(total - 1, 1)) * iW }
-  function py(v: number) { return PAD.t + iH - (v / maxVal) * iH }
-
-  const linhaA = mesesNeve.map((v, i) => `${px(i, mesesNeve.length)},${py(v)}`).join(' ')
-  const linhaB = mesesAvalanche.map((v, i) => `${px(i, mesesAvalanche.length)},${py(v)}`).join(' ')
+  const { mesesNeve, mesesAvalanche, linhaA, linhaB } = useMemo(() => {
+    const maxVal = totalSaldo || 1
+    const mn = neve.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
+    const ma = avalanche.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
+    const pxFn = (i: number, total: number) => PAD.l + (i / Math.max(total - 1, 1)) * iW
+    const pyFn = (v: number) => PAD.t + iH - (v / maxVal) * iH
+    return {
+      mesesNeve:      mn,
+      mesesAvalanche: ma,
+      linhaA: mn.map((v, i) => `${pxFn(i, mn.length)},${pyFn(v)}`).join(' '),
+      linhaB: ma.map((v, i) => `${pxFn(i, ma.length)},${pyFn(v)}`).join(' '),
+    }
+  }, [neve, avalanche, totalSaldo, iW, iH])
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '9px 12px', background: cores.surface,
