@@ -117,9 +117,10 @@ export default function DividasPage() {
 
   useEffect(() => {
     fetch('/api/dividas')
-      .then(r => r.json())
-      .then(d => { setDividas(d.dividas || []); setLoading(false) })
-      .catch(() => setLoading(false))
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(d => setDividas(d.dividas || []))
+      .catch(() => setErro('Erro ao carregar dívidas'))
+      .finally(() => setLoading(false))
   }, [])
 
   async function adicionarDivida() {

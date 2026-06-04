@@ -81,10 +81,8 @@ export default function ContasPage() {
       fetch('/api/contas'),
       fetch('/api/bancos'),
     ])
-    const dContas = await resContas.json()
-    const dBancos = await resBancos.json()
-    setContas(dContas.contas || [])
-    setBancos(dBancos.bancos || [])
+    if (resContas.ok) { const d = await resContas.json(); setContas(d.contas || []) }
+    if (resBancos.ok) { const d = await resBancos.json(); setBancos(d.bancos || []) }
     setLoading(false)
   }, [])
 

@@ -175,12 +175,12 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   }, [carregar])
 
   useEffect(() => {
-    fetch('/api/contas').then(r => r.json()).then(d => setContas(d.contas || []))
+    fetch('/api/contas').then(r => r.ok ? r.json() : { contas: [] }).then(d => setContas(d.contas || []))
   }, [])
 
   useEffect(() => {
     fetch('/api/categorias')
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : { categorias: [] })
       .then(d => setCategoriasExtra((d.categorias || []).map((c: { nome: string }) => c.nome)))
   }, [])
 
@@ -301,8 +301,10 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
     if (!confirmLote) { setConfirmLote(true); return }
     setConfirmLote(false)
     setExcluindoLote(true)
-    await Promise.all(selecionados.map(id => fetch(`/api/lancamento/${id}`, { method: 'DELETE' })))
-    show(`${selecionados.length} lançamento${selecionados.length > 1 ? 's excluídos' : ' excluído'}`)
+    const results = await Promise.all(selecionados.map(id => fetch(`/api/lancamento/${id}`, { method: 'DELETE' })))
+    const falhas = results.filter(r => !r.ok).length
+    if (falhas) show(`${falhas} lançamento${falhas > 1 ? 's não puderam' : ' não pôde'} ser excluído${falhas > 1 ? 's' : ''}`, 'erro')
+    else show(`${selecionados.length} lançamento${selecionados.length > 1 ? 's excluídos' : ' excluído'}`)
     setSelecionados([])
     setExcluindoLote(false)
     carregar()
@@ -321,7 +323,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   async function moverParaConta() {
     if (!selecionados.length || !contaDestino) return
     setMovendo(true)
-    await Promise.all(
+    const results = await Promise.all(
       selecionados.map(id =>
         fetch(`/api/lancamento/${id}`, {
           method: 'PATCH',
@@ -330,7 +332,9 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
         })
       )
     )
-    show(`${selecionados.length} lançamento${selecionados.length > 1 ? 's' : ''} movido${selecionados.length > 1 ? 's' : ''}`)
+    const falhas = results.filter(r => !r.ok).length
+    if (falhas) show(`${falhas} lançamento${falhas > 1 ? 's não puderam' : ' não pôde'} ser movido${falhas > 1 ? 's' : ''}`, 'erro')
+    else show(`${selecionados.length} lançamento${selecionados.length > 1 ? 's' : ''} movido${selecionados.length > 1 ? 's' : ''}`)
     setSelecionados([])
     setContaDestino('')
     setMovendo(false)
@@ -373,7 +377,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   async function salvarEdicao() {
     if (!transacaoEditando) return
     setSalvandoEdicao(true)
-    await fetch(`/api/lancamento/${transacaoEditando.id}`, {
+    const res = await fetch(`/api/lancamento/${transacaoEditando.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -386,6 +390,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
       }),
     })
     setSalvandoEdicao(false)
+    if (!res.ok) { show('Erro ao atualizar lançamento', 'erro'); return }
     setModalAberto(false)
     setTransacaoEditando(null)
     show('Lançamento atualizado')

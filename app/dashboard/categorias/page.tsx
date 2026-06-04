@@ -30,8 +30,10 @@ export default function CategoriasPage() {
 
   useEffect(() => {
     fetch('/api/categorias')
-      .then(r => r.json())
-      .then(d => { setCustomCats(d.categorias || []); setLoading(false) })
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
+      .then(d => setCustomCats(d.categorias || []))
+      .catch(() => setErro('Erro ao carregar categorias'))
+      .finally(() => setLoading(false))
   }, [])
 
   function abrirNova() {
@@ -66,8 +68,9 @@ export default function CategoriasPage() {
   }
 
   async function remover(id: string) {
-    await fetch(`/api/categorias/${id}`, { method: 'DELETE' })
-    setCustomCats(prev => prev.filter(c => c.id !== id))
+    const res = await fetch(`/api/categorias/${id}`, { method: 'DELETE' })
+    if (res.ok) setCustomCats(prev => prev.filter(c => c.id !== id))
+    else setErro('Erro ao remover categoria')
   }
 
   const inputStyle: React.CSSProperties = {
