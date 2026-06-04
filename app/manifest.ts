@@ -21,7 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any',
       },
       {
-        src: 'https://www.poupaup.com.br/launchericon-512x512.png',
+        src: 'https://www.poupaup.com.br/launchericon-512x512-maskable.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
