@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { useCores, useTema } from '@/components/ThemeProvider'
 import { calcularScore, type ScoreResult } from '@/lib/calcularScore'
+import { SkeletonScore } from '@/components/Skeleton'
 
 // ── Gauge SVG — componente top-level para evitar re-criação a cada render ──
 function Gauge({ total, cor }: { total: number; cor: string }) {
@@ -90,6 +91,8 @@ export default function ScorePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  if (loading) return <SkeletonScore />
+
   return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, color: cores.text, fontFamily: 'system-ui, sans-serif' }}>
 
@@ -100,9 +103,7 @@ export default function ScorePage() {
       </div>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '1.5rem' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: cores.textMuted }}>Calculando seu score...</div>
-        ) : erro ? (
+        {erro ? (
           <div style={{ textAlign: 'center', padding: '4rem' }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
             <div style={{ fontSize: 14, color: '#f87171', marginBottom: 8 }}>{erro}</div>

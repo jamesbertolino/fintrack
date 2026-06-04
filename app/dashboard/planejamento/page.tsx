@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { useCores, useTema } from '@/components/ThemeProvider'
+import { SkeletonPlanejamento } from '@/components/Skeleton'
 
 interface Transacao { valor: number; tipo: 'debito' | 'credito'; data_hora: string }
 interface Meta      { nome: string; valor_total: number; valor_atual: number; contribuicao_mensal: number; prazo: string }
@@ -135,6 +136,8 @@ export default function PlanejamentoPage() {
 
   const accentColor = '#4ade80'
 
+  if (loading) return <SkeletonPlanejamento />
+
   return (
     <div style={{ minHeight: '100vh', background: cores.pageBg, color: cores.text, fontFamily: 'system-ui, sans-serif' }}>
 
@@ -151,10 +154,7 @@ export default function PlanejamentoPage() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '1.5rem' }}>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: cores.textMuted }}>Calculando projeção...</div>
-        ) : (
-          <>
+        <>
             {/* Alerta dados insuficientes */}
             {mesesComDados === 0 ? (
               <div style={{ background: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 10, padding: '12px 16px', marginBottom: '1.25rem', fontSize: 13, color: '#fbbf24' }}>
@@ -309,8 +309,7 @@ export default function PlanejamentoPage() {
             <div style={{ marginTop: '1.5rem', fontSize: 11, color: cores.textMuted, textAlign: 'center' }}>
               Projeção baseada na média dos últimos {mesesBase} meses · Não considera eventos extraordinários
             </div>
-          </>
-        )}
+        </>
       </div>
     </div>
   )

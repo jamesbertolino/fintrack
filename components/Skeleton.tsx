@@ -246,6 +246,82 @@ export function SkeletonOrcamento() {
 }
 
 // ── Dívidas — full-page ───────────────────────────────────────────────────────
+export function SkeletonPlanejamento() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{skelStyle}</style>
+      <div style={{ height: 52, background: '#0a1a0a', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', padding: '0 1.5rem', gap: 12 }}>
+        <Skel w={24} h={24} radius={4} />
+        <Skel w={140} h={14} />
+      </div>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Seletor cenário */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          {[80, 90, 80].map((w, i) => <Skel key={i} w={w} h={34} radius={20} />)}
+        </div>
+        {/* Gráfico */}
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 14, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Skel w="35%" h={11} />
+          <Skel h={180} radius={8} />
+        </div>
+        {/* Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <Skel w="50%" h={10} />
+              <Skel w="70%" h={24} />
+            </div>
+          ))}
+        </div>
+        {/* Tabela */}
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #1a3a1a' }}><Skel w="25%" h={11} /></div>
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 16px', borderBottom: '1px solid #111' }}>
+              <Skel w="15%" h={13} />
+              <Skel w="12%" h={13} />
+              <Skel w="12%" h={13} />
+              <Skel w="12%" h={13} />
+              <Skel w="14%" h={13} />
+              <Skel w="14%" h={13} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function SkeletonScore() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif' }}>
+      <style>{skelStyle}</style>
+      <div style={{ height: 52, background: '#0a1a0a', borderBottom: '1px solid #1a3a1a', display: 'flex', alignItems: 'center', padding: '0 1.5rem', gap: 12 }}>
+        <Skel w={24} h={24} radius={4} />
+        <Skel w={100} h={14} />
+      </div>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Score principal */}
+        <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 14, padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <Skel w={120} h={120} radius={60} />
+          <Skel w="30%" h={18} />
+          <Skel w="50%" h={11} />
+        </div>
+        {/* Dimensões */}
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Skel w="40%" h={13} />
+              <Skel w={40} h={13} />
+            </div>
+            <Skel h={8} radius={4} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function SkeletonDividas() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif' }}>
