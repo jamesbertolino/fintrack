@@ -1137,8 +1137,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // OFX: usa FITID como chave definitiva — skip fuzzy para evitar conflito com PDF do mesmo extrato
-      await verificarDuplicatas(supabase, user.id, transacoes, true)
+      await verificarDuplicatas(supabase, user.id, transacoes)
 
       const transacoesAprendidas = applyLearned(transacoes, learnedMap)
       const naoCat = transacoesAprendidas.filter(t => t.nao_categorizado).length
