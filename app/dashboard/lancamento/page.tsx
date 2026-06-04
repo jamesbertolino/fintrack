@@ -87,6 +87,9 @@ interface TransacaoDetectada {
   confirmada_duplicata?: boolean  // já existe no banco com mesma ref_externa
   ref_externa?: string
   origem_categoria?: 'aprendido' | 'padrao' | 'ia'
+  e_pagamento_fatura?: boolean
+  conciliacao_id?: string
+  conciliacao_descricao?: string
 }
 
 const CATEGORIAS_DESPESA = ['Alimentação','Transporte','Lazer','Saúde','Moradia','Educação','Outros']
@@ -1655,12 +1658,45 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   </>
                 )}
 
+                {/* ── Pagamento de fatura (entrada circular — excluído por padrão) ── */}
+                {transacoesDetectadas.filter(t => t.e_pagamento_fatura).length > 0 && (
+                  <div style={{ background: 'rgba(168,85,247,.05)', border: '1px solid rgba(168,85,247,.3)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600, marginBottom: 6 }}>
+                      💳 Pagamento da fatura — excluído automaticamente
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 8, lineHeight: 1.5 }}>
+                      Este crédito representa o pagamento que já saiu de outra conta. Incluí-lo causaria duplicidade no saldo.
+                    </div>
+                    {transacoesDetectadas.map((t, i) => !t.e_pagamento_fatura ? null : (
+                      <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(168,85,247,.2)', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,.6)' }}>{t.descricao}</div>
+                          <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>
+                            {new Date(t.data_hora).toLocaleDateString('pt-BR')} · R$ {t.valor.toFixed(2)}
+                          </div>
+                          {t.conciliacao_descricao && (
+                            <div style={{ fontSize: 10, color: '#a78bfa', marginTop: 3 }}>
+                              🔗 {t.conciliacao_descricao}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setTransacoesDetectadas(prev => prev.map((x, idx) => idx === i ? { ...x, confirmada_duplicata: false, e_pagamento_fatura: false } : x))}
+                          style={{ fontSize: 9, padding: '3px 8px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, color: 'rgba(255,255,255,.4)', cursor: 'pointer', flexShrink: 0 }}
+                        >
+                          Incluir mesmo assim
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* ── Duplicatas confirmadas (já no banco via ref_externa) ── */}
-                {transacoesDetectadas.filter(t => t.confirmada_duplicata).length > 0 && (
+                {transacoesDetectadas.filter(t => t.confirmada_duplicata && !t.e_pagamento_fatura).length > 0 && (
                   <div style={{ background: 'rgba(239,68,68,.05)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, padding: '10px', marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ fontSize: 10, color: '#f87171', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 600 }}>
-                        🚫 Já lançados — {transacoesDetectadas.filter(t => t.confirmada_duplicata).length} transaç{transacoesDetectadas.filter(t => t.confirmada_duplicata).length > 1 ? 'ões já existem' : 'ão já existe'} no sistema
+                        🚫 Já lançados — {transacoesDetectadas.filter(t => t.confirmada_duplicata && !t.e_pagamento_fatura).length} transaç{transacoesDetectadas.filter(t => t.confirmada_duplicata && !t.e_pagamento_fatura).length > 1 ? 'ões já existem' : 'ão já existe'} no sistema
                       </div>
                       <button
                         onClick={() => setTransacoesDetectadas(prev => prev.filter(t => !t.confirmada_duplicata))}
@@ -1670,7 +1706,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                       </button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 200, overflowY: 'auto' }}>
-                      {transacoesDetectadas.map((t, i) => !t.confirmada_duplicata ? null : (
+                      {transacoesDetectadas.map((t, i) => (!t.confirmada_duplicata || t.e_pagamento_fatura) ? null : (
                         <div key={i} style={{ background: 'rgba(0,0,0,.3)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 8, padding: '7px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
                           <button onClick={() => removerTransacao(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,.5)', fontSize: 13, flexShrink: 0, lineHeight: 1 }} title="Remover">✕</button>
                           <div style={{ flex: 1, minWidth: 0 }}>

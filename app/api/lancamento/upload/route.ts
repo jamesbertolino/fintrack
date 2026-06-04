@@ -20,6 +20,9 @@ export interface TransacaoDetectada {
   potencial_duplicata?: boolean   // mesma data+valor mas descrição diferente
   duplicata_origem?: 'historico' | 'lote'
   origem_categoria?: 'aprendido' | 'padrao' | 'ia'
+  e_pagamento_fatura?: boolean   // true = linha de pagamento da fatura (entrada circular, excluir por padrão)
+  conciliacao_id?: string        // id da transação de débito de outra conta que representa este pagamento
+  conciliacao_descricao?: string // descrição amigável da conciliação encontrada
 }
 
 // ─── Detecta categoria por palavra-chave ─────────────────────────────────────
@@ -879,6 +882,51 @@ function normalizarDescFuzzy(desc: string): string {
   return (desc || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 30)
 }
 
+// ─── Detecta e marca linhas de pagamento de fatura de cartão ─────────────────
+// Essas linhas representam o crédito que entra no cartão quando a fatura é paga —
+// não é receita real, é apenas o fechamento do ciclo. Devem ser excluídas por padrão.
+const PAGAMENTO_FATURA_RE = /pagamento\s+(recebido|de\s+fatura|da\s+fatura|efetuado)|cr[eé]dito\s+(na\s+fatura|em\s+conta)|fatura\s+paga|payment\s+received/i
+
+function marcarPagamentosFatura(transacoes: TransacaoDetectada[], tipoDocumento: string): void {
+  if (tipoDocumento !== 'fatura_cartao') return
+  for (const t of transacoes) {
+    if (t.tipo === 'credito' && PAGAMENTO_FATURA_RE.test(t.descricao)) {
+      t.e_pagamento_fatura = true
+      t.confirmada_duplicata = true // excluído por padrão na confirmação
+    }
+  }
+}
+
+// ─── Busca conciliação: débito de mesma data±3 dias e mesmo valor em outra conta ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function buscarConciliacao(supabase: any, userId: string, transacoes: TransacaoDetectada[]): Promise<void> {
+  const pagamentos = transacoes.filter(t => t.e_pagamento_fatura)
+  if (!pagamentos.length) return
+
+  for (const pag of pagamentos) {
+    const data = pag.data_hora?.slice(0, 10)
+    if (!data) continue
+    const dataMin = new Date(data); dataMin.setDate(dataMin.getDate() - 3)
+    const dataMax = new Date(data); dataMax.setDate(dataMax.getDate() + 3)
+
+    const { data: candidatos } = await supabase
+      .from('transactions')
+      .select('id, descricao, data_hora, valor, conta_id')
+      .eq('user_id', userId)
+      .lt('valor', 0) // débito
+      .gte('data_hora', dataMin.toISOString().slice(0, 10) + 'T00:00:00Z')
+      .lte('data_hora', dataMax.toISOString().slice(0, 10) + 'T23:59:59Z')
+
+    if (!candidatos?.length) continue
+
+    const match = candidatos.find((c: { valor: number }) => Math.abs(Math.abs(c.valor) - pag.valor) < 0.02)
+    if (match) {
+      pag.conciliacao_id = match.id
+      pag.conciliacao_descricao = `Conciliado com débito de ${new Date(match.data_hora).toLocaleDateString('pt-BR')} — ${match.descricao}`
+    }
+  }
+}
+
 // ─── Verificação de duplicatas: ref_externa exata + fuzzy data+valor ──────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function verificarDuplicatas(supabase: any, userId: string, transacoes: TransacaoDetectada[]): Promise<void> {
@@ -1184,6 +1232,8 @@ export async function POST(request: NextRequest) {
       }
 
       await verificarDuplicatas(supabase, user.id, transacoes)
+      marcarPagamentosFatura(transacoes, parsed.tipo_documento || 'extrato_bancario')
+      await buscarConciliacao(supabase, user.id, transacoes)
 
       const transacoesAprendidasPDF = applyLearned(
         transacoes.map(t => ({ ...t, origem_categoria: t.origem_categoria ?? 'ia' as const })),
@@ -1222,6 +1272,8 @@ export async function POST(request: NextRequest) {
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
 
       await verificarDuplicatas(supabase, user.id, transacoes)
+      marcarPagamentosFatura(transacoes, parsed.tipo_documento || 'outro')
+      await buscarConciliacao(supabase, user.id, transacoes)
 
       const transacoesAprendidasImg = applyLearned(
         transacoes.map(t => ({ ...t, origem_categoria: 'ia' as const })),
