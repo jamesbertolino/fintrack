@@ -941,7 +941,7 @@ async function buscarConciliacao(supabase: any, userId: string, transacoes: Tran
 // ─── Verificação de duplicatas: ref_externa exata + fuzzy data+valor ──────────
 // Retorna o importacao_id da importação original caso a maioria seja duplicata do mesmo lote
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function verificarDuplicatas(supabase: any, userId: string, transacoes: TransacaoDetectada[]): Promise<string | null> {
+async function verificarDuplicatas(supabase: any, userId: string, transacoes: TransacaoDetectada[], skipFuzzy = false): Promise<string | null> {
   if (!transacoes.length) return null
 
   // 1. Duplicata exata por ref_externa — também busca importacao_id
@@ -967,6 +967,8 @@ async function verificarDuplicatas(supabase: any, userId: string, transacoes: Tr
   }
 
   // 2. Fuzzy: mesma data + mesmo valor absoluto (para transações ainda não flagadas)
+  // OFX usa FITID como ref_externa definitivo — fuzzy causaria falsos positivos com PDF do mesmo extrato
+  if (skipFuzzy) return importacaoOrigemId
   const pendentes = transacoes.filter(t => !t.confirmada_duplicata)
   if (!pendentes.length) return importacaoOrigemId
 
@@ -1135,7 +1137,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      await verificarDuplicatas(supabase, user.id, transacoes)
+      // OFX: usa FITID como chave definitiva — skip fuzzy para evitar conflito com PDF do mesmo extrato
+      await verificarDuplicatas(supabase, user.id, transacoes, true)
 
       const transacoesAprendidas = applyLearned(transacoes, learnedMap)
       const naoCat = transacoesAprendidas.filter(t => t.nao_categorizado).length

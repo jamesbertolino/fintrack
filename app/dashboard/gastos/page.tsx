@@ -205,7 +205,8 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
       if (catFiltro !== 'Todas' && t.categoria?.toLowerCase() !== catFiltro.toLowerCase()) return false
       if (tipoFiltro !== 'todos' && t.tipo !== tipoFiltro) return false
       if (busca && !t.descricao.toLowerCase().includes(busca.toLowerCase())) return false
-      if (contaFiltro && t.conta_id !== contaFiltro) return false
+      if (contaFiltro === '__sem_conta__' && t.conta_id != null) return false
+      else if (contaFiltro && contaFiltro !== '__sem_conta__' && t.conta_id !== contaFiltro) return false
       return true
     })
     return [...f].sort((a, b) => {
@@ -845,6 +846,7 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                     fontSize: 12, outline: 'none', cursor: 'pointer', minWidth: 0,
                   }}>
                     <option value="">Todas as contas</option>
+                    <option value="__sem_conta__" style={{ background: '#111' }}>Sem conta vinculada</option>
                     {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
                   </select>
                 )}
@@ -895,16 +897,15 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
               }}>
                 {['Todas', ...TODAS_CATEGORIAS, ...categoriasExtra.filter(c => !TODAS_CATEGORIAS.includes(c))].map(c => <option key={c} value={c} style={{ background: '#111' }}>{c}</option>)}
               </select>
-              {contas.length > 0 && (
-                <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
+              <select value={contaFiltro} onChange={e => setContaFiltro(e.target.value)} style={{
                   padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
                   borderRadius: 8, color: contaFiltro ? '#fff' : 'rgba(255,255,255,.5)',
                   fontSize: 12, outline: 'none', cursor: 'pointer',
                 }}>
                   <option value="">Todas as contas</option>
+                  <option value="__sem_conta__" style={{ background: '#111' }}>Sem conta vinculada</option>
                   {contas.map(c => <option key={c.id} value={c.id} style={{ background: '#111' }}>{c.bancos?.nome_curto || '—'} · {c.nome}</option>)}
                 </select>
-              )}
               <select aria-label="Ordenar por" value={sortOrder} onChange={e => setSortOrder(e.target.value as typeof sortOrder)} style={{
                 padding: '7px 10px', background: '#0a1a0a', border: '1px solid #1a3a1a',
                 borderRadius: 8, color: 'rgba(255,255,255,.7)', fontSize: 12, outline: 'none', cursor: 'pointer',
