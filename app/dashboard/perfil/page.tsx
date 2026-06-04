@@ -42,6 +42,7 @@ interface Profile {
   created_at: string
   avatar_url?: string | null
   conta_padrao_id?: string | null
+  lgpd_aceito_em?: string | null
 }
 
 interface ContaPerfil {
@@ -1729,6 +1730,30 @@ export default function PerfilPage() {
               )}
               {mfaEtapa === 'verificando' && (
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>Verificando código...</div>
+              )}
+            </div>
+
+            {/* Consentimento LGPD */}
+            <div style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1.25rem' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>Privacidade e consentimento (LGPD)</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginBottom: 12, lineHeight: 1.6 }}>
+                Você consentiu com o tratamento dos seus dados pessoais conforme nossa Política de Privacidade.
+              </div>
+              {profile?.lgpd_aceito_em ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(74,222,128,.06)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 8 }}>
+                  <span style={{ color: '#4ade80', fontSize: 14 }}>✓</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,.6)' }}>
+                    Consentimento registrado em{' '}
+                    <strong style={{ color: 'rgba(255,255,255,.85)' }}>
+                      {new Date(profile.lgpd_aceito_em).toLocaleString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </strong>
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.2)', borderRadius: 8 }}>
+                  <span style={{ color: '#fbbf24', fontSize: 14 }}>⚠</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,.5)' }}>Consentimento ainda não registrado.</span>
+                </div>
               )}
             </div>
 
