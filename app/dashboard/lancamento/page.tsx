@@ -920,6 +920,8 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
     })
     const data = await res.json()
     setConfirman(false)
+    // DEBUG TEMPORÁRIO
+    if (data._debug) console.warn('[confirmar debug]', JSON.stringify(data._debug))
     if (data.ok) {
       setTransacoesDetectadas([])
       // Calcula intervalo de datas das transações importadas para o toast

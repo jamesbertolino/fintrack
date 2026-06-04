@@ -36,7 +36,15 @@ export async function POST(request: NextRequest) {
       total_detectadas: total_detectadas ?? transacoes.length,
       total_inseridas: 0, total_duplicatas: transacoes.length,
     }).then(() => null)
-    return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length })
+    return NextResponse.json({
+      ok: true, lançados: 0, duplicatas_ignoradas: transacoes.length,
+      _debug: {
+        recebido: transacoes.length,
+        paraInserir: 0,
+        motivo: 'todos_confirmada_duplicata',
+        datas: (transacoes as TransacaoEntrada[]).map(t => t.data_hora?.slice(0,10)),
+      }
+    })
   }
 
   // Antes de inserir, re-verifica ref_externa no banco para evitar race condition
