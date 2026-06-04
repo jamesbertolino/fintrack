@@ -194,6 +194,7 @@ export default function MetasPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (abaSel === 'familia') carregarFamilia()
   }, [abaSel, carregarFamilia])
 
