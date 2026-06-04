@@ -21,3 +21,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json({ transacoes: transacoes || [] })
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const supabase = await createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
+  const { id } = await params
+
+  // Garante que a importação pertence ao usuário
+  const { data: imp } = await supabase
+    .from('importacoes').select('id').eq('id', id).eq('user_id', user.id).single()
+  if (!imp) return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
+
+  // Apaga todas as transações do lote
+  const { error: errTx } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('importacao_id', id)
+    .eq('user_id', user.id)
+
+  if (errTx) return NextResponse.json({ error: errTx.message }, { status: 500 })
+
+  // Apaga o registro da importação
+  await supabase.from('importacoes').delete().eq('id', id).eq('user_id', user.id)
+
+  return NextResponse.json({ ok: true })
+}

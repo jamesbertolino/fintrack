@@ -155,15 +155,32 @@ type TransacaoLote = {
 }
 
 // ─── Componente: Histórico de importações compacto ──────────────────────────
-function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: {
+function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar, onExcluir }: {
   importacoes: ImportacaoItem[]; loading: boolean
-  filtroAtivo: string | null; onFiltrar: (id: string | null) => void
+  filtroAtivo: string | null
+  onFiltrar: (id: string | null) => void
+  onExcluir: (id: string) => void
 }) {
   const [secaoAberta, setSecaoAberta] = useState(false)
   const [expandido, setExpandido]     = useState<string | null>(null)
   const [lotes, setLotes]             = useState<Record<string, TransacaoLote[]>>({})
   const [carregandoLote, setCarregandoLote] = useState<string | null>(null)
+  const [excluindoLote, setExcluindoLote]   = useState<string | null>(null)
+  const [confirmExcluir, setConfirmExcluir] = useState<string | null>(null)
   const [mostrarTodos, setMostrarTodos] = useState(false)
+
+  async function excluirLote(id: string, total: number) {
+    if (confirmExcluir !== id) { setConfirmExcluir(id); return }
+    setConfirmExcluir(null)
+    setExcluindoLote(id)
+    const res = await fetch(`/api/importacoes/${id}`, { method: 'DELETE' })
+    setExcluindoLote(null)
+    if (res.ok) {
+      setExpandido(null)
+      onExcluir(id)
+    }
+    void total
+  }
 
   async function toggleExpand(id: string) {
     if (expandido === id) { setExpandido(null); return }
@@ -285,13 +302,34 @@ function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: 
                             ))}
                           </div>
                         )}
-                        {/* Botão filtrar */}
-                        <button
-                          onClick={() => onFiltrar(ativo ? null : imp.id)}
-                          style={{ width: '100%', padding: '5px', background: ativo ? 'rgba(129,140,248,.12)' : 'rgba(255,255,255,.03)', border: `1px solid ${ativo ? 'rgba(129,140,248,.3)' : 'rgba(255,255,255,.08)'}`, borderRadius: 6, color: ativo ? '#818cf8' : 'rgba(255,255,255,.35)', fontSize: 10, cursor: 'pointer' }}
-                        >
-                          {ativo ? '✕ Remover filtro' : '↓ Filtrar histórico por este lote'}
-                        </button>
+                        {/* Botões filtrar + excluir */}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            onClick={() => onFiltrar(ativo ? null : imp.id)}
+                            style={{ flex: 1, padding: '5px', background: ativo ? 'rgba(129,140,248,.12)' : 'rgba(255,255,255,.03)', border: `1px solid ${ativo ? 'rgba(129,140,248,.3)' : 'rgba(255,255,255,.08)'}`, borderRadius: 6, color: ativo ? '#818cf8' : 'rgba(255,255,255,.35)', fontSize: 10, cursor: 'pointer' }}
+                          >
+                            {ativo ? '✕ Remover filtro' : '↓ Filtrar por este lote'}
+                          </button>
+                          <button
+                            onClick={() => excluirLote(imp.id, imp.total_inseridas)}
+                            disabled={excluindoLote === imp.id}
+                            style={{
+                              padding: '5px 10px', borderRadius: 6, fontSize: 10, cursor: 'pointer',
+                              background: confirmExcluir === imp.id ? 'rgba(239,68,68,.15)' : 'rgba(239,68,68,.06)',
+                              border: `1px solid ${confirmExcluir === imp.id ? 'rgba(239,68,68,.5)' : 'rgba(239,68,68,.2)'}`,
+                              color: confirmExcluir === imp.id ? '#f87171' : 'rgba(239,68,68,.5)',
+                              opacity: excluindoLote === imp.id ? 0.5 : 1,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {excluindoLote === imp.id ? '...' : confirmExcluir === imp.id ? `⚠ Confirmar (${imp.total_inseridas} lç)` : '🗑 Excluir lote'}
+                          </button>
+                        </div>
+                        {confirmExcluir === imp.id && (
+                          <button onClick={() => setConfirmExcluir(null)} style={{ width: '100%', marginTop: 4, padding: '3px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 9, color: 'rgba(255,255,255,.25)' }}>
+                            cancelar
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1915,6 +1953,11 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
               loading={loadingImportacoes}
               filtroAtivo={filtroImportacaoId}
               onFiltrar={setFiltroImportacaoId}
+              onExcluir={(id) => {
+                setImportacoes(prev => prev.filter(i => i.id !== id))
+                setHistorico(prev => prev.filter(t => t.importacao_id !== id))
+                if (filtroImportacaoId === id) setFiltroImportacaoId(null)
+              }}
             />
           )}
 
