@@ -21,6 +21,14 @@ export async function POST(request: NextRequest) {
 
   // Separa as que o usuário marcou para ignorar (confirmada_duplicata ainda true = já existe, não inserir)
   const paraInserir = (transacoes as TransacaoEntrada[]).filter(t => !t.confirmada_duplicata)
+
+  // DEBUG TEMPORÁRIO — remover após diagnóstico
+  console.log('[confirmar] total recebido:', transacoes.length,
+    '| paraInserir:', paraInserir.length,
+    '| datas novas:', paraInserir.map((t: TransacaoEntrada) => t.data_hora?.slice(0,10)).join(','),
+    '| refs novas:', paraInserir.map((t: TransacaoEntrada) => t.ref_externa).join(',')
+  )
+
   if (!paraInserir.length) {
     supabase.from('importacoes').insert({
       user_id: user.id, arquivo_nome: arquivo_nome || null, formato: formato || null,
