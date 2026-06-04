@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
 import { usePerfil } from '@/hooks/usePerfil'
 
@@ -312,6 +312,7 @@ function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar }: 
 
 export default function LancamentoPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { fmtDataHora } = usePerfil()
 
@@ -491,6 +492,53 @@ export default function LancamentoPage() {
         const nomes = (d.categorias || []).map((c: { nome: string }) => c.nome) as string[]
         setCategoriasCustom(nomes)
       })
+  }, [])
+
+  // ─── Web Share Target — auto-processa arquivo compartilhado pelo Android ───
+  useEffect(() => {
+    const sharePath = searchParams.get('share')
+    const shareErro = searchParams.get('share_erro')
+
+    if (shareErro) {
+      setErro(shareErro === 'tamanho' ? 'Arquivo muito grande. Máx 15MB.' : 'Erro ao receber arquivo compartilhado.')
+      router.replace('/dashboard/lancamento')
+      return
+    }
+
+    if (!sharePath) return
+
+    async function carregarArquivoCompartilhado() {
+      const client = createClient()
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) return
+
+      const { data, error } = await client.storage
+        .from('uploads')
+        .download(sharePath!)
+
+      if (error || !data) {
+        setErro('Não foi possível carregar o arquivo compartilhado.')
+        router.replace('/dashboard/lancamento')
+        return
+      }
+
+      const nomeOriginal = sharePath!.split('/').pop() || 'arquivo'
+      const arquivo = new File([data], nomeOriginal, { type: data.type })
+
+      // Limpa o param da URL sem recarregar a página
+      router.replace('/dashboard/lancamento')
+
+      // Abre a seção de upload e dispara o processamento
+      setUploadAberto(true)
+      handleUpload(arquivo)
+
+      // Remove o arquivo temporário do storage em background
+      client.storage.from('uploads').remove([sharePath!]).then(() => null)
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    carregarArquivoCompartilhado()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const carregarHistorico = useCallback(async (contaFiltro?: string) => {
