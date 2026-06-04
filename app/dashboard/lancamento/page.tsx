@@ -474,7 +474,7 @@ export default function LancamentoPage() {
   const [uploadMeta, setUploadMeta] = useState<{ arquivo_nome: string; formato: string } | null>(null)
 
   // ─── toast pós-importação ───
-  const [toastImport, setToastImport] = useState<{ lancados: number; duplicatas: number } | null>(null)
+  const [toastImport, setToastImport] = useState<{ lancados: number; duplicatas: number; dataInicio?: string; dataFim?: string } | null>(null)
 
   // ─── histórico de importações ───
   const [importacoes, setImportacoes] = useState<ImportacaoItem[]>([])
@@ -857,6 +857,15 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     setConfirman(false)
     if (data.ok) {
       setTransacoesDetectadas([])
+      // Calcula intervalo de datas das transações importadas para o toast
+      const datas = transacoesDetectadas
+        .filter(t => !t.confirmada_duplicata)
+        .map(t => t.data_hora)
+        .sort()
+      const dataInicio = datas[0]?.slice(0, 10)
+      const dataFim    = datas[datas.length - 1]?.slice(0, 10)
+
+      setTransacoesDetectadas([])
       setResumo('')
       setBancoDetectado(null)
       setContaUpload('')
@@ -865,8 +874,8 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
       setContaInlineAberta(false)
       carregarHistorico()
       carregarImportacoes()
-      setToastImport({ lancados: data.lançados ?? 0, duplicatas: data.duplicatas_ignoradas ?? 0 })
-      setTimeout(() => setToastImport(null), 5000)
+      setToastImport({ lancados: data.lançados ?? 0, duplicatas: data.duplicatas_ignoradas ?? 0, dataInicio, dataFim })
+      setTimeout(() => setToastImport(null), 12000)
     } else {
       setErro(data.error || 'Erro ao confirmar')
     }
@@ -1028,6 +1037,17 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
                   <> · <span style={{ color: 'rgba(239,68,68,.8)', fontWeight: 500 }}>{toastImport.duplicatas}</span> duplicata{toastImport.duplicatas !== 1 ? 's' : ''} ignorada{toastImport.duplicatas !== 1 ? 's' : ''}</>
                 )}
               </div>
+              {toastImport.dataInicio && toastImport.dataFim && toastImport.lancados > 0 && (
+                <button
+                  onClick={() => {
+                    setToastImport(null)
+                    router.push(`/dashboard/gastos?de=${toastImport.dataInicio}&ate=${toastImport.dataFim}`)
+                  }}
+                  style={{ marginTop: 8, fontSize: 11, color: '#4ade80', background: 'rgba(74,222,128,.1)', border: '1px solid rgba(74,222,128,.25)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', display: 'block', width: '100%', textAlign: 'left' }}
+                >
+                  Ver no extrato ({new Date(toastImport.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → {new Date(toastImport.dataFim + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}) →
+                </button>
+              )}
             </div>
             <button onClick={() => setToastImport(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.25)', fontSize: 16, lineHeight: 1, flexShrink: 0, padding: 0 }}>×</button>
           </div>
