@@ -499,15 +499,16 @@ export default function LancamentoPage() {
     const sharePath = searchParams.get('share')
     const shareErro = searchParams.get('share_erro')
 
-    if (shareErro) {
-      setErro(shareErro === 'tamanho' ? 'Arquivo muito grande. Máx 15MB.' : 'Erro ao receber arquivo compartilhado.')
-      router.replace('/dashboard/lancamento')
-      return
-    }
-
-    if (!sharePath) return
-
     async function carregarArquivoCompartilhado() {
+      if (shareErro) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setErro(shareErro === 'tamanho' ? 'Arquivo muito grande. Máx 15MB.' : 'Erro ao receber arquivo compartilhado.')
+        router.replace('/dashboard/lancamento')
+        return
+      }
+
+      if (!sharePath) return
+
       const client = createClient()
       const { data: { user } } = await client.auth.getUser()
       if (!user) return
@@ -517,6 +518,7 @@ export default function LancamentoPage() {
         .download(sharePath!)
 
       if (error || !data) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setErro('Não foi possível carregar o arquivo compartilhado.')
         router.replace('/dashboard/lancamento')
         return
@@ -525,18 +527,13 @@ export default function LancamentoPage() {
       const nomeOriginal = sharePath!.split('/').pop() || 'arquivo'
       const arquivo = new File([data], nomeOriginal, { type: data.type })
 
-      // Limpa o param da URL sem recarregar a página
       router.replace('/dashboard/lancamento')
-
-      // Abre a seção de upload e dispara o processamento
       setUploadAberto(true)
       handleUpload(arquivo)
 
-      // Remove o arquivo temporário do storage em background
       client.storage.from('uploads').remove([sharePath!]).then(() => null)
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarArquivoCompartilhado()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
