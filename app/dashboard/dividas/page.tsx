@@ -184,6 +184,7 @@ export default function DividasPage() {
       linhaA: mn.map((v, i) => `${pxFn(i, mn.length)},${pyFn(v)}`).join(' '),
       linhaB: ma.map((v, i) => `${pxFn(i, ma.length)},${pyFn(v)}`).join(' '),
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [neve, avalanche, totalSaldo, iW, iH])
 
   const inputStyle: React.CSSProperties = {

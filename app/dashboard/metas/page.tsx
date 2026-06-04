@@ -175,11 +175,6 @@ export default function MetasPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
-  useEffect(() => {
-    if (abaSel === 'familia') carregarFamilia()  
-   
-  }, [abaSel])
-
   const carregarFamilia = useCallback(async function carregarFamilia() {
     setLoadFamilia(true)
     const [famRes, compRes] = await Promise.all([
@@ -196,7 +191,11 @@ export default function MetasPage() {
     }
     setCompartilhadas(map)
     setLoadFamilia(false)
-  }, [abaSel])
+  }, [])
+
+  useEffect(() => {
+    if (abaSel === 'familia') carregarFamilia()
+  }, [abaSel, carregarFamilia])
 
   async function toggleCompartilhar(m: Meta) {
     setToggling(m.id)

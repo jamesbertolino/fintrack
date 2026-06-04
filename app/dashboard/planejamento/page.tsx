@@ -96,7 +96,6 @@ export default function PlanejamentoPage() {
     const mult     = CENARIO_MULT[cenario]
     const recBase  = mediasBase.rec  * mult.rec
     const despBase = mediasBase.desp * mult.desp
-    let saldoAcc   = saldoAtual
     return Array.from({ length: 12 }, (_, i) => {
       const data      = new Date(hoje.getFullYear(), hoje.getMonth() + i + 1, 1)
       const chaveProj = data.toISOString().slice(0, 7)
@@ -105,10 +104,13 @@ export default function PlanejamentoPage() {
         .reduce((a, mt) => a + (mt.contribuicao_mensal || 0), 0)
       const rec      = recBase
       const desp     = despBase + contrib
-      const resultado = rec - desp
-      saldoAcc += resultado
-      return { data, rec, desp, contrib, resultado, saldoAcc }
-    })
+      return { data, rec, desp, contrib, resultado: rec - desp }
+    }).reduce<Array<{ data: Date; rec: number; desp: number; contrib: number; resultado: number; saldoAcc: number }>>(
+      (acc, p) => {
+        const prev = acc[acc.length - 1]
+        return [...acc, { ...p, saldoAcc: (prev?.saldoAcc ?? saldoAtual) + p.resultado }]
+      }, []
+    )
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediasBase, cenario, metas, saldoAtual])
 
@@ -129,6 +131,7 @@ export default function PlanejamentoPage() {
       projecaoAcc.slice(1).map((p, i) => `L${pxFn(i + 1)},${pyFn(p.saldoAcc)}`).join(' ') +
       ` L${pxFn(projecaoAcc.length - 1)},${PAD.t + innerH} L${PAD.l},${PAD.t + innerH} Z`
     return { minSaldo, maxSaldo, pontos, area }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projecaoAcc, saldoAtual, innerW, innerH])
 
   const px = (i: number) => PAD.l + (i / (projecaoAcc.length - 1)) * innerW
