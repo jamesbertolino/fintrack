@@ -168,12 +168,15 @@ export default function DividasPage() {
   const iW = W - PAD.l - PAD.r
   const iH = H - PAD.t - PAD.b
 
+  const maxVal = totalSaldo || 1
+  const px = (i: number, total: number) => PAD.l + (i / Math.max(total - 1, 1)) * iW
+  const py = (v: number) => PAD.t + iH - (v / maxVal) * iH
+
   const { mesesNeve, mesesAvalanche, linhaA, linhaB } = useMemo(() => {
-    const maxVal = totalSaldo || 1
     const mn = neve.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
     const ma = avalanche.meses.map(m => Object.values(m.saldos).reduce((a, v) => a + v, 0))
     const pxFn = (i: number, total: number) => PAD.l + (i / Math.max(total - 1, 1)) * iW
-    const pyFn = (v: number) => PAD.t + iH - (v / maxVal) * iH
+    const pyFn = (v: number) => PAD.t + iH - (v / (totalSaldo || 1)) * iH
     return {
       mesesNeve:      mn,
       mesesAvalanche: ma,

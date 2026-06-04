@@ -196,7 +196,7 @@ export default function MetasPage() {
     }
     setCompartilhadas(map)
     setLoadFamilia(false)
-  }
+  }, [abaSel])
 
   async function toggleCompartilhar(m: Meta) {
     setToggling(m.id)
