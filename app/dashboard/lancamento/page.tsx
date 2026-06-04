@@ -860,10 +860,10 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
       const valorAbs = Math.abs(t.valor)
       const dataT = new Date(t.data_hora)
 
-      // Potencial duplicata no histórico (fuzzy: mesmo valor+descrição±3 dias)
+      // Potencial duplicata no histórico (fuzzy: mesmo valor+descrição, MESMA DATA ±1 dia p/ fuso)
       const matchHistorico = existentes.find(e => {
         const diff = Math.abs(new Date(e.data_hora).getTime() - dataT.getTime())
-        return Math.abs(e.valor) === valorAbs && diff < 3 * 24 * 60 * 60 * 1000 &&
+        return Math.abs(e.valor) === valorAbs && diff <= 1 * 24 * 60 * 60 * 1000 &&
           e.descricao.toLowerCase().trim() === t.descricao.toLowerCase().trim()
       })
       if (matchHistorico) return {
