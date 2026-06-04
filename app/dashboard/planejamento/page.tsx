@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-browser'
@@ -70,13 +70,14 @@ export default function PlanejamentoPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Calcula médias dos últimos 3 meses completos ─────────────────────────
   const hoje      = new Date()
   const mesesBase = 3
-  const { mediasBase, mesesComDados } = (() => {
+
+  // ── Médias dos últimos 3 meses completos ─────────────────────────────────
+  const { mediasBase, mesesComDados } = useMemo(() => {
     let totalRec = 0, totalDesp = 0, mesesComDados = 0
     for (let i = 1; i <= mesesBase; i++) {
-      const ref  = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
+      const ref   = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
       const chave = ref.toISOString().slice(0, 7)
       const txMes = transacoes.filter(t => t.data_hora.startsWith(chave))
       if (!txMes.length) continue
@@ -86,51 +87,51 @@ export default function PlanejamentoPage() {
     }
     if (!mesesComDados) return { mediasBase: { rec: 0, desp: 0 }, mesesComDados: 0 }
     return { mediasBase: { rec: totalRec / mesesComDados, desp: totalDesp / mesesComDados }, mesesComDados }
-  })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transacoes])
 
-  // ── Projeta 12 meses ─────────────────────────────────────────────────────
-  const mult = CENARIO_MULT[cenario]
-  const recBase  = mediasBase.rec  * mult.rec
-  const despBase = mediasBase.desp * mult.desp
-
-  const projecao = Array.from({ length: 12 }, (_, i) => {
-    const data      = new Date(hoje.getFullYear(), hoje.getMonth() + i + 1, 1)
-    const chaveProj = data.toISOString().slice(0, 7)
-
-    // Contribuições de metas que ainda estarão ativas
-    const contrib = metas
-      .filter(mt => mt.prazo >= chaveProj)
-      .reduce((a, mt) => a + (mt.contribuicao_mensal || 0), 0)
-
-    const rec   = recBase
-    const desp  = despBase + contrib
-    return { data, rec, desp, contrib, resultado: rec - desp }
-  })
-
-  // Saldo acumulado mês a mês
-  let saldoAcc = saldoAtual
-  const projecaoAcc = projecao.map(p => {
-    saldoAcc += p.resultado
-    return { ...p, saldoAcc }
-  })
+  // ── Projeção de 12 meses + saldo acumulado ───────────────────────────────
+  const projecaoAcc = useMemo(() => {
+    const mult     = CENARIO_MULT[cenario]
+    const recBase  = mediasBase.rec  * mult.rec
+    const despBase = mediasBase.desp * mult.desp
+    let saldoAcc   = saldoAtual
+    return Array.from({ length: 12 }, (_, i) => {
+      const data      = new Date(hoje.getFullYear(), hoje.getMonth() + i + 1, 1)
+      const chaveProj = data.toISOString().slice(0, 7)
+      const contrib   = metas
+        .filter(mt => mt.prazo >= chaveProj)
+        .reduce((a, mt) => a + (mt.contribuicao_mensal || 0), 0)
+      const rec      = recBase
+      const desp     = despBase + contrib
+      const resultado = rec - desp
+      saldoAcc += resultado
+      return { data, rec, desp, contrib, resultado, saldoAcc }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediasBase, cenario, metas, saldoAtual])
 
   // ── Gráfico SVG de linha ─────────────────────────────────────────────────
   const W = 680, H = 180, PAD = { t: 20, b: 30, l: 60, r: 20 }
   const innerW = W - PAD.l - PAD.r
   const innerH = H - PAD.t - PAD.b
 
-  const saldos    = projecaoAcc.map(p => p.saldoAcc)
-  const minSaldo  = Math.min(...saldos, saldoAtual)
-  const maxSaldo  = Math.max(...saldos, saldoAtual)
-  const range     = maxSaldo - minSaldo || 1
+  const { minSaldo, maxSaldo, pontos, area } = useMemo(() => {
+    const saldos   = projecaoAcc.map(p => p.saldoAcc)
+    const minSaldo = Math.min(...saldos, saldoAtual)
+    const maxSaldo = Math.max(...saldos, saldoAtual)
+    const range    = maxSaldo - minSaldo || 1
+    const pxFn = (i: number) => PAD.l + (i / (projecaoAcc.length - 1)) * innerW
+    const pyFn = (v: number) => PAD.t + innerH - ((v - minSaldo) / range) * innerH
+    const pontos = projecaoAcc.map((p, i) => `${pxFn(i)},${pyFn(p.saldoAcc)}`).join(' ')
+    const area   = `M${pxFn(0)},${pyFn(projecaoAcc[0].saldoAcc)} ` +
+      projecaoAcc.slice(1).map((p, i) => `L${pxFn(i + 1)},${pyFn(p.saldoAcc)}`).join(' ') +
+      ` L${pxFn(projecaoAcc.length - 1)},${PAD.t + innerH} L${PAD.l},${PAD.t + innerH} Z`
+    return { minSaldo, maxSaldo, pontos, area }
+  }, [projecaoAcc, saldoAtual, innerW, innerH])
 
-  function px(i: number) { return PAD.l + (i / (projecaoAcc.length - 1)) * innerW }
-  function py(v: number) { return PAD.t + innerH - ((v - minSaldo) / range) * innerH }
-
-  const pontos = projecaoAcc.map((p, i) => `${px(i)},${py(p.saldoAcc)}`).join(' ')
-  const area   = `M${px(0)},${py(projecaoAcc[0].saldoAcc)} ` +
-    projecaoAcc.slice(1).map((p, i) => `L${px(i + 1)},${py(p.saldoAcc)}`).join(' ') +
-    ` L${px(projecaoAcc.length - 1)},${PAD.t + innerH} L${PAD.l},${PAD.t + innerH} Z`
+  const px = (i: number) => PAD.l + (i / (projecaoAcc.length - 1)) * innerW
+  const py = (v: number) => PAD.t + innerH - ((v - minSaldo) / (maxSaldo - minSaldo || 1)) * innerH
 
   const accentColor = '#4ade80'
 

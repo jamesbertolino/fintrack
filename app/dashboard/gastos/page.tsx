@@ -222,9 +222,11 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const filtroAtivo = catFiltro !== 'Todas' || tipoFiltro !== 'todos' || busca !== '' || contaFiltro !== ''
 
   // métricas da seleção filtrada (para o rodapé da tabela)
-  const totalReceitasFiltradas = filtradas.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
-  const totalDespesasFiltradas = filtradas.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
-  const saldoFiltrado          = totalReceitasFiltradas - totalDespesasFiltradas
+  const { totalReceitasFiltradas, totalDespesasFiltradas, saldoFiltrado } = useMemo(() => {
+    const rec  = filtradas.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
+    const desp = filtradas.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
+    return { totalReceitasFiltradas: rec, totalDespesasFiltradas: desp, saldoFiltrado: rec - desp }
+  }, [filtradas])
 
   const porCategoria = useMemo(() => {
     const acc: Record<string, number> = {}
