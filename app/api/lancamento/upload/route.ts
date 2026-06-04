@@ -736,11 +736,12 @@ async function processarPDF(bytes: ArrayBuffer) {
         const descricao = (item.historico || '').trim() || hist
         const { categoria, nao_categorizado } = detectarCategoria(descricao)
 
-        // Chave de deduplicação: documento bancário é definitivo; fallback = data+valor+desc
+        // Chave de deduplicação: documento bancário é definitivo; fallback = data+valor+desc+parcela
         const doc = (item.documento || '').trim()
+        const parcela = extrairParcela(descricao)
         const ref_externa = doc
-          ? `${item.data}:${doc}`
-          : `${item.data}:${valor}:${descricao.slice(0, 40).toUpperCase()}`
+          ? `${item.data}:${doc}${parcela ? `:p${parcela}` : ''}`
+          : `${item.data}:${valor}:${descricao.slice(0, 40).toUpperCase()}${parcela ? `:p${parcela}` : ''}`
 
         transacoes.push({
           descricao: descricao.toUpperCase(),
@@ -878,6 +879,16 @@ function processarOFX(texto: string): TransacaoDetectada[] {
 }
 
 // ─── Normalização para comparação fuzzy de descrição ─────────────────────────
+// Extrai número de parcela da descrição, ex: "PARC 02/12" → "02/12", "PARCELA 3 DE 10" → "03/10"
+function extrairParcela(desc: string): string | null {
+  const m =
+    desc.match(/parc(?:ela)?\s+(\d{1,2})\s*[/\-]\s*(\d{1,2})/i) ||
+    desc.match(/parcela\s+(\d{1,2})\s+de\s+(\d{1,2})/i) ||
+    desc.match(/(\d{1,2})\s*[/]\s*(\d{1,2})\s*parc/i)
+  if (!m) return null
+  return `${String(m[1]).padStart(2,'0')}/${String(m[2]).padStart(2,'0')}`
+}
+
 function normalizarDescFuzzy(desc: string): string {
   return (desc || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 30)
 }
@@ -979,11 +990,30 @@ async function verificarDuplicatas(supabase: any, userId: string, transacoes: Tr
     const matches = byDateVal.get(key)
     if (!matches?.length) continue
 
+    const parcelaT = extrairParcela(t.descricao)
+
+    // Se a transação nova tem número de parcela, verifica se algum existente tem
+    // a MESMA parcela → duplicata. Parcelas diferentes = lançamentos distintos, nunca duplicata.
+    if (parcelaT) {
+      const mesmaParcelaExiste = matches.some(m => {
+        const parcelaM = extrairParcela(m.descricao)
+        return parcelaM === parcelaT
+      })
+      if (mesmaParcelaExiste) t.confirmada_duplicata = true
+      // parcela diferente → não é duplicata, skip
+      continue
+    }
+
     const descNorm = normalizarDescFuzzy(t.descricao)
-    const exactDesc = matches.some(m => normalizarDescFuzzy(m.descricao) === descNorm)
+    const exactDesc = matches.some(m => {
+      // Se o existente no banco é uma parcela diferente, não conta como duplicata
+      const parcelaM = extrairParcela(m.descricao)
+      if (parcelaM) return false
+      return normalizarDescFuzzy(m.descricao) === descNorm
+    })
 
     if (exactDesc) {
-      // Mesma data + valor + descrição → duplicata definitiva
+      // Mesma data + valor + descrição (sem parcela) → duplicata definitiva
       t.confirmada_duplicata = true
     } else {
       // Mesma data + valor mas descrição diferente → pede confirmação
@@ -1122,10 +1152,10 @@ export async function POST(request: NextRequest) {
             const nao_categorizado = t.nao_categorizado ?? (t.categoria === 'Outros')
             // Gera ref_externa se a IA não forneceu — garante deduplicação em reimportações
             const ref_externa = t.ref_externa || (() => {
-              // Usa slice ISO (YYYY-MM-DD) para evitar dependência de locale no servidor
-              const dt = t.data_hora ? t.data_hora.slice(0, 10) : ''
+              const dt   = t.data_hora ? t.data_hora.slice(0, 10) : ''
               const desc = (t.descricao || '').slice(0, 40).toUpperCase()
-              return dt ? `csv:${dt}:${Math.abs(t.valor)}:${desc}` : undefined
+              const parc = extrairParcela(t.descricao || '')
+              return dt ? `csv:${dt}:${Math.abs(t.valor)}:${desc}${parc ? `:p${parc}` : ''}` : undefined
             })()
             return { ...t, nao_categorizado, ref_externa }
           })
@@ -1266,7 +1296,8 @@ export async function POST(request: NextRequest) {
       const parsed = await processarImagem(bytes, mimeType)
       const transacoes: TransacaoDetectada[] = (parsed.transacoes || []).map((t: TransacaoDetectada) => {
         const dt = t.data_hora ? new Date(t.data_hora).toLocaleDateString('pt-BR') : ''
-        const ref_externa = t.ref_externa || (dt ? `img:${dt}:${t.valor}:${(t.descricao || '').slice(0, 40).toUpperCase()}` : undefined)
+        const parc = extrairParcela(t.descricao || '')
+        const ref_externa = t.ref_externa || (dt ? `img:${dt}:${t.valor}:${(t.descricao || '').slice(0, 40).toUpperCase()}${parc ? `:p${parc}` : ''}` : undefined)
         return { ...t, nao_categorizado: t.nao_categorizado ?? (t.categoria === 'Outros'), ref_externa }
       })
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
