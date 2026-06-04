@@ -455,19 +455,11 @@ export default function LancamentoPage() {
         const res  = await fetch('/api/ia/voz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript }) })
         const data = await res.json()
         if (!res.ok || data.error) { setVozErro(data.error || 'Não entendi a frase'); return }
-        // Preenche os campos para feedback visual
         setTipo(data.tipo)
         setValor(data.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-        setDescricao(data.descricao)
+        setDescricao(data.descricao.toUpperCase())
         setCategoria(data.categoria)
         setVozErro('')
-        // Salva diretamente passando os valores — não depende do estado React ainda atualizado
-        const ok = await salvarInterno({ tipoOv: data.tipo, valorOv: data.valor, descricaoOv: data.descricao, categoriaOv: data.categoria })
-        if (ok) {
-          setVozTranscricao('')
-          carregarHistorico()
-          setTimeout(() => setSucesso(false), 2500)
-        }
       } catch { setVozErro('Erro ao processar. Tente novamente.') }
       finally   { setVozProcessando(false) }
     }
@@ -599,6 +591,7 @@ export default function LancamentoPage() {
   }, [supabase, router])
 
 useEffect(() => {
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   carregarHistorico(filtroContaId || undefined)
 }, [carregarHistorico, filtroContaId])
 

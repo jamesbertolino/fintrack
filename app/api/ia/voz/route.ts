@@ -73,18 +73,24 @@ export async function POST(request: NextRequest) {
         }),
       })
       const data = await res.json()
-      if (res.ok && data.choices?.[0]?.message?.content) {
+      if (!res.ok) return NextResponse.json({ error: `OpenAI: ${data.error?.message || res.status}` }, { status: 500 })
+      if (data.choices?.[0]?.message?.content) {
         return parseAndReturn(data.choices[0].message.content)
       }
-    } catch { /* fallthrough */ }
+    } catch (e) {
+      return NextResponse.json({ error: `Erro ao chamar IA: ${e instanceof Error ? e.message : 'desconhecido'}` }, { status: 500 })
+    }
   }
 
-  return NextResponse.json({ error: 'Nenhuma API de IA configurada' }, { status: 500 })
+  return NextResponse.json({ error: 'Chave de IA não configurada no servidor' }, { status: 500 })
 }
 
 function parseAndReturn(text: string): NextResponse {
   try {
-    const json = JSON.parse(text.trim().replace(/^```json?\n?/, '').replace(/\n?```$/, ''))
+    // Extrai o primeiro bloco JSON da resposta — ignora texto antes/depois
+    const match = text.match(/\{[\s\S]*\}/)
+    if (!match) return NextResponse.json({ error: 'IA não retornou JSON válido' }, { status: 422 })
+    const json = JSON.parse(match[0])
     if (json.erro) return NextResponse.json({ error: json.erro }, { status: 422 })
     if (!json.valor || !json.tipo || !json.descricao) return NextResponse.json({ error: 'Resposta incompleta da IA' }, { status: 422 })
     if (!CATEGORIAS.includes(json.categoria)) json.categoria = 'Outros'
