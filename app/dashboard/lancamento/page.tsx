@@ -490,6 +490,7 @@ export default function LancamentoPage() {
   const [uploadAberto, setUploadAberto] = useState(false)
   const [transacoesDetectadas, setTransacoesDetectadas] = useState<TransacaoDetectada[]>([])
   const [resumoDetectado, setResumo] = useState('')
+  const [importacaoOrigemId, setImportacaoOrigemId] = useState<string | null>(null)
   const [csvDebug, setCsvDebug]       = useState('')
   const [lacunasDetectadas, setLacunas] = useState<string[]>([])
   const [tipoDocumento, setTipoDocumento] = useState('')
@@ -780,6 +781,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
     setTransacoesDetectadas(comDuplicatas)
     setResumo(data.resumo || `${data.transacoes.length} transações encontradas`)
     setTipoDocumento(data.tipo_documento || '')
+    setImportacaoOrigemId(data.importacao_origem_id || null)
 
     // Conta exata encontrada (match por número ou banco+agência)
     if (data.conta_id) {
@@ -913,6 +915,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
       setUploadMeta(null)
       setEtapaConfirmacao(false)
       setContaInlineAberta(false)
+      setImportacaoOrigemId(null)
       carregarHistorico()
       carregarImportacoes()
       setToastImport({ lancados: data.lançados ?? 0, duplicatas: data.duplicatas_ignoradas ?? 0, dataInicio, dataFim })
@@ -1495,6 +1498,33 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
             {transacoesDetectadas.length > 0 && !processando && (
               <div style={{ marginTop: 14 }}>
 
+                {/* Aviso: arquivo já importado anteriormente */}
+                {importacaoOrigemId && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.3)', borderRadius: 10, marginBottom: 10 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#fbbf24', marginBottom: 4 }}>
+                        Este arquivo já foi importado anteriormente
+                      </div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,.5)', marginBottom: 8, lineHeight: 1.5 }}>
+                        A maioria dos lançamentos já existe no sistema. Veja o lote original antes de importar novamente.
+                      </div>
+                      <button
+                        onClick={() => {
+                          setFiltroImportacaoId(importacaoOrigemId)
+                          setTransacoesDetectadas([])
+                          setResumo('')
+                          setImportacaoOrigemId(null)
+                          document.getElementById('historico-lancamentos')?.scrollIntoView({ behavior: 'smooth' })
+                        }}
+                        style={{ fontSize: 11, padding: '5px 12px', background: 'rgba(251,191,36,.12)', border: '1px solid rgba(251,191,36,.3)', borderRadius: 6, color: '#fbbf24', cursor: 'pointer' }}
+                      >
+                        Ver lote original →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Banner de sucesso da detecção */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(74,222,128,.07)', border: '1px solid rgba(74,222,128,.2)', borderRadius: 10, marginBottom: 14 }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(74,222,128,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>✅</div>
@@ -1961,7 +1991,7 @@ useEffect(() => { carregarImportacoes() }, []) // eslint-disable-line react-hook
             />
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: filtroImportacaoId ? 8 : '1rem' }}>
+          <div id="historico-lancamentos" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: filtroImportacaoId ? 8 : '1rem' }}>
             <div style={{ fontSize: 14, fontWeight: 500 }}>Lançamentos recentes</div>
             <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>
           </div>

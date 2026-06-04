@@ -939,28 +939,39 @@ async function buscarConciliacao(supabase: any, userId: string, transacoes: Tran
 }
 
 // ─── Verificação de duplicatas: ref_externa exata + fuzzy data+valor ──────────
+// Retorna o importacao_id da importação original caso a maioria seja duplicata do mesmo lote
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function verificarDuplicatas(supabase: any, userId: string, transacoes: TransacaoDetectada[]): Promise<void> {
-  if (!transacoes.length) return
+async function verificarDuplicatas(supabase: any, userId: string, transacoes: TransacaoDetectada[]): Promise<string | null> {
+  if (!transacoes.length) return null
 
-  // 1. Duplicata exata por ref_externa
+  // 1. Duplicata exata por ref_externa — também busca importacao_id
   const refs = transacoes.map(t => t.ref_externa).filter(Boolean) as string[]
+  let importacaoOrigemId: string | null = null
   if (refs.length) {
     const { data: porRef } = await supabase
-      .from('transactions').select('ref_externa')
+      .from('transactions').select('ref_externa, importacao_id')
       .eq('user_id', userId).in('ref_externa', refs)
     if (porRef?.length) {
-      const refSet = new Set(porRef.map((e: { ref_externa: string }) => e.ref_externa))
+      const refSet = new Map<string, string | null>(porRef.map((e: { ref_externa: string; importacao_id: string | null }) => [e.ref_externa, e.importacao_id]))
       transacoes.forEach(t => { if (t.ref_externa && refSet.has(t.ref_externa)) t.confirmada_duplicata = true })
+
+      // Descobre qual importação originou a maioria das duplicatas
+      const contagem = new Map<string, number>()
+      for (const [, impId] of refSet) {
+        if (impId) contagem.set(impId, (contagem.get(impId) ?? 0) + 1)
+      }
+      if (contagem.size) {
+        importacaoOrigemId = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0][0]
+      }
     }
   }
 
   // 2. Fuzzy: mesma data + mesmo valor absoluto (para transações ainda não flagadas)
   const pendentes = transacoes.filter(t => !t.confirmada_duplicata)
-  if (!pendentes.length) return
+  if (!pendentes.length) return importacaoOrigemId
 
   const datas = pendentes.map(t => t.data_hora?.slice(0, 10)).filter(Boolean) as string[]
-  if (!datas.length) return
+  if (!datas.length) return importacaoOrigemId
   const dataMin = datas.reduce((a, b) => a < b ? a : b)
   const dataMax = datas.reduce((a, b) => a > b ? a : b)
 
@@ -971,7 +982,7 @@ async function verificarDuplicatas(supabase: any, userId: string, transacoes: Tr
     .gte('data_hora', dataMin + 'T00:00:00.000Z')
     .lte('data_hora', dataMax + 'T23:59:59.999Z')
 
-  if (!existentes?.length) return
+  if (!existentes?.length) return importacaoOrigemId
 
   // Agrupa existentes por chave data:valor_absoluto
   type Row = { data_hora: string; valor: number; descricao: string }
@@ -1021,6 +1032,8 @@ async function verificarDuplicatas(supabase: any, userId: string, transacoes: Tr
       t.duplicata_origem = 'historico'
     }
   }
+
+  return importacaoOrigemId
 }
 
 // ─── Handler principal ───────────────────────────────────────────────────────
@@ -1177,7 +1190,7 @@ export async function POST(request: NextRequest) {
       const parsedFinal = applyLearned(parsedComOrigem, learnedMap)
 
       // Verifica duplicatas por ref_externa no banco
-      await verificarDuplicatas(supabase, user.id, parsedFinal)
+      const importacaoOrigemCSV = await verificarDuplicatas(supabase, user.id, parsedFinal)
 
       const naoCat = parsedFinal.filter(t => t.nao_categorizado).length
 
@@ -1194,6 +1207,8 @@ export async function POST(request: NextRequest) {
         else banco_nao_encontrado = true
       }
 
+      const totalDupCSV = parsedFinal.filter(t => t.confirmada_duplicata).length
+      const importacaoOrigemIdCSV = totalDupCSV > 0 && totalDupCSV >= Math.ceil(parsedFinal.length * 0.8) ? importacaoOrigemCSV : null
       return NextResponse.json({
         ok: true, transacoes: parsedFinal,
         resumo: `${parsedFinal.length} transações encontradas no CSV${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
@@ -1202,6 +1217,7 @@ export async function POST(request: NextRequest) {
         banco_id,
         banco_nao_encontrado,
         conta_vinculada: bancoNomeCSV,
+        importacao_origem_id: importacaoOrigemIdCSV,
       })
     }
 
@@ -1261,7 +1277,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      await verificarDuplicatas(supabase, user.id, transacoes)
+      const importacaoOrigemPDF = await verificarDuplicatas(supabase, user.id, transacoes)
       marcarPagamentosFatura(transacoes, parsed.tipo_documento || 'extrato_bancario')
       await buscarConciliacao(supabase, user.id, transacoes)
 
@@ -1271,6 +1287,8 @@ export async function POST(request: NextRequest) {
       )
       const naoCat = transacoesAprendidasPDF.filter(t => t.nao_categorizado).length
       const lacunas: string[] = (parsed as { lacunas?: string[] }).lacunas || []
+      const totalDupPDF = transacoesAprendidasPDF.filter(t => t.confirmada_duplicata).length
+      const importacaoOrigemIdPDF = totalDupPDF > 0 && totalDupPDF >= Math.ceil(transacoesAprendidasPDF.length * 0.8) ? importacaoOrigemPDF : null
       return NextResponse.json({
         ok: true, transacoes: transacoesAprendidasPDF,
         resumo: `${transacoesAprendidasPDF.length} transações${naoCat ? ` (${naoCat} sem categoria)` : ''} — ${parsed.resumo || ''}`.trim(),
@@ -1279,6 +1297,7 @@ export async function POST(request: NextRequest) {
         conta_sugerida,
         tipo_documento: parsed.tipo_documento || 'extrato_bancario',
         lacunas,
+        importacao_origem_id: importacaoOrigemIdPDF,
         _csv_debug: parsed._csv_debug,
       })
     }
@@ -1302,7 +1321,7 @@ export async function POST(request: NextRequest) {
       })
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
 
-      await verificarDuplicatas(supabase, user.id, transacoes)
+      const importacaoOrigemImg = await verificarDuplicatas(supabase, user.id, transacoes)
       marcarPagamentosFatura(transacoes, parsed.tipo_documento || 'outro')
       await buscarConciliacao(supabase, user.id, transacoes)
 
@@ -1311,11 +1330,14 @@ export async function POST(request: NextRequest) {
         learnedMap,
       )
       const naoCat = transacoesAprendidasImg.filter(t => t.nao_categorizado).length
+      const totalDupImg = transacoesAprendidasImg.filter(t => t.confirmada_duplicata).length
+      const importacaoOrigemIdImg = totalDupImg > 0 && totalDupImg >= Math.ceil(transacoesAprendidasImg.length * 0.8) ? importacaoOrigemImg : null
       return NextResponse.json({
         ok: true, transacoes: transacoesAprendidasImg,
         resumo: `${transacoesAprendidasImg.length} itens detectados na imagem${naoCat ? ` (${naoCat} sem categoria)` : ''}`,
         tipo_documento: parsed.tipo_documento || 'outro',
         banco_nome: parsed.banco_nome || null,
+        importacao_origem_id: importacaoOrigemIdImg,
       })
     }
 
