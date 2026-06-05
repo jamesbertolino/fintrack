@@ -1,4 +1,4 @@
-const VERSION       = '2.59.0'
+const VERSION       = '2.60.0'
 const CACHE_STATIC  = `poupaup-static-${VERSION}`
 const CACHE_PAGES   = `poupaup-pages-${VERSION}`
 const STATIC_ASSETS = ['/', '/dashboard', '/login', '/logo.png', '/manifest.webmanifest']
