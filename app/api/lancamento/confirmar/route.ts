@@ -68,7 +68,20 @@ export async function POST(request: NextRequest) {
       total_detectadas: total_detectadas ?? transacoes.length,
       total_inseridas: 0, total_duplicatas: totalDuplicatas,
     }).then(() => null)
-    return NextResponse.json({ ok: true, lançados: 0, duplicatas_ignoradas: totalDuplicatas, mensagem: `Todos os ${transacoes.length} lançamentos já existem no sistema.` })
+    return NextResponse.json({
+      ok: true, lançados: 0, duplicatas_ignoradas: totalDuplicatas,
+      mensagem: `Todos os ${transacoes.length} lançamentos já existem no sistema.`,
+      _debug: {
+        motivo: 'novas_vazias_apos_recheck',
+        recebido: transacoes.length,
+        paraInserir: paraInserir.length,
+        duplas: duplas.length,
+        novas: 0,
+        refs_novas: paraInserir.map(t => t.ref_externa),
+        datas_novas: paraInserir.map(t => t.data_hora?.slice(0, 10)),
+        refs_encontradas_no_banco: [...refsJaExistentes],
+      }
+    })
   }
 
   // Cria o registro de importação primeiro para obter o ID e vincular as transactions
