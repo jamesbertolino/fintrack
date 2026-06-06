@@ -156,6 +156,35 @@ type TransacaoLote = {
   id: string; descricao: string; valor: number; tipo: string; categoria: string; data_hora: string
 }
 
+// ─── Botão reutilizável: excluir lote com confirmação ───────────────────────
+function ExcluirLoteBtn({ importacaoId, total, onExcluido }: { importacaoId: string; total: number; onExcluido: () => void }) {
+  const [confirm, setConfirm]     = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+
+  async function excluir() {
+    if (!confirm) { setConfirm(true); return }
+    setExcluindo(true)
+    const res = await fetch(`/api/importacoes/${importacaoId}`, { method: 'DELETE' })
+    setExcluindo(false)
+    if (res.ok) onExcluido()
+    else setConfirm(false)
+  }
+
+  return (
+    <button onClick={excluir} disabled={excluindo}
+      style={{
+        flex: 1, padding: '6px', fontSize: 11, cursor: 'pointer', borderRadius: 6,
+        background: confirm ? 'rgba(239,68,68,.15)' : 'rgba(239,68,68,.06)',
+        border: `1px solid ${confirm ? 'rgba(239,68,68,.4)' : 'rgba(239,68,68,.2)'}`,
+        color: confirm ? '#f87171' : 'rgba(239,68,68,.6)',
+        opacity: excluindo ? 0.5 : 1,
+      }}
+    >
+      {excluindo ? '...' : confirm ? `⚠ Confirmar (${total} lç)` : '🗑 Excluir lote'}
+    </button>
+  )
+}
+
 // ─── Componente: Histórico de importações compacto ──────────────────────────
 function ImportacoesHistorico({ importacoes, loading, filtroAtivo, onFiltrar, onExcluir }: {
   importacoes: ImportacaoItem[]; loading: boolean
@@ -2169,7 +2198,29 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
                         {t.origem === 'manual' && <span style={{ fontSize: 9, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.35)', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>manual</span>}
                         {t.origem === 'webhook' && <span style={{ fontSize: 9, background: 'rgba(74,222,128,.1)', color: '#4ade80', padding: '1px 5px', borderRadius: 3, flexShrink: 0 }}>auto</span>}
                       </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{t.categoria} · {fmtDataHora(t.data_hora)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.35)' }}>{t.categoria} · {fmtDataHora(t.data_hora)}</span>
+                        {t.importacao_id && (() => {
+                          const imp = importacoes.find(i => i.id === t.importacao_id)
+                          if (!imp) return null
+                          const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
+                          const ativo = filtroImportacaoId === t.importacao_id
+                          return (
+                            <button
+                              onClick={e => { e.stopPropagation(); setFiltroImportacaoId(ativo ? null : t.importacao_id!) }}
+                              style={{
+                                fontSize: 9, padding: '1px 6px', borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+                                background: ativo ? 'rgba(129,140,248,.2)' : 'rgba(129,140,248,.08)',
+                                color: ativo ? '#818cf8' : 'rgba(129,140,248,.7)',
+                                border: `1px solid ${ativo ? 'rgba(129,140,248,.4)' : 'rgba(129,140,248,.2)'}`,
+                              }}
+                              title={`Lote: ${nome} · ${imp.total_inseridas} lançamentos`}
+                            >
+                              📦 {nome.length > 18 ? nome.slice(0, 18) + '…' : nome}
+                            </button>
+                          )
+                        })()}
+                      </div>
                     </div>
 
                     <div style={{ fontSize: 14, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171', whiteSpace: 'nowrap' }}>
@@ -2263,6 +2314,38 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
               <input type="datetime-local" value={editDataHora} onChange={e => setEditDataHora(e.target.value)}
                 style={{ width: '100%', padding: '9px 12px', background: '#0a0a0a', border: '1px solid #1a3a1a', borderRadius: 8, color: '#fff', fontSize: 13, outline: 'none' }} />
             </div>
+
+            {/* Lote de origem */}
+            {transacaoEditando?.importacao_id && (() => {
+              const imp = importacoes.find(i => i.id === transacaoEditando.importacao_id)
+              if (!imp) return null
+              const nome = imp.arquivo_nome || imp.banco_nome || 'Importação'
+              const data = new Date(imp.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
+              return (
+                <div style={{ padding: '10px 12px', background: 'rgba(129,140,248,.06)', border: '1px solid rgba(129,140,248,.2)', borderRadius: 8 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 6 }}>Lote de importação</div>
+                  <div style={{ fontSize: 12, color: '#818cf8', fontWeight: 500, marginBottom: 2 }}>📦 {nome}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginBottom: 8 }}>
+                    Importado em {data} · {imp.total_inseridas} lançamentos
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => { setModalAberto(false); setFiltroImportacaoId(transacaoEditando.importacao_id!) }}
+                      style={{ flex: 1, padding: '6px', fontSize: 11, background: 'rgba(129,140,248,.1)', border: '1px solid rgba(129,140,248,.25)', borderRadius: 6, color: '#818cf8', cursor: 'pointer' }}
+                    >
+                      Ver todos do lote
+                    </button>
+                    <ExcluirLoteBtn importacaoId={transacaoEditando.importacao_id} total={imp.total_inseridas}
+                      onExcluido={() => {
+                        setImportacoes(prev => prev.filter(i => i.id !== transacaoEditando.importacao_id))
+                        setHistorico(prev => prev.filter(t => t.importacao_id !== transacaoEditando.importacao_id))
+                        setModalAberto(false)
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            })()}
 
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button onClick={() => setModalAberto(false)}
