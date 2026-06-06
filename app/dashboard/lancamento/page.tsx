@@ -433,6 +433,7 @@ export default function LancamentoPage() {
 
   // ─── filtro de conta no histórico ───
   const [filtroContaId, setFiltroContaId] = useState('')
+  const [sortHistorico, setSortHistorico] = useState<{ col: 'data' | 'descricao' | 'categoria' | 'valor'; dir: 'asc' | 'desc' }>({ col: 'data', dir: 'desc' })
 
   // ─── filtro por importação ───
   const [filtroImportacaoId, setFiltroImportacaoId] = useState<string | null>(null)
@@ -2077,6 +2078,34 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
             <button onClick={() => router.push('/dashboard/gastos')} style={{ fontSize: 11, color: '#4ade80', background: 'none', border: 'none', cursor: 'pointer' }}>ver todos →</button>
           </div>
 
+          {/* Cabeçalhos de ordenação */}
+          {historico.length > 0 && (() => {
+            function ColHeader({ col, label }: { col: typeof sortHistorico['col']; label: string }) {
+              const ativo = sortHistorico.col === col
+              const dir   = ativo ? sortHistorico.dir : null
+              return (
+                <button onClick={() => setSortHistorico(prev =>
+                  prev.col === col ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }
+                )} style={{
+                  background: ativo ? 'rgba(74,222,128,.08)' : 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6,
+                  fontSize: 10, fontWeight: 600, color: ativo ? '#4ade80' : 'rgba(255,255,255,.35)',
+                  textTransform: 'uppercase', letterSpacing: '.06em', display: 'flex', alignItems: 'center', gap: 3,
+                } as React.CSSProperties}>
+                  {label}
+                  <span style={{ fontSize: 9 }}>{dir === 'asc' ? '↑' : dir === 'desc' ? '↓' : '↕'}</span>
+                </button>
+              )
+            }
+            return (
+              <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' as const }}>
+                <ColHeader col="data"      label="Data" />
+                <ColHeader col="descricao" label="Descrição" />
+                <ColHeader col="categoria" label="Categoria" />
+                <ColHeader col="valor"     label="Valor" />
+              </div>
+            )
+          })()}
+
           {/* Banner: filtro por importação ativo */}
           {filtroImportacaoId && (() => {
             const imp = importacoes.find(i => i.id === filtroImportacaoId)
@@ -2175,7 +2204,18 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(filtroImportacaoId ? historico.filter(t => t.importacao_id === filtroImportacaoId) : historico).map(t => (
+                {(filtroImportacaoId ? historico.filter(t => t.importacao_id === filtroImportacaoId) : historico)
+                  .slice()
+                  .sort((a, b) => {
+                    const dir = sortHistorico.dir === 'asc' ? 1 : -1
+                    switch (sortHistorico.col) {
+                      case 'data':      return dir * a.data_hora.localeCompare(b.data_hora)
+                      case 'descricao': return dir * a.descricao.localeCompare(b.descricao)
+                      case 'categoria': return dir * (a.categoria || '').localeCompare(b.categoria || '')
+                      case 'valor':     return dir * (Math.abs(a.valor) - Math.abs(b.valor))
+                    }
+                  })
+                  .map(t => (
                   <div key={t.id} style={{
                     background: selecionados.includes(t.id) ? '#0d2a0d' : '#111',
                     border: `1px solid ${selecionados.includes(t.id) ? '#1a5a1a' : '#1a3a1a'}`,
