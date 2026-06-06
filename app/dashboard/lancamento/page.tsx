@@ -2004,6 +2004,23 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
             )}
             </>)}
           </div>
+          {/* ── Importações — visível só no mobile (no desktop fica na coluna direita) ── */}
+          {isMobile && (importacoes.length > 0 || loadingImportacoes) && (
+            <div style={{ padding: '0 1rem' }}>
+              <ImportacoesHistorico
+                importacoes={importacoes}
+                loading={loadingImportacoes}
+                filtroAtivo={filtroImportacaoId}
+                onFiltrar={setFiltroImportacaoId}
+                onExcluir={(id) => {
+                  setImportacoes(prev => prev.filter(i => i.id !== id))
+                  setHistorico(prev => prev.filter(t => t.importacao_id !== id))
+                  if (filtroImportacaoId === id) setFiltroImportacaoId(null)
+                }}
+              />
+            </div>
+          )}
+
           {/* Espaçador para o upload não ficar atrás da nav mobile */}
           <div style={{ height: '5rem' }} />
         </div>
