@@ -26,16 +26,21 @@ interface GrupoMovimento {
 }
 
 interface MembroDash {
-  id:         string
-  nome:       string
-  avatar_url: string | null
-  papel:      string
-  receitas:   number
-  despesas:   number
-  saldo:      number
-  metas:      { nome: string; valor_total: number; valor_atual: number }[]
-  topCats:    [string, number][]
-  txCount:    number
+  id:                  string
+  nome:                string
+  avatar_url:          string | null
+  papel:               string
+  membro_id_row?:      string
+  incluir_consolidado: boolean
+  receitas:            number
+  despesas:            number
+  saldo:               number
+  pct_saldo?:          number
+  pct_receitas?:       number
+  pct_despesas?:       number
+  metas:               { nome: string; valor_total: number; valor_atual: number }[]
+  topCats:             [string, number][]
+  txCount:             number
 }
 
 interface FamiliaDash {
@@ -99,10 +104,12 @@ export default function FamiliaPage() {
   const { tema } = useTema()
   const m = tema === 'medieval'
 
-  const [dash,    setDash]    = useState<FamiliaDash | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [erro,    setErro]    = useState('')
-  const [aba,     setAba]     = useState<'dashboard' | 'fontes' | 'extrato'>('dashboard')
+  const [dash,        setDash]        = useState<FamiliaDash | null>(null)
+  const [loading,     setLoading]     = useState(true)
+  const [erro,        setErro]        = useState('')
+  const [aba,         setAba]         = useState<'dashboard' | 'fontes' | 'extrato'>('dashboard')
+  const [membroFiltro, setMembroFiltro] = useState<string | null>(null) // null = consolidado
+  const [togglingId,  setTogglingId]  = useState<string | null>(null)
 
   // fontes
   const [origens,      setOrigens]      = useState<GrupoOrigem[]>([])
@@ -466,24 +473,53 @@ export default function FamiliaPage() {
 
         {aba === 'dashboard' && dash && !loading && (
           <>
-            {/* ── Cards consolidados ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
-              {[
-                { label: `Saldo consolidado`, valor: dash.totalSaldo, cor: dash.totalSaldo >= 0 ? '#4ade80' : '#f87171' },
-                { label: `Receitas — ${nomeMes}`, valor: dash.totalReceitas, cor: '#34d399' },
-                { label: `Gastos — ${nomeMes}`,   valor: dash.totalDespesas, cor: '#f87171', neg: true },
-              ].map((card, i) => (
-                <div key={i} style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 14, padding: '1.25rem' }}>
-                  <div style={{ fontSize: 11, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 8 }}>{card.label}</div>
-                  <div style={{ fontSize: 28, fontWeight: 700, color: card.cor, fontVariantNumeric: 'tabular-nums' }}>
-                    {card.neg ? '' : ''}{fmt(card.neg ? card.valor : card.valor)}
-                  </div>
-                  <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 4 }}>
-                    {dash.membros.length} membro{dash.membros.length > 1 ? 's' : ''}
-                  </div>
-                </div>
+            {/* ── Filtro por membro / Consolidado ── */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', flexWrap: 'wrap' as const }}>
+              <button onClick={() => setMembroFiltro(null)} style={{
+                padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
+                background: membroFiltro === null ? '#4ade80' : 'rgba(255,255,255,.06)',
+                color:      membroFiltro === null ? '#000'    : cores.textMuted,
+              }}>
+                🏠 Consolidado
+              </button>
+              {dash.membros.map((mb, idx) => (
+                <button key={mb.id} onClick={() => setMembroFiltro(mb.id === membroFiltro ? null : mb.id)} style={{
+                  padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none',
+                  background: membroFiltro === mb.id ? CORES_MEMBROS[idx % CORES_MEMBROS.length] : 'rgba(255,255,255,.06)',
+                  color:      membroFiltro === mb.id ? '#000' : cores.textMuted,
+                }}>
+                  {mb.nome.split(' ')[0]}
+                </button>
               ))}
             </div>
+
+            {/* ── Cards: consolidado ou membro filtrado ── */}
+            {(() => {
+              const vis = membroFiltro ? dash.membros.filter(m => m.id === membroFiltro) : null
+              const totalR = vis ? vis[0]?.receitas ?? 0 : dash.totalReceitas
+              const totalD = vis ? vis[0]?.despesas ?? 0 : dash.totalDespesas
+              const totalS = vis ? vis[0]?.saldo    ?? 0 : dash.totalSaldo
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+                  {[
+                    { label: membroFiltro ? 'Saldo' : 'Saldo consolidado', valor: totalS, cor: totalS >= 0 ? '#4ade80' : '#f87171' },
+                    { label: `Receitas — ${nomeMes}`, valor: totalR, cor: '#34d399' },
+                    { label: `Gastos — ${nomeMes}`,   valor: totalD, cor: '#f87171' },
+                  ].map((card, i) => (
+                    <div key={i} style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 14, padding: '1.25rem' }}>
+                      <div style={{ fontSize: 11, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.08em', marginBottom: 8 }}>{card.label}</div>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: card.cor, fontVariantNumeric: 'tabular-nums' }}>{fmt(card.valor)}</div>
+                      {!membroFiltro && (
+                        <div style={{ fontSize: 11, color: cores.textMuted, marginTop: 4 }}>
+                          {dash.membros.filter(m => m.incluir_consolidado).length} membro{dash.membros.filter(m => m.incluir_consolidado).length !== 1 ? 's' : ''} no consolidado
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+
 
             {/* ── Gráfico histórico ── */}
             {dash.historico.length >= 2 && (
@@ -497,20 +533,56 @@ export default function FamiliaPage() {
 
             {/* ── Membros em grid ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-              {dash.membros.map((mb, idx) => {
-                const corMb   = CORES_MEMBROS[idx % CORES_MEMBROS.length]
+              {(membroFiltro ? dash.membros.filter(m => m.id === membroFiltro) : dash.membros).map((mb, idx) => {
+                const realIdx = dash.membros.findIndex(m => m.id === mb.id)
+                const corMb   = CORES_MEMBROS[realIdx % CORES_MEMBROS.length]
                 const resultado = mb.receitas - mb.despesas
                 return (
-                  <div key={mb.id} style={{ background: cores.surface, border: `1px solid ${cores.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                  <div key={mb.id} style={{ background: cores.surface, border: `1px solid ${mb.incluir_consolidado ? cores.border : 'rgba(255,255,255,.08)'}`, borderRadius: 14, overflow: 'hidden', opacity: mb.incluir_consolidado ? 1 : 0.6 }}>
                     {/* Header */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '1rem', borderBottom: `1px solid ${cores.border}`, background: `${corMb}0d` }}>
                       <Avatar url={mb.avatar_url} nome={mb.nome} size={36} nivel={1} onClick={() => {}} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 600 }}>{mb.nome}</div>
-                        <div style={{ fontSize: 11, color: cores.textMuted, textTransform: 'capitalize' }}>{mb.papel === 'dono' ? '👑 dono' : mb.papel === 'edicao' ? '✏️ edição' : '👁️ leitura'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <span style={{ fontSize: 11, color: cores.textMuted, textTransform: 'capitalize' }}>{mb.papel === 'dono' ? '👑 dono' : mb.papel === 'edicao' ? '✏️ edição' : '👁️ leitura'}</span>
+                          {mb.pct_saldo !== undefined && mb.incluir_consolidado && (
+                            <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: `${corMb}20`, color: corMb, border: `1px solid ${corMb}40` }}>
+                              {mb.pct_saldo}% do saldo
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: mb.saldo >= 0 ? corMb : '#f87171', fontVariantNumeric: 'tabular-nums' }}>
-                        {fmt(mb.saldo)}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: mb.saldo >= 0 ? corMb : '#f87171', fontVariantNumeric: 'tabular-nums' }}>
+                          {fmt(mb.saldo)}
+                        </div>
+                        {mb.papel !== 'dono' && mb.membro_id_row && (
+                          <button
+                            disabled={togglingId === mb.membro_id_row}
+                            onClick={async () => {
+                              setTogglingId(mb.membro_id_row!)
+                              await fetch(`/api/familia/membro/${mb.membro_id_row}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ incluir_consolidado: !mb.incluir_consolidado }),
+                              })
+                              setDash(prev => prev ? {
+                                ...prev,
+                                membros: prev.membros.map(m => m.id === mb.id ? { ...m, incluir_consolidado: !m.incluir_consolidado } : m)
+                              } : prev)
+                              setTogglingId(null)
+                            }}
+                            style={{
+                              fontSize: 9, padding: '2px 7px', borderRadius: 6, cursor: 'pointer',
+                              background: mb.incluir_consolidado ? 'rgba(74,222,128,.1)' : 'rgba(255,255,255,.06)',
+                              border: `1px solid ${mb.incluir_consolidado ? 'rgba(74,222,128,.3)' : 'rgba(255,255,255,.15)'}`,
+                              color: mb.incluir_consolidado ? '#4ade80' : 'rgba(255,255,255,.35)',
+                            }}
+                          >
+                            {togglingId === mb.membro_id_row ? '...' : mb.incluir_consolidado ? '✓ no consolidado' : '+ incluir'}
+                          </button>
+                        )}
                       </div>
                     </div>
 
