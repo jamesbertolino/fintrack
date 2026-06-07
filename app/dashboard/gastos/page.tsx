@@ -65,6 +65,11 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   const [sortOrder, setSortOrder]     = useState<'data_desc' | 'data_asc' | 'valor_desc' | 'valor_asc' | 'categoria'>('data_desc')
   const [catDrilldown, setCatDrilldown] = useState<string | null>(null)
   const [filtroExpandido, setFiltroExpandido] = useState(false)
+  const hoje         = new Date()
+  const primeiroDiaMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`
+  const hojeStr        = hoje.toISOString().slice(0, 10)
+  const isMesAtual     = periodo === 'custom' && dataInicio === primeiroDiaMes && dataFim === hojeStr
+  function filtrarMesAtual() { setDataInicio(primeiroDiaMes); setDataFim(hojeStr); setPeriodo('custom'); setFiltroExpandido(false) }
   const [userId, setUserId]           = useState('')
   const [contas, setContas]           = useState<Array<{ id: string; nome: string; tipo: string; bancos: { id: string; nome_curto: string; cor: string | null } | null }>>([])
 
@@ -427,6 +432,11 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   color: periodo === v ? '#fff' : 'rgba(255,255,255,.45)',
                 }}>{l}</button>
               ))}
+              <button onClick={filtrarMesAtual} style={{
+                flexShrink: 0, padding: '10px 16px', minHeight: 44, borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                background: isMesAtual ? '#16a34a' : 'rgba(255,255,255,.08)',
+                color: isMesAtual ? '#fff' : 'rgba(255,255,255,.45)',
+              }}>mês</button>
               <button onClick={() => setFiltroExpandido(o => !o)} style={{
                 flexShrink: 0, padding: '10px 14px', minHeight: 44, borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
                 background: periodo === 'custom' ? '#16a34a' : filtroExpandido ? 'rgba(22,163,74,.2)' : 'rgba(255,255,255,.08)',
@@ -465,6 +475,11 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
                   color: periodo === v ? '#fff' : 'rgba(255,255,255,.4)',
                 }}>{l}</button>
               ))}
+              <button onClick={filtrarMesAtual} style={{
+                padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500,
+                background: isMesAtual ? '#16a34a' : 'transparent',
+                color: isMesAtual ? '#fff' : 'rgba(255,255,255,.4)',
+              }}>mês atual</button>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               <input type="date" aria-label="Data de início" value={dataInicio} onChange={e => { setDataInicio(e.target.value); if (e.target.value && dataFim) setPeriodo('custom') }}
