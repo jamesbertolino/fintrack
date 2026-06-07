@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface Banco {
   id: string
@@ -53,7 +54,8 @@ function getLogoBanco(banco: { codigo?: string; nome_curto?: string; logo_url?: 
 }
 
 export default function ContasPage() {
-  const router = useRouter()
+  const router   = useRouter()
+  const isMobile = useIsMobile(640)
 
   const [contas, setContas]       = useState<Conta[]>([])
   const [bancos, setBancos]       = useState<Banco[]>([])
@@ -216,61 +218,53 @@ export default function ContasPage() {
                 <div key={conta.id}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.03)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '#111')}
-                  style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 14, transition: 'background .15s' }}>
-                  {/* Ícone banco */}
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: `${cor}22`, border: `1.5px solid ${cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 700, color: cor }}>
-                    {logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={logoUrl}
-                        alt={banco?.nome_curto || 'Logo do banco'}
-                        width={28}
-                        height={28}
-                        style={{ objectFit: 'contain', borderRadius: 6 }}
-                        onError={e => {
-                          e.currentTarget.style.display = 'none'
-                          const parent = e.currentTarget.parentElement
-                          if (parent) parent.textContent = inicialBanco(banco)
-                        }}
-                      />
-                    ) : inicialBanco(banco)}
+                  style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 12, padding: isMobile ? '14px 14px' : '1rem 1.25rem', transition: 'background .15s' }}>
+
+                  {/* Linha 1: ícone + info + ações */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {/* Ícone banco */}
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: `${cor}22`, border: `1.5px solid ${cor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16, fontWeight: 700, color: cor }}>
+                      {logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={logoUrl} alt={banco?.nome_curto || ''} width={26} height={26}
+                          style={{ objectFit: 'contain', borderRadius: 5 }}
+                          onError={e => { e.currentTarget.style.display = 'none'; const p = e.currentTarget.parentElement; if (p) p.textContent = inicialBanco(banco) }} />
+                      ) : inicialBanco(banco)}
+                    </div>
+
+                    {/* Nome + tipo */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {banco?.nome_curto || '—'}
+                        <span style={{ fontWeight: 400, color: 'rgba(255,255,255,.55)', marginLeft: 6, fontSize: 13 }}>{conta.nome}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                        <span style={{ fontSize: 10, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.4)', padding: '1px 6px', borderRadius: 5, textTransform: 'capitalize' as const }}>{conta.tipo}</span>
+                        {conta.numero && <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>···· {conta.numero.slice(-4)}</span>}
+                      </div>
+                    </div>
+
+                    {/* Ações */}
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => toggleSaldoVisivel(conta.id, conta.mostrar_saldo)}
+                        title={conta.mostrar_saldo ? 'Ocultar saldo' : 'Mostrar saldo'}
+                        style={{ background: 'rgba(255,255,255,.06)', border: '1px solid #1a3a1a', borderRadius: 6, padding: '6px 10px', color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer', minHeight: 34 }}>
+                        {conta.mostrar_saldo ? '👁' : '🙈'}
+                      </button>
+                      <button onClick={() => excluirConta(conta.id)}
+                        title="Excluir conta"
+                        style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, padding: '6px 10px', color: '#f87171', fontSize: 13, cursor: 'pointer', minHeight: 34 }}>
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600 }}>{banco?.nome_curto || '—'}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>·</span>
-                      <span style={{ fontSize: 13, color: 'rgba(255,255,255,.7)' }}>{conta.nome}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 10, background: 'rgba(255,255,255,.07)', color: 'rgba(255,255,255,.4)', padding: '2px 7px', borderRadius: 6, textTransform: 'capitalize' }}>{conta.tipo}</span>
-                      {conta.numero && <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)' }}>···· {conta.numero}</span>}
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'right', marginRight: 8 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: conta.saldo >= 0 ? '#4ade80' : '#f87171' }}>
-                      {saldoVisivel ? fmtBRL(conta.saldo) : '••••'}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>saldo</div>
-                  </div>
-
-                  {/* Ações */}
-                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <button
-                      onClick={() => toggleSaldoVisivel(conta.id, conta.mostrar_saldo)}
-                      title={conta.mostrar_saldo ? 'Ocultar saldo' : 'Mostrar saldo'}
-                      style={{ background: 'rgba(255,255,255,.06)', border: '1px solid #1a3a1a', borderRadius: 6, padding: '5px 8px', color: 'rgba(255,255,255,.4)', fontSize: 12, cursor: 'pointer' }}
-                    >
-                      {conta.mostrar_saldo ? '👁' : '🙈'}
-                    </button>
-                    <button
-                      onClick={() => excluirConta(conta.id)}
-                      title="Excluir conta"
-                      style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, padding: '5px 8px', color: '#f87171', fontSize: 12, cursor: 'pointer', minHeight: 32 }}
-                    >
-                      ✕
-                    </button>
+                  {/* Linha 2: saldo em destaque */}
+                  <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.06)', display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: conta.saldo >= 0 ? '#4ade80' : '#f87171', fontVariantNumeric: 'tabular-nums' }}>
+                      {saldoVisivel ? fmtBRL(conta.saldo) : '••••••'}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>saldo atual</span>
                   </div>
                 </div>
               )
