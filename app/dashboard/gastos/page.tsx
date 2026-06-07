@@ -195,8 +195,8 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
   }, [userId])
 
   // ─── métricas do período completo (sem filtros de tipo/categoria/busca) ───
-  const totalReceitasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0), [transacoes])
-  const totalDespesasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0), [transacoes])
+  const totalReceitasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'credito' && t.origem !== 'saldo_inicial').reduce((a, t) => a + t.valor, 0), [transacoes])
+  const totalDespesasPeriodo  = useMemo(() => transacoes.filter(t => t.tipo === 'debito'  && t.origem !== 'saldo_inicial').reduce((a, t) => a + Math.abs(t.valor), 0), [transacoes])
   const saldoPeriodo          = totalReceitasPeriodo - totalDespesasPeriodo
 
   // ─── transações filtradas + ordenadas ───

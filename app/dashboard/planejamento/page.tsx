@@ -8,7 +8,7 @@ import PoupaUpLogo from '@/components/PoupaUpLogo'
 import { useCores, useTema } from '@/components/ThemeProvider'
 import { SkeletonPlanejamento } from '@/components/Skeleton'
 
-interface Transacao { valor: number; tipo: 'debito' | 'credito'; data_hora: string }
+interface Transacao { valor: number; tipo: 'debito' | 'credito'; data_hora: string; origem?: string | null }
 interface Meta      { nome: string; valor_total: number; valor_atual: number; contribuicao_mensal: number; prazo: string }
 
 type Cenario = 'pessimista' | 'realista' | 'otimista'
@@ -52,7 +52,7 @@ export default function PlanejamentoPage() {
       if (!user) { router.push('/login'); return }
 
       const [{ data: tx }, { data: mt }, contasRes] = await Promise.all([
-        supabase.from('transactions').select('valor,tipo,data_hora').eq('user_id', user.id).order('data_hora', { ascending: false }),
+        supabase.from('transactions').select('valor,tipo,data_hora,origem').eq('user_id', user.id).order('data_hora', { ascending: false }),
         supabase.from('goals').select('nome,valor_total,valor_atual,contribuicao_mensal,prazo').eq('user_id', user.id).eq('ativo', true),
         fetch('/api/contas'),
       ])
@@ -80,7 +80,7 @@ export default function PlanejamentoPage() {
     for (let i = 1; i <= mesesBase; i++) {
       const ref   = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
       const chave = ref.toISOString().slice(0, 7)
-      const txMes = transacoes.filter(t => t.data_hora.startsWith(chave))
+      const txMes = transacoes.filter(t => t.data_hora.startsWith(chave) && t.origem !== 'saldo_inicial')
       if (!txMes.length) continue
       totalRec  += txMes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
       totalDesp += txMes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)

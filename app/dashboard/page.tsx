@@ -25,6 +25,7 @@ interface Transacao {
   tipo: 'debito' | 'credito'
   categoria: string
   data_hora: string
+  origem?: string | null
 }
 
 const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -150,7 +151,7 @@ function ComparativoMes({ transacoes, accentColor, isMobile, m: medieval }: { tr
   const anoB   = prevD.getFullYear(), mesB = prevD.getMonth()
 
   function resumo(ano: number, mes: number) {
-    const txs = transacoes.filter(t => { const d = new Date(t.data_hora); return d.getFullYear() === ano && d.getMonth() === mes })
+    const txs = transacoes.filter(t => { const d = new Date(t.data_hora); return d.getFullYear() === ano && d.getMonth() === mes && t.origem !== 'saldo_inicial' })
     const receitas  = txs.filter(t => t.tipo === 'credito').reduce((s, t) => s + t.valor, 0)
     const despesas  = txs.filter(t => t.tipo === 'debito').reduce((s, t) => s + Math.abs(t.valor), 0)
     const porCat    = txs.filter(t => t.tipo === 'debito').reduce((acc, t) => { acc[t.categoria] = (acc[t.categoria] || 0) + Math.abs(t.valor); return acc }, {} as Record<string, number>)
@@ -516,7 +517,7 @@ useEffect(() => {
     const anoA = hoje.getFullYear(), mesA = hoje.getMonth()
     const anoB = mesA === 0 ? anoA - 1 : anoA, mesB = mesA === 0 ? 11 : mesA - 1
     function resumo(ano: number, mes: number) {
-      const txs = transacoes.filter(t => { const d = new Date(t.data_hora); return d.getFullYear() === ano && d.getMonth() === mes })
+      const txs = transacoes.filter(t => { const d = new Date(t.data_hora); return d.getFullYear() === ano && d.getMonth() === mes && t.origem !== 'saldo_inicial' })
       const rec  = txs.filter(t => t.tipo === 'credito').reduce((s, t) => s + t.valor, 0)
       const desp = txs.filter(t => t.tipo === 'debito').reduce((s, t) => s + Math.abs(t.valor), 0)
       return { receitas: rec, despesas: desp, saldo: rec - desp }
@@ -547,7 +548,7 @@ useEffect(() => {
     // Usa apenas transações do mês atual — não o histórico completo
     const txMes = transacoes.filter(t => {
       const d = new Date(t.data_hora)
-      return d.getFullYear() === ano && d.getMonth() === mes
+      return d.getFullYear() === ano && d.getMonth() === mes && t.origem !== 'saldo_inicial'
     })
     const despesasMes = txMes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
     const receitasMes = txMes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)

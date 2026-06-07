@@ -98,20 +98,21 @@ export async function GET() {
       const saldo    = contasVisiveis.reduce((a, c) => a + (c.saldo || 0), 0)
 
       // Transações do mês filtradas pelas contas visíveis
-      let txMes: { valor: number; tipo: string; categoria: string; data_hora: string }[] = []
+      let txMes: { valor: number; tipo: string; categoria: string; data_hora: string; origem?: string | null }[] = []
       if (contaIds.length) {
         const { data } = await svc.from('transactions')
-          .select('valor, tipo, categoria, data_hora')
+          .select('valor, tipo, categoria, data_hora, origem')
           .eq('user_id', p.id)
           .in('conta_id', contaIds)
           .gte('data_hora', inicioMes)
+          .neq('origem', 'saldo_inicial')
         txMes = data || []
       }
 
-      const receitas = txMes.filter(t => t.tipo === 'credito').reduce((a, t) => a + t.valor, 0)
-      const despesas = txMes.filter(t => t.tipo === 'debito').reduce((a, t) => a + Math.abs(t.valor), 0)
+      const receitas = txMes.filter(t => t.tipo === 'credito' && t.origem !== 'saldo_inicial').reduce((a, t) => a + t.valor, 0)
+      const despesas = txMes.filter(t => t.tipo === 'debito'  && t.origem !== 'saldo_inicial').reduce((a, t) => a + Math.abs(t.valor), 0)
       const porCat: Record<string, number> = {}
-      txMes.filter(t => t.tipo === 'debito').forEach(t => {
+      txMes.filter(t => t.tipo === 'debito' && t.origem !== 'saldo_inicial').forEach(t => {
         porCat[t.categoria] = (porCat[t.categoria] || 0) + Math.abs(t.valor)
       })
 
