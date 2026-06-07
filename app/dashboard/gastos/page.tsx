@@ -759,17 +759,20 @@ function GastosPageInner({ tipoInicial, deInicial, ateInicial }: { tipoInicial: 
               {/* Lista detalhada de lançamentos */}
               <div>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>Lançamentos detalhados</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 100px', gap: 0 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 90px' : '1fr 130px 100px', gap: 0 }}>
                   {/* header */}
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Descrição</div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Data</div>
+                  {!isMobile && <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a' }}>Data</div>}
                   <div style={{ fontSize: 10, color: 'rgba(255,255,255,.4)', padding: '4px 8px', borderBottom: '1px solid #1a3a1a', textAlign: 'right' }}>Valor</div>
                   {/* rows */}
                   {transacoesCat.map(t => (
                     <>
                       <div key={`d-${t.id}`} style={{ fontSize: 12, padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer' }}
-                        onClick={() => abrirEdicao(t)}>{t.descricao}</div>
-                      <div key={`dt-${t.id}`} style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)' }}>{fmtData(t.data_hora)}</div>
+                        onClick={() => abrirEdicao(t)}>
+                        {t.descricao}
+                        {isMobile && <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', marginLeft: 6 }}>{new Date(t.data_hora).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>}
+                      </div>
+                      {!isMobile && <div key={`dt-${t.id}`} style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)' }}>{fmtData(t.data_hora)}</div>}
                       <div key={`v-${t.id}`} style={{ fontSize: 12, fontWeight: 600, color: '#f87171', padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,.04)', textAlign: 'right' }}>-{fmtBRL(Math.abs(t.valor))}</div>
                     </>
                   ))}
