@@ -463,6 +463,7 @@ export default function Dashboard() {
   const [orcExpanded, setOrcExpanded] = useState(false)
   const [orcRealizado, setOrcReal]  = useState<Record<string, number>>({})
   const [dividas, setDividas]       = useState<{ saldo: number; taxa_juros: number }[]>([])
+  const [metasFamilia, setMetasFamilia] = useState<{ id: string; nome: string; valor_atual: number; valor_total: number; dono: { nome: string }; aportes: { user_id: string; valor: number; data: string }[] }[]>([])
   const [loading, setLoading]       = useState(true)
   const [guiaDismissed, setGuiaDismissed] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('onboarding_guia_dismissed') === '1'
@@ -636,11 +637,14 @@ useEffect(() => {
     if (mt)   setMetas(mt)
 
     const mesAtual = new Date().toISOString().slice(0, 7)
-    const [contasRes, orcRes, dividasRes] = await Promise.all([
+    const [contasRes, orcRes, dividasRes, metasFamiliaRes] = await Promise.all([
       fetch('/api/contas'),
       fetch(`/api/orcamento?mes=${mesAtual}`),
       fetch('/api/dividas'),
+      fetch('/api/metas/compartilhadas'),
     ])
+    const metasFamiliaDados = await metasFamiliaRes.json().catch(() => ({}))
+    setMetasFamilia((metasFamiliaDados.metas || []).filter((m: { valor_atual: number; valor_total: number }) => m.valor_total > 0 && m.valor_atual < m.valor_total))
     const contasDados = await contasRes.json()
     const orcDados    = await orcRes.json()
     const dividasDados = await dividasRes.json()
@@ -1837,6 +1841,43 @@ useEffect(() => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: cores.textMuted }}>
                           <span>{formatBRL(metaDestaque.valor_atual)} guardados</span>
                           <span style={{ color: tx.accentColor }}>faltam {formatBRL(falta)} →</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* ── Meta familiar mais próxima ── */}
+                  {metasFamilia.length > 0 && (() => {
+                    const mf = [...metasFamilia].sort((a, b) => (b.valor_atual / b.valor_total) - (a.valor_atual / a.valor_total))[0]
+                    const pct   = Math.min(Math.round((mf.valor_atual / mf.valor_total) * 100), 100)
+                    const falta = mf.valor_total - mf.valor_atual
+                    const totalAportadores = new Set(mf.aportes.map((a: { user_id: string }) => a.user_id)).size
+                    return (
+                      <div onClick={() => router.push('/dashboard/metas?aba=familia')}
+                        style={{ background: cores.cardBg, border: '1px solid rgba(99,102,241,.3)', borderRadius: 12, padding: '1rem', boxShadow: cores.cardShadow, marginBottom: 10, cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,.6)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div>
+                            <div style={{ fontSize: 9, color: 'rgba(99,102,241,.8)', textTransform: 'uppercase' as const, letterSpacing: '.1em', marginBottom: 3 }}>
+                              👨‍👩‍👧 Meta da família
+                            </div>
+                            <div style={{ fontSize: 'clamp(14px,1.1vw,18px)', fontWeight: 700, color: cores.text }}>{mf.nome}</div>
+                            <div style={{ fontSize: 10, color: cores.textMuted, marginTop: 2 }}>
+                              {mf.dono.nome} · {totalAportadores} contribuinte{totalAportadores !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: 'clamp(20px,1.8vw,30px)', fontWeight: 800, color: '#818cf8', lineHeight: 1 }}>{pct}%</div>
+                            <div style={{ fontSize: 10, color: cores.textMuted, marginTop: 2 }}>concluído</div>
+                          </div>
+                        </div>
+                        <div style={{ height: 8, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg,#4f46e5,#818cf8)', borderRadius: 4, transition: 'width .6s ease' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: cores.textMuted }}>
+                          <span>{formatBRL(mf.valor_atual)} guardados</span>
+                          <span style={{ color: '#818cf8' }}>faltam {formatBRL(falta)} →</span>
                         </div>
                       </div>
                     )
