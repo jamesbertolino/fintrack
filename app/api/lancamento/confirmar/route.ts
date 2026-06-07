@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   type TransacaoEntrada = {
     descricao: string; valor: number; tipo: string; categoria: string
-    data_hora: string; ref_externa?: string; confirmada_duplicata?: boolean
+    data_hora: string; ref_externa?: string; confirmada_duplicata?: boolean; substituir?: boolean
   }
 
   // Separa as que o usuário marcou para ignorar (confirmada_duplicata ainda true = já existe, não inserir)
@@ -82,6 +82,16 @@ export async function POST(request: NextRequest) {
         refs_encontradas_no_banco: [...refsJaExistentes],
       }
     })
+  }
+
+  // Substitui registros existentes quando o usuário escolheu "Substituir"
+  const paraSubstituir = novas.filter(t => t.substituir && t.ref_externa)
+  if (paraSubstituir.length) {
+    const refsSubst = paraSubstituir.map(t => t.ref_externa) as string[]
+    await supabase.from('transactions')
+      .delete()
+      .eq('user_id', user.id)
+      .in('ref_externa', refsSubst)
   }
 
   // Cria o registro de importação primeiro para obter o ID e vincular as transactions

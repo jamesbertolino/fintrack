@@ -1846,10 +1846,17 @@ useEffect(() => { carregarImportacoes() }, [carregarImportacoes])
                             <div style={{ fontSize: 13, fontWeight: 600, color: t.tipo === 'credito' ? '#4ade80' : '#f87171' }}>
                               {t.tipo === 'credito' ? '+' : '-'}R$ {Math.abs(t.valor).toFixed(2)}
                             </div>
-                            <button onClick={() => setTransacoesDetectadas(prev => prev.map((x, idx) => idx === i ? { ...x, confirmada_duplicata: false } : x))}
-                              style={{ fontSize: 9, padding: '2px 7px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
-                              Lançar mesmo assim
-                            </button>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button onClick={() => setTransacoesDetectadas(prev => prev.map((x, idx) => idx === i ? { ...x, confirmada_duplicata: false, substituir: true } : x))}
+                                title="Apaga o lançamento existente e insere este no lugar"
+                                style={{ fontSize: 9, padding: '2px 7px', background: 'rgba(251,191,36,.1)', border: '1px solid rgba(251,191,36,.35)', borderRadius: 5, color: '#fbbf24', cursor: 'pointer' }}>
+                                Substituir
+                              </button>
+                              <button onClick={() => setTransacoesDetectadas(prev => prev.map((x, idx) => idx === i ? { ...x, confirmada_duplicata: false, substituir: false } : x))}
+                                style={{ fontSize: 9, padding: '2px 7px', background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 5, color: 'rgba(255,255,255,.4)', cursor: 'pointer' }}>
+                                Lançar mesmo assim
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}
