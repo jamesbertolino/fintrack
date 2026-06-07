@@ -52,7 +52,7 @@ export async function GET() {
 
   // Para desafios de família, busca aportes em metas compartilhadas do grupo
   const temFamilia = ativos.some(p => getDesafio(p.desafio_id)?.tipo === 'familia_poupanca')
-  let familiaAportesMap: Record<string, number> = {} // iniciado_em → total aportado no período
+  const familiaAportesMap: Record<string, number> = {} // iniciado_em → total aportado no período
   if (temFamilia) {
     const svc = getSvc()
     const { data: grupoDono } = await svc.from('familia_grupos').select('id').eq('dono_id', user.id).single()

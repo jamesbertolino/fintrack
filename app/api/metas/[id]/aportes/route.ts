@@ -95,7 +95,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           valor,
           novoValor,
           valorTotal:     meta.valor_total,
-          grupoId:        grupoId ?? null,
           outrosMembros:  ((membrosRes.data || []) as { membro_id: string }[]).map(m => m.membro_id),
         })
       } catch { /* melhor esforço */ }

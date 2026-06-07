@@ -533,7 +533,7 @@ export default function FamiliaPage() {
 
             {/* ── Membros em grid ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-              {(membroFiltro ? dash.membros.filter(m => m.id === membroFiltro) : dash.membros).map((mb, idx) => {
+              {(membroFiltro ? dash.membros.filter(m => m.id === membroFiltro) : dash.membros).map((mb) => {
                 const realIdx = dash.membros.findIndex(m => m.id === mb.id)
                 const corMb   = CORES_MEMBROS[realIdx % CORES_MEMBROS.length]
                 const resultado = mb.receitas - mb.despesas

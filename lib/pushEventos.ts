@@ -61,7 +61,6 @@ export function notificarAporteFamiliar({
   valor,
   novoValor,
   valorTotal,
-  grupoId,
   outrosMembros,
 }: {
   nomeAportador: string
@@ -71,7 +70,6 @@ export function notificarAporteFamiliar({
   valor: number
   novoValor: number
   valorTotal: number
-  grupoId: string | null
   outrosMembros: string[]
 }) {
   const pct   = valorTotal > 0 ? Math.round((novoValor / valorTotal) * 100) : 0
