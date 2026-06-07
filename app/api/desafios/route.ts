@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { CATALOGO_DESAFIOS, getDesafio, type Desafio } from '@/lib/desafios'
 import { logAudit } from '@/lib/auditLog'
+
+function getSvc() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
 
 // ─── GET /api/desafios ───────────────────────────────────────────────────────
 // Retorna: catalogo, ativos (com progresso calculado), historico
@@ -45,12 +50,38 @@ export async function GET() {
 
   const txs = transacoes || []
 
+  // Para desafios de família, busca aportes em metas compartilhadas do grupo
+  const temFamilia = ativos.some(p => getDesafio(p.desafio_id)?.tipo === 'familia_poupanca')
+  let familiaAportesMap: Record<string, number> = {} // iniciado_em → total aportado no período
+  if (temFamilia) {
+    const svc = getSvc()
+    const { data: grupoDono } = await svc.from('familia_grupos').select('id').eq('dono_id', user.id).single()
+    let grupoId = grupoDono?.id ?? null
+    if (!grupoId) {
+      const { data: memb } = await svc.from('familia_membros').select('grupo_id').eq('membro_id', user.id).single()
+      grupoId = memb?.grupo_id ?? null
+    }
+    if (grupoId) {
+      const { data: comps } = await svc.from('meta_compartilhamentos').select('meta_id').eq('grupo_id', grupoId)
+      const metaIds = (comps || []).map(c => c.meta_id)
+      if (metaIds.length) {
+        const { data: aportes } = await svc.from('meta_aportes').select('valor, data, meta_id').in('meta_id', metaIds)
+        for (const p of ativos.filter(p => getDesafio(p.desafio_id)?.tipo === 'familia_poupanca')) {
+          familiaAportesMap[p.iniciado_em] = (aportes || [])
+            .filter(a => a.data >= p.iniciado_em.slice(0, 10) && a.data <= p.termina_em.slice(0, 10))
+            .reduce((s, a) => s + a.valor, 0)
+        }
+      }
+    }
+  }
+
   const ativosComProgresso = ativos.map(p => {
     const desafio = getDesafio(p.desafio_id)
     if (!desafio) return { ...p, desafio: null, progresso: 0, pct: 0 }
 
     const txPeriodo = txs.filter(t => t.data_hora >= p.iniciado_em && t.data_hora <= p.termina_em)
-    const { progresso, pct, status } = calcularProgresso(desafio, txPeriodo, p.iniciado_em, p.termina_em)
+    const familiaTotal = desafio.tipo === 'familia_poupanca' ? (familiaAportesMap[p.iniciado_em] ?? 0) : undefined
+    const { progresso, pct, status } = calcularProgresso(desafio, txPeriodo, p.iniciado_em, p.termina_em, familiaTotal)
 
     return { ...p, desafio, progresso, pct, status_calculado: status }
   })
@@ -127,6 +158,7 @@ function calcularProgresso(
   txs: Tx[],
   iniciado_em: string,
   termina_em: string,
+  familiaTotal?: number,
 ): { progresso: number; pct: number; status: 'ativo' | 'concluido' | 'falhou' } {
   const terminou = new Date() >= new Date(termina_em)
 
@@ -167,6 +199,14 @@ function calcularProgresso(
     const pct = Math.min(100, (diasValidos.length / desafio.valor_meta) * 100)
     const status = terminou ? (diasValidos.length >= desafio.valor_meta ? 'concluido' : 'falhou') : 'ativo'
     return { progresso: diasValidos.length, pct, status }
+  }
+
+  if (desafio.tipo === 'familia_poupanca') {
+    const total = familiaTotal ?? 0
+    const pct   = Math.min(100, (total / desafio.valor_meta) * 100)
+    const terminou = new Date() >= new Date(termina_em)
+    const status = terminou ? (total >= desafio.valor_meta ? 'concluido' : 'falhou') : 'ativo'
+    return { progresso: total, pct, status }
   }
 
   return { progresso: 0, pct: 0, status: 'ativo' }

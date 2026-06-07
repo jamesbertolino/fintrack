@@ -1,4 +1,4 @@
-export type TipoDesafio = 'limite_categoria' | 'economia' | 'habito' | 'sem_categoria'
+export type TipoDesafio = 'limite_categoria' | 'economia' | 'habito' | 'sem_categoria' | 'familia_poupanca'
 export type Dificuldade = 'facil' | 'medio' | 'dificil' | 'lendario'
 
 export interface Desafio {
@@ -130,6 +130,40 @@ export const CATALOGO_DESAFIOS: Desafio[] = [
     xp: 800,
     dificuldade: 'lendario',
     icone: '🧘',
+  },
+  // ── Desafios de família ────────────────────────────────────────────────────
+  {
+    id: 'familia_poupa_500_30d',
+    titulo: 'Cofre da Família',
+    descricao: 'Juntos, depositem R$500 nas metas compartilhadas em 30 dias. Cada centavo conta!',
+    tipo: 'familia_poupanca',
+    valor_meta: 500,
+    duracao_dias: 30,
+    xp: 600,
+    dificuldade: 'medio',
+    icone: '🏦',
+  },
+  {
+    id: 'familia_poupa_1500_30d',
+    titulo: 'Aliança dos Poupadores',
+    descricao: 'A família une forças: R$1.500 depositados em metas compartilhadas em 30 dias.',
+    tipo: 'familia_poupanca',
+    valor_meta: 1500,
+    duracao_dias: 30,
+    xp: 1000,
+    dificuldade: 'dificil',
+    icone: '🤝',
+  },
+  {
+    id: 'familia_poupa_5000_60d',
+    titulo: 'Tesouro do Clã',
+    descricao: 'O desafio lendário: R$5.000 somados por toda a família em 60 dias. Apenas os mais unidos chegam lá.',
+    tipo: 'familia_poupanca',
+    valor_meta: 5000,
+    duracao_dias: 60,
+    xp: 2000,
+    dificuldade: 'lendario',
+    icone: '👑',
   },
 ]
 
