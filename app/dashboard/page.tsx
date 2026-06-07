@@ -1363,12 +1363,13 @@ useEffect(() => {
               })()}
 
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
-              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
+              {/* Mobile: Saldo destaque / Receitas+Gastos / XP — Desktop: 4 colunas */}
+              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 8 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
                 {([
-                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined,      delta: tendencia.temPrev ? tendencia.saldo    : null, deltaInverso: false },
-                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref,   delta: tendencia.temPrev ? tendencia.receitas : null, deltaInverso: false },
-                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref,     delta: tendencia.temPrev ? tendencia.despesas : null, deltaInverso: true  },
-                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,            icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false },
+                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined,      delta: tendencia.temPrev ? tendencia.saldo    : null, deltaInverso: false, mobileSpan: 'full' },
+                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref,   delta: tendencia.temPrev ? tendencia.receitas : null, deltaInverso: false, mobileSpan: 'half' },
+                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref,     delta: tendencia.temPrev ? tendencia.despesas : null, deltaInverso: true,  mobileSpan: 'half' },
+                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,            icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false, mobileSpan: 'full' },
                 ] as const).map(card => (
                   <div key={card.label}
                     role={card.label === tx.metLabels[3] || card.href ? 'button' : undefined}
@@ -1389,32 +1390,48 @@ useEffect(() => {
                       background: cores.cardBg,
                       border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder}`,
                       borderRadius: isMobile ? 14 : 10,
-                      padding: isMobile ? '16px 18px' : 'clamp(10px, 1vw, 20px) clamp(12px, 1.2vw, 24px)',
+                      padding: isMobile
+                        ? (card.mobileSpan === 'full' ? '16px 20px' : '14px 14px')
+                        : 'clamp(10px, 1vw, 20px) clamp(12px, 1.2vw, 24px)',
                       boxShadow: cores.cardShadow,
                       cursor: card.label === tx.metLabels[3] || card.href ? 'pointer' : 'default',
                       transition: 'transform .18s, box-shadow .18s, border-color .18s',
-                      display: isMobile ? 'flex' : undefined,
-                      alignItems: isMobile ? 'center' : undefined,
-                      justifyContent: isMobile ? 'space-between' : undefined,
+                      gridColumn: isMobile && card.mobileSpan === 'full' ? '1 / -1' : undefined,
+                      display: isMobile && card.mobileSpan === 'full' ? 'flex' : undefined,
+                      alignItems: isMobile && card.mobileSpan === 'full' ? 'center' : undefined,
+                      justifyContent: isMobile && card.mobileSpan === 'full' ? 'space-between' : undefined,
                     }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'space-between', gap: isMobile ? 10 : 0, marginBottom: isMobile ? 0 : 5 }}>
-                      <span style={{ fontSize: isMobile ? 22 : 'clamp(14px, 1.1vw, 22px)' }}>{card.icone}</span>
-                      <span style={{ fontSize: isMobile ? 13 : 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
+                    {/* Ícone + Label */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: isMobile && card.mobileSpan === 'full' ? 'flex-start' : 'space-between',
+                      gap: isMobile ? 8 : 0,
+                      marginBottom: isMobile && card.mobileSpan === 'full' ? 0 : 5,
+                    }}>
+                      <span style={{ fontSize: isMobile ? (card.mobileSpan === 'half' ? 18 : 22) : 'clamp(14px, 1.1vw, 22px)' }}>{card.icone}</span>
+                      <span style={{ fontSize: isMobile ? (card.mobileSpan === 'half' ? 11 : 13) : 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
                     </div>
-                    <div style={{ fontSize: isMobile ? 20 : 'clamp(22px, 2vw, 36px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
+                    {/* Valor */}
+                    <div style={{
+                      fontSize: isMobile ? (card.mobileSpan === 'half' ? 'clamp(15px,4vw,20px)' : 24) : 'clamp(22px, 2vw, 36px)',
+                      fontWeight: 700, color: card.cor,
+                      wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums',
+                      textAlign: isMobile && card.mobileSpan === 'half' ? 'left' : isMobile ? 'right' : 'left',
+                      marginTop: isMobile && card.mobileSpan === 'half' ? 6 : 0,
+                    }}>{card.val}</div>
                     {card.delta !== null && (() => {
                       const positivo = card.deltaInverso ? card.delta < 0 : card.delta > 0
                       const cor = positivo ? '#4ade80' : '#f87171'
                       const seta = card.delta > 0 ? '↑' : '↓'
                       return (
-                        <div style={{ fontSize: 'clamp(10px, 0.75vw, 12px)', color: cor, marginTop: 4, display: 'flex', alignItems: 'center', gap: 3, justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
+                        <div style={{ fontSize: isMobile ? 10 : 'clamp(10px, 0.75vw, 12px)', color: cor, marginTop: 4, display: 'flex', alignItems: 'center', gap: 3, justifyContent: isMobile && card.mobileSpan === 'full' ? 'flex-end' : 'flex-start' }}>
                           <span>{seta} {Math.abs(card.delta).toFixed(0)}%</span>
                           <span style={{ color: cores.textFaint }}>vs mês ant.</span>
                         </div>
                       )
                     })()}
                     {card.label === tx.metLabels[3] && (
-                      <div style={{ fontSize: 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
+                      <div style={{ fontSize: isMobile ? 11 : 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: isMobile ? 0 : 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
                     )}
                   </div>
                 ))}
