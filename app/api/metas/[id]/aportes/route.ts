@@ -80,7 +80,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   // Notifica família quando aporte é em meta compartilhada
   if (!eDono || grupoId) {
-    notificarAporteFamiliar({ svc, metaId: id, metaNome: meta.nome, donoId: meta.user_id, aportadorId: user.id, valor, novoValor, valorTotal: meta.valor_total, grupoId: grupoId ?? null })
+    // Busca nome do aportador e membros do grupo para notificação (não-bloqueante)
+    Promise.resolve().then(async () => {
+      try {
+        const [perfilRes, membrosRes] = await Promise.all([
+          svc.from('profiles').select('nome').eq('id', user.id).single(),
+          grupoId ? svc.from('familia_membros').select('membro_id').eq('grupo_id', grupoId) : Promise.resolve({ data: [] }),
+        ])
+        notificarAporteFamiliar({
+          nomeAportador:  (perfilRes.data as { nome: string } | null)?.nome || 'Um membro',
+          metaNome:       meta.nome,
+          donoId:         meta.user_id,
+          aportadorId:    user.id,
+          valor,
+          novoValor,
+          valorTotal:     meta.valor_total,
+          grupoId:        grupoId ?? null,
+          outrosMembros:  ((membrosRes.data || []) as { membro_id: string }[]).map(m => m.membro_id),
+        })
+      } catch { /* melhor esforço */ }
+    })
   }
 
   return NextResponse.json({ aporte, valor_atual: novoValor })

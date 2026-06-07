@@ -54,8 +54,7 @@ export function notificarMissoesDia(userId: string, qtd: number) {
 // ─── Aporte em meta compartilhada ────────────────────────────────────────────
 
 export function notificarAporteFamiliar({
-  svc,
-  metaId,
+  nomeAportador,
   metaNome,
   donoId,
   aportadorId,
@@ -63,9 +62,9 @@ export function notificarAporteFamiliar({
   novoValor,
   valorTotal,
   grupoId,
+  outrosMembros,
 }: {
-  svc: ReturnType<typeof import('@supabase/supabase-js').createClient>
-  metaId: string
+  nomeAportador: string
   metaNome: string
   donoId: string
   aportadorId: string
@@ -73,37 +72,19 @@ export function notificarAporteFamiliar({
   novoValor: number
   valorTotal: number
   grupoId: string | null
+  outrosMembros: string[]
 }) {
-  Promise.resolve().then(async () => {
-    try {
-      const pct  = valorTotal > 0 ? Math.round((novoValor / valorTotal) * 100) : 0
-      const falta = Math.max(0, valorTotal - novoValor)
+  const pct   = valorTotal > 0 ? Math.round((novoValor / valorTotal) * 100) : 0
+  const falta = Math.max(0, valorTotal - novoValor)
+  const title = pct >= 100 ? `🎉 Meta "${metaNome}" concluída!` : `💰 Depósito em "${metaNome}"`
+  const body  = pct >= 100
+    ? `${nomeAportador} fez o último aporte (${fmtBRL(valor)}) e a meta foi atingida!`
+    : `${nomeAportador} depositou ${fmtBRL(valor)} — ${pct}% concluído, faltam ${fmtBRL(falta)}.`
 
-      // Nome de quem aportou
-      const { data: perfil } = await svc.from('profiles').select('nome').eq('id', aportadorId).single()
-      const nomeAportador = perfil?.nome || 'Um membro'
-
-      const title = pct >= 100 ? `🎉 Meta "${metaNome}" concluída!` : `💰 Depósito em "${metaNome}"`
-      const body  = pct >= 100
-        ? `${nomeAportador} fez o último aporte (${fmtBRL(valor)}) e a meta foi atingida!`
-        : `${nomeAportador} depositou ${fmtBRL(valor)} — ${pct}% concluído, faltam ${fmtBRL(falta)}.`
-
-      // Notifica o dono (se não foi ele quem aportou)
-      if (donoId !== aportadorId) {
-        push(donoId, { title, body, url: `/dashboard/metas` })
-      }
-
-      // Notifica os outros membros da família (exceto quem aportou)
-      if (grupoId) {
-        const { data: membros } = await svc.from('familia_membros').select('membro_id').eq('grupo_id', grupoId)
-        for (const m of membros || []) {
-          if (m.membro_id !== aportadorId && m.membro_id !== donoId) {
-            push(m.membro_id, { title, body, url: `/dashboard/metas` })
-          }
-        }
-      }
-    } catch { /* push é melhor esforço */ }
-  })
+  if (donoId !== aportadorId) push(donoId, { title, body, url: '/dashboard/metas' })
+  for (const id of outrosMembros) {
+    if (id !== aportadorId && id !== donoId) push(id, { title, body, url: '/dashboard/metas' })
+  }
 }
 
 // ─── Verificação pós-lançamento ───────────────────────────────────────────────
