@@ -1363,62 +1363,101 @@ useEffect(() => {
               })()}
 
               {/* Cards métricas — 1 coluna em mobile, 4 em desktop */}
-              <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))', gap: isMobile ? 10 : 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
-                {([
-                  { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined,      delta: tendencia.temPrev ? tendencia.saldo    : null, deltaInverso: false },
-                  { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref,   delta: tendencia.temPrev ? tendencia.receitas : null, deltaInverso: false },
-                  { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref,     delta: tendencia.temPrev ? tendencia.despesas : null, deltaInverso: true  },
-                  { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,            icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false },
-                ] as const).map(card => (
-                  <div key={card.label}
-                    role={card.label === tx.metLabels[3] || card.href ? 'button' : undefined}
-                    tabIndex={card.label === tx.metLabels[3] || card.href ? 0 : undefined}
-                    onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
-                    onKeyDown={card.label === tx.metLabels[3] ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExtratoXP(true) } } : card.href ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(card.href!) } } : undefined}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-3px)'
-                      e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,.35), 0 0 0 1px ${card.cor}55`
-                      e.currentTarget.style.borderColor = card.cor + '66'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = ''
-                      e.currentTarget.style.boxShadow = cores.cardShadow
-                      e.currentTarget.style.borderColor = card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder
-                    }}
-                    style={{
-                      background: cores.cardBg,
-                      border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder}`,
-                      borderRadius: isMobile ? 14 : 10,
-                      padding: isMobile ? '16px 18px' : 'clamp(10px, 1vw, 20px) clamp(12px, 1.2vw, 24px)',
-                      boxShadow: cores.cardShadow,
-                      cursor: card.label === tx.metLabels[3] || card.href ? 'pointer' : 'default',
-                      transition: 'transform .18s, box-shadow .18s, border-color .18s',
-                      display: isMobile ? 'flex' : undefined,
-                      alignItems: isMobile ? 'center' : undefined,
-                      justifyContent: isMobile ? 'space-between' : undefined,
-                    }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'flex-start' : 'space-between', gap: isMobile ? 10 : 0, marginBottom: isMobile ? 0 : 5 }}>
-                      <span style={{ fontSize: isMobile ? 22 : 'clamp(14px, 1.1vw, 22px)' }}>{card.icone}</span>
-                      <span style={{ fontSize: isMobile ? 13 : 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
-                    </div>
-                    <div style={{ fontSize: isMobile ? 20 : 'clamp(22px, 2vw, 36px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums', textAlign: isMobile ? 'right' : 'left' }}>{card.val}</div>
-                    {card.delta !== null && (() => {
-                      const positivo = card.deltaInverso ? card.delta < 0 : card.delta > 0
-                      const cor = positivo ? '#4ade80' : '#f87171'
-                      const seta = card.delta > 0 ? '↑' : '↓'
-                      return (
-                        <div style={{ fontSize: 'clamp(10px, 0.75vw, 12px)', color: cor, marginTop: 4, display: 'flex', alignItems: 'center', gap: 3, justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
-                          <span>{seta} {Math.abs(card.delta).toFixed(0)}%</span>
-                          <span style={{ color: cores.textFaint }}>vs mês ant.</span>
+              {isMobile ? (
+                // ── Mobile: Saldo destaque + barra Receitas/Gastos/XP ──────────
+                <div data-tour="tour-metricas" style={{ marginBottom: '1rem' }}>
+                  {/* Card Saldo — destaque */}
+                  {(() => {
+                    const corSaldo = saldo >= 0 ? tx.accentColor : '#c0392b'
+                    const delta = tendencia.temPrev ? tendencia.saldo : null
+                    return (
+                      <div style={{ background: cores.cardBg, border: `1px solid ${cores.cardBorder}`, borderRadius: 16, padding: '18px 20px', marginBottom: 8, boxShadow: cores.cardShadow }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 20 }}>{tx.metIcones[0]}</span>
+                          <span style={{ fontSize: 12, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.07em', fontWeight: 500 }}>{tx.metLabels[0]}</span>
                         </div>
-                      )
-                    })()}
-                    {card.label === tx.metLabels[3] && (
-                      <div style={{ fontSize: 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
-                    )}
+                        <div style={{ fontSize: 34, fontWeight: 700, color: corSaldo, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{formatBRL(saldo)}</div>
+                        {delta !== null && (() => {
+                          const pos = delta > 0; const cor2 = pos ? '#4ade80' : '#f87171'
+                          return <div style={{ fontSize: 11, color: cor2, marginTop: 6, display: 'flex', alignItems: 'center', gap: 3 }}><span>{delta > 0 ? '↑' : '↓'} {Math.abs(delta).toFixed(0)}%</span><span style={{ color: cores.textFaint }}>vs mês anterior</span></div>
+                        })()}
+                      </div>
+                    )
+                  })()}
+                  {/* Barra: Receitas / Gastos / XP */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {([
+                      { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent, icone: tx.metIcones[1], href: receitasHref,   delta: tendencia.temPrev ? tendencia.receitas : null, deltaInverso: false, isXP: false },
+                      { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',    icone: tx.metIcones[2], href: gastosHref,     delta: tendencia.temPrev ? tendencia.despesas : null, deltaInverso: true,  isXP: false },
+                      { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor, icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false, isXP: true },
+                    ] as const).map(card => (
+                      <div key={card.label}
+                        role={card.isXP || card.href ? 'button' : undefined}
+                        tabIndex={card.isXP || card.href ? 0 : undefined}
+                        onClick={card.isXP ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
+                        onKeyDown={card.isXP ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExtratoXP(true) } } : card.href ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(card.href!) } } : undefined}
+                        style={{
+                          background: cores.cardBg, border: `1px solid ${card.href ? card.cor + '33' : card.isXP ? tx.accentColor + '44' : cores.cardBorder}`,
+                          borderRadius: 14, padding: '12px 12px', boxShadow: cores.cardShadow,
+                          cursor: card.isXP || card.href ? 'pointer' : 'default',
+                        }}>
+                        <div style={{ fontSize: 18, marginBottom: 4 }}>{card.icone}</div>
+                        <div style={{ fontSize: 'clamp(13px,3.5vw,17px)', fontWeight: 700, color: card.cor, fontVariantNumeric: 'tabular-nums', marginBottom: 3 }}>{card.val}</div>
+                        <div style={{ fontSize: 10, color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</div>
+                        {card.delta !== null && (() => {
+                          const pos = card.deltaInverso ? card.delta < 0 : card.delta > 0
+                          return <div style={{ fontSize: 10, color: pos ? '#4ade80' : '#f87171', marginTop: 3 }}>{card.delta > 0 ? '↑' : '↓'}{Math.abs(card.delta).toFixed(0)}%</div>
+                        })()}
+                        {card.isXP && <div style={{ fontSize: 10, color: cores.textFaint, marginTop: 2 }}>Nv.{nivel.nivel} · {nivel.pct}%</div>}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                // ── Desktop: 4 colunas ────────────────────────────────────────
+                <div data-tour="tour-metricas" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 'clamp(8px, 0.8vw, 16px)', marginBottom: '1rem' }}>
+                  {([
+                    { label: tx.metLabels[0], val: formatBRL(saldo),    cor: saldo >= 0 ? tx.accentColor : '#c0392b', icone: tx.metIcones[0], href: undefined,      delta: tendencia.temPrev ? tendencia.saldo    : null, deltaInverso: false },
+                    { label: tx.metLabels[1], val: formatBRL(receitas), cor: m ? '#5A8A4A' : cores.accent,            icone: tx.metIcones[1], href: receitasHref,   delta: tendencia.temPrev ? tendencia.receitas : null, deltaInverso: false },
+                    { label: tx.metLabels[2], val: formatBRL(despesas), cor: m ? '#8B0000' : '#f87171',               icone: tx.metIcones[2], href: gastosHref,     delta: tendencia.temPrev ? tendencia.despesas : null, deltaInverso: true  },
+                    { label: tx.metLabels[3], val: `${xpTotal.toLocaleString()} XP`, cor: tx.accentColor,            icone: tx.metIcones[3], href: undefined,      delta: null, deltaInverso: false },
+                  ] as const).map(card => (
+                    <div key={card.label}
+                      role={card.label === tx.metLabels[3] || card.href ? 'button' : undefined}
+                      tabIndex={card.label === tx.metLabels[3] || card.href ? 0 : undefined}
+                      onClick={card.label === tx.metLabels[3] ? () => setExtratoXP(true) : card.href ? () => router.push(card.href!) : undefined}
+                      onKeyDown={card.label === tx.metLabels[3] ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExtratoXP(true) } } : card.href ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(card.href!) } } : undefined}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px rgba(0,0,0,.35), 0 0 0 1px ${card.cor}55`; e.currentTarget.style.borderColor = card.cor + '66' }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = cores.cardShadow; e.currentTarget.style.borderColor = card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder }}
+                      style={{
+                        background: cores.cardBg,
+                        border: `1px solid ${card.label === tx.metLabels[3] ? tx.accentColor + '44' : card.href ? card.cor + '33' : cores.cardBorder}`,
+                        borderRadius: 10, padding: 'clamp(10px, 1vw, 20px) clamp(12px, 1.2vw, 24px)',
+                        boxShadow: cores.cardShadow, cursor: card.label === tx.metLabels[3] || card.href ? 'pointer' : 'default',
+                        transition: 'transform .18s, box-shadow .18s, border-color .18s',
+                      }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 'clamp(14px, 1.1vw, 22px)' }}>{card.icone}</span>
+                        <span style={{ fontSize: 'clamp(10px, 0.75vw, 14px)', color: cores.textMuted, textTransform: 'uppercase' as const, letterSpacing: '.05em' }}>{card.label}</span>
+                      </div>
+                      <div style={{ fontSize: 'clamp(22px, 2vw, 36px)', fontWeight: 700, color: card.cor, wordBreak: 'break-all' as const, fontVariantNumeric: 'tabular-nums' }}>{card.val}</div>
+                      {card.delta !== null && (() => {
+                        const positivo = card.deltaInverso ? card.delta < 0 : card.delta > 0
+                        const cor = positivo ? '#4ade80' : '#f87171'
+                        return (
+                          <div style={{ fontSize: 'clamp(10px, 0.75vw, 12px)', color: cor, marginTop: 4, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <span>{card.delta > 0 ? '↑' : '↓'} {Math.abs(card.delta).toFixed(0)}%</span>
+                            <span style={{ color: cores.textFaint }}>vs mês ant.</span>
+                          </div>
+                        )
+                      })()}
+                      {card.label === tx.metLabels[3] && (
+                        <div style={{ fontSize: 'clamp(11px, 0.8vw, 14px)', color: cores.textFaint, marginTop: 3 }}>Nv.{nivel.nivel} · {nivel.pct}% · <span style={{ color: tx.accentColor }}>ver extrato</span></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Previsão de fechamento do mês */}
               {previsaoMes && (
