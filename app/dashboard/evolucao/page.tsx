@@ -144,7 +144,7 @@ export default function EvolucaoPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#080b0f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', fontFamily: 'system-ui' }}>Carregando o reino...</div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', fontFamily: 'system-ui, sans-serif' }}>Carregando o reino...</div>
     </div>
   )
 

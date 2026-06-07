@@ -363,7 +363,7 @@ function loginStyles(cores: ReturnType<typeof useCores>, isClaro: boolean) {
       min-height: 100dvh;
       display: flex;
       flex-direction: column;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, sans-serif;
       background: ${cores.surface};
     }
 

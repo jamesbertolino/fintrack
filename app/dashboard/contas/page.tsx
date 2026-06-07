@@ -148,7 +148,7 @@ export default function ContasPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', fontFamily: 'system-ui' }}>Carregando contas...</div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', fontFamily: 'system-ui, sans-serif' }}>Carregando contas...</div>
     </div>
   )
 

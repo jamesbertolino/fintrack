@@ -109,7 +109,7 @@ export default function TVPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#050a05', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
+      <div style={{ minHeight: '100vh', background: '#050a05', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{ color: 'rgba(255,255,255,.3)', fontSize: 16 }}>Carregando...</div>
       </div>
     )

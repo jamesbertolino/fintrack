@@ -664,7 +664,7 @@ export default function PerfilPage() {
     if (erro) return (
       <div style={{ minHeight: '100vh', background: cores.pageBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
         <div style={{ fontSize: 32 }}>⚠️</div>
-        <div style={{ fontSize: 14, color: '#f87171', fontFamily: 'system-ui', textAlign: 'center', maxWidth: 320 }}>{erro}</div>
+        <div style={{ fontSize: 14, color: '#f87171', fontFamily: 'system-ui, sans-serif', textAlign: 'center', maxWidth: 320 }}>{erro}</div>
         <button onClick={() => { setErro(''); setLoading(true); carregar() }}
           style={{ marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none', background: cores.accent, color: '#000', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
           Tentar novamente

@@ -106,7 +106,7 @@ export default function MobileBottomNav() {
                       }}
                     >
                       <span style={{ fontSize: 24, lineHeight: 1 }}>{item.icon}</span>
-                      <span style={{ fontSize: 11, color: active ? '#4ade80' : 'rgba(255,255,255,.6)', fontFamily: 'system-ui', lineHeight: 1.2, textAlign: 'center' }}>
+                      <span style={{ fontSize: 11, color: active ? '#4ade80' : 'rgba(255,255,255,.6)', fontFamily: 'system-ui, sans-serif', lineHeight: 1.2, textAlign: 'center' }}>
                         {item.label}
                       </span>
                     </button>
@@ -122,12 +122,12 @@ export default function MobileBottomNav() {
                     display: 'flex', alignItems: 'center', gap: 8,
                     background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.25)',
                     borderRadius: 10, padding: '10px 16px', cursor: 'pointer',
-                    color: '#f87171', fontSize: 14, fontWeight: 600, fontFamily: 'system-ui',
+                    color: '#f87171', fontSize: 14, fontWeight: 600, fontFamily: 'system-ui, sans-serif',
                   }}
                 >
                   🚪 Sair
                 </button>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: 'system-ui' }}>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.2)', fontFamily: 'system-ui, sans-serif' }}>
                   v{pkg.version}
                 </span>
               </div>

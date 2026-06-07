@@ -28,7 +28,7 @@ export default function PoupaUpLogo({ mode = 'full' }: PoupaUpLogoProps) {
           display: 'flex',
           alignItems: 'baseline',
           lineHeight: 1,
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fontFamily: 'system-ui, sans-serif',
           fontWeight: 800,
           fontSize: mode === 'full' ? 22 : 18,
           letterSpacing: -0.5,

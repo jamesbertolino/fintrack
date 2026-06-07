@@ -217,7 +217,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div style={{ background: '#0a0a0a', color: '#fff', fontFamily: 'system-ui, -apple-system, sans-serif', minHeight: '100vh' }}>
+    <div style={{ background: '#0a0a0a', color: '#fff', fontFamily: 'system-ui, sans-serif', minHeight: '100vh' }}>
 
       <style>{`
         .fade-in { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
