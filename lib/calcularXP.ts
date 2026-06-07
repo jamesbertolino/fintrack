@@ -1,16 +1,18 @@
 export interface DadosXP {
-  transacoes: { valor: number; tipo: string }[]
+  transacoes: { valor: number; tipo: string; origem?: string | null }[]
   metas: { valor_total: number; valor_atual: number; ativo?: boolean }[]
   conquistas?: number
   xpBonus?: number
 }
 
 export function calcularXP(dados: DadosXP) {
-  const receitas = dados.transacoes
+  const txFinanceiras = dados.transacoes.filter(t => t.origem !== 'saldo_inicial')
+
+  const receitas = txFinanceiras
     .filter(t => t.tipo === 'credito')
     .reduce((a, t) => a + t.valor, 0)
 
-  const despesas = dados.transacoes
+  const despesas = txFinanceiras
     .filter(t => t.tipo === 'debito')
     .reduce((a, t) => a + Math.abs(t.valor), 0)
 
