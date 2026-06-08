@@ -1,5 +1,5 @@
-export const APP_VERSION = '2.69.2'
-export const APP_BUILD   = '2026.06.07'
+export const APP_VERSION = '2.69.3'
+export const APP_BUILD   = '2026.06.08'
 
 /**
  * Histórico de versões

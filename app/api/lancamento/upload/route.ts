@@ -364,16 +364,20 @@ function parseIAResponse(texto: string): any {
 
 // ─── Extrai tipo de pagamento do início da descrição ─────────────────────────
 const PREFIXOS_PAGAMENTO: [RegExp, string][] = [
-  [/^CARTAO VISA ELECTRON\b/i,          'Débito'],
+  [/^CARTAO VISA ELECTRON\b/i,           'Débito'],
   [/^CARTAO MASTERCARD DEBITO\b/i,       'Débito'],
   [/^CARTAO VISA\b/i,                    'Crédito'],
   [/^CARTAO MASTERCARD\b/i,              'Crédito'],
   [/^CARTAO\b/i,                         'Cartão'],
   [/^VISA ELECTRON\b/i,                  'Débito'],
   [/^MASTERCARD DEBITO\b/i,              'Débito'],
+  [/^QR CODE DINAMICO\b/i,               'PIX'],
+  [/^QR CODE ESTATICO\b/i,               'PIX'],
+  [/^QR CODE\b/i,                        'PIX'],
   [/^TRANSFERENCIA PIX\b/i,              'PIX'],
   [/^TRANSFE PIX\b/i,                    'PIX'],
   [/^TRANSF PIX\b/i,                     'PIX'],
+  [/^PIX QR CODE DINAMICO\b/i,           'PIX'],
   [/^PIX QR CODE ESTATICO\b/i,           'PIX'],
   [/^PIX QR CODE\b/i,                    'PIX'],
   [/^PIX\b/i,                            'PIX'],
@@ -394,6 +398,16 @@ const PREFIXOS_PAGAMENTO: [RegExp, string][] = [
   [/^DEPOSITO\b/i,                       'Depósito'],
   [/^CREDITO EM CONTA\b/i,               'Crédito em Conta'],
 ]
+
+/** Aplica extrairTipoPagamento em toda a lista — garante limpeza em qualquer formato de importação */
+function normalizarDescricoesTransacoes(lista: TransacaoDetectada[]): void {
+  for (const t of lista) {
+    if (!t.descricao) continue
+    const { descricao, tipo_pagamento } = extrairTipoPagamento(t.descricao)
+    t.descricao = descricao
+    if (tipo_pagamento && !t.tipo_pagamento) t.tipo_pagamento = tipo_pagamento
+  }
+}
 
 function extrairTipoPagamento(raw: string): { descricao: string; tipo_pagamento: string } {
   let descricao = raw
@@ -1279,6 +1293,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      normalizarDescricoesTransacoes(transacoes)
       const importacaoOrigemPDF = await verificarDuplicatas(supabase, user.id, transacoes)
       marcarPagamentosFatura(transacoes, parsed.tipo_documento || 'extrato_bancario')
       await buscarConciliacao(supabase, user.id, transacoes)
@@ -1323,6 +1338,7 @@ export async function POST(request: NextRequest) {
       })
       if (!transacoes.length) return NextResponse.json({ error: 'Nenhuma transação encontrada na imagem' }, { status: 400 })
 
+      normalizarDescricoesTransacoes(transacoes)
       const importacaoOrigemImg = await verificarDuplicatas(supabase, user.id, transacoes)
       marcarPagamentosFatura(transacoes, parsed.tipo_documento || 'outro')
       await buscarConciliacao(supabase, user.id, transacoes)
