@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
@@ -24,6 +24,14 @@ type Transferencia = {
   tx_saida_id: string; tx_entrada_id: string
   conta_saida_id: string | null; conta_entrada_id: string | null
 }
+
+// Estilos inline para evitar problema de Tailwind v4 não escanear classes dinâmicas
+const CELL_STYLE = {
+  ok:     { background: 'rgba(6,78,59,0.55)',   color: '#6ee7b7', border: '1px solid rgba(5,150,105,0.4)' },
+  ausente:{ background: 'rgba(127,29,29,0.35)', color: '#f87171', border: '1px solid rgba(185,28,28,0.4)', cursor: 'pointer' },
+  vazio:  { background: 'rgba(120,53,15,0.35)', color: '#fbbf24', border: '1px solid rgba(180,83,9,0.4)' },
+  futuro: { background: 'rgba(39,39,42,0.2)',   color: '#52525b', border: '1px solid rgba(63,63,70,0.2)' },
+} as const
 
 export default function FaturasPage() {
   const router = useRouter()
@@ -55,26 +63,11 @@ export default function FaturasPage() {
     })
   }
 
-  function statusCell(dado: MesDado, mes: string) {
-    const isFuturo = mes > mesAtual
-    if (isFuturo) return 'futuro'
+  function statusCell(dado: MesDado, mes: string): keyof typeof CELL_STYLE {
+    if (mes > mesAtual) return 'futuro'
     if (dado.total_tx === 0 && dado.importacoes === 0) return 'ausente'
     if (dado.total_tx === 0 && dado.importacoes > 0) return 'vazio'
     return 'ok'
-  }
-
-  const cellColors: Record<string, string> = {
-    ok:     'bg-emerald-900/60 text-emerald-300 border-emerald-700/50',
-    ausente:'bg-red-900/40 text-red-400 border-red-700/40 cursor-pointer hover:bg-red-900/60',
-    vazio:  'bg-yellow-900/40 text-yellow-400 border-yellow-700/40',
-    futuro: 'bg-zinc-800/20 text-zinc-600 border-zinc-700/20',
-  }
-
-  const cellLabels: Record<string, string> = {
-    ok:     '✓',
-    ausente:'—',
-    vazio:  '0',
-    futuro: '·',
   }
 
   if (loading) return (
@@ -98,14 +91,14 @@ export default function FaturasPage() {
 
       {/* Legenda */}
       <div className="flex flex-wrap gap-3 mb-5 text-xs">
-        {[
-          { cor: 'bg-emerald-900/60 border-emerald-700/50', label: 'Importado' },
-          { cor: 'bg-red-900/40 border-red-700/40', label: 'Sem dados — clique para importar' },
-          { cor: 'bg-yellow-900/40 border-yellow-700/40', label: 'Import sem transações' },
-          { cor: 'bg-zinc-800/20 border-zinc-700/20', label: 'Mês futuro' },
-        ].map(({ cor, label }) => (
+        {([
+          { style: CELL_STYLE.ok,      label: 'Importado' },
+          { style: CELL_STYLE.ausente, label: 'Sem dados — clique para importar' },
+          { style: CELL_STYLE.vazio,   label: 'Import sem transações' },
+          { style: CELL_STYLE.futuro,  label: 'Mês futuro' },
+        ] as { style: React.CSSProperties; label: string }[]).map(({ style, label }) => (
           <span key={label} className="flex items-center gap-1.5 text-zinc-400">
-            <span className={`inline-block w-3 h-3 rounded border ${cor}`} />
+            <span className="inline-block w-3 h-3 rounded" style={style} />
             {label}
           </span>
         ))}
@@ -120,11 +113,15 @@ export default function FaturasPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-zinc-800/60">
-                  <th className="text-left px-3 py-2.5 text-zinc-400 font-medium min-w-[140px] sticky left-0 bg-zinc-800/80 z-10">
+                  <th className="text-left px-3 py-2.5 text-zinc-400 font-medium min-w-[140px] sticky left-0 bg-zinc-800 z-10">
                     Conta
                   </th>
                   {meses.map(mes => (
-                    <th key={mes} className={`px-2 py-2.5 text-center font-medium min-w-[52px] ${mes === mesAtual ? 'text-indigo-300' : 'text-zinc-400'}`}>
+                    <th
+                      key={mes}
+                      className="px-2 py-2.5 text-center font-medium min-w-[52px]"
+                      style={{ color: mes === mesAtual ? '#a5b4fc' : '#a1a1aa' }}
+                    >
                       {fmtMes(mes)}
                     </th>
                   ))}
@@ -135,16 +132,16 @@ export default function FaturasPage() {
                   <>
                     <tr
                       key={conta.id}
-                      className={`border-t border-zinc-700/30 ${idx % 2 === 0 ? 'bg-zinc-900/40' : 'bg-zinc-800/20'}`}
+                      style={{ borderTop: '1px solid rgba(63,63,70,0.3)', background: idx % 2 === 0 ? 'rgba(9,9,11,0.4)' : 'rgba(24,24,27,0.2)' }}
                     >
                       {/* Conta label */}
-                      <td className={`px-3 py-2 sticky left-0 z-10 ${idx % 2 === 0 ? 'bg-zinc-900/80' : 'bg-zinc-800/60'}`}>
+                      <td
+                        className="px-3 py-2 sticky left-0 z-10"
+                        style={{ background: idx % 2 === 0 ? 'rgb(9,9,11)' : 'rgb(18,18,20)' }}
+                      >
                         <div className="flex items-center gap-2">
                           {conta.bancos?.cor && (
-                            <span
-                              className="w-2 h-2 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: conta.bancos.cor }}
-                            />
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: conta.bancos.cor }} />
                           )}
                           <div>
                             <div className="text-zinc-200 font-medium leading-tight">{conta.nome}</div>
@@ -159,6 +156,7 @@ export default function FaturasPage() {
                       {meses.map(mes => {
                         const dado = conta.meses[mes] || { total_tx: 0, valor_debito: 0, valor_credito: 0, importacoes: 0 }
                         const status = statusCell(dado, mes)
+                        const cellSt = CELL_STYLE[status]
                         return (
                           <td key={mes} className="px-1 py-1.5 text-center">
                             <button
@@ -170,16 +168,16 @@ export default function FaturasPage() {
                                   : status === 'ausente' ? 'Clique para importar este mês'
                                   : ''
                               }
-                              className={`w-full rounded border px-1 py-1.5 text-center leading-none transition-colors ${cellColors[status]}`}
+                              style={cellSt}
+                              className="w-full rounded px-1 py-1.5 text-center leading-none transition-colors text-[10px]"
                             >
-                              <div className="font-semibold">{cellLabels[status]}</div>
+                              <div className="font-bold">
+                                {status === 'ok' ? '✓' : status === 'ausente' ? '—' : status === 'vazio' ? '0' : '·'}
+                              </div>
                               {status === 'ok' && dado.valor_debito > 0 && (
-                                <div className="text-[9px] text-emerald-400/70 mt-0.5 truncate">
+                                <div className="text-[9px] opacity-70 mt-0.5 truncate">
                                   {fmtBRL(dado.valor_debito)}
                                 </div>
-                              )}
-                              {status === 'ausente' && (
-                                <div className="text-[9px] text-red-400/70 mt-0.5">imp</div>
                               )}
                             </button>
                           </td>
@@ -189,21 +187,25 @@ export default function FaturasPage() {
 
                     {/* Linha de detalhes expandível */}
                     {expandidos.has(conta.id) && (
-                      <tr key={`${conta.id}-exp`} className="border-t border-zinc-700/20 bg-zinc-900/60">
+                      <tr key={`${conta.id}-exp`} style={{ borderTop: '1px solid rgba(63,63,70,0.2)', background: 'rgba(9,9,11,0.6)' }}>
                         <td colSpan={meses.length + 1} className="px-3 py-2">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-zinc-400">
-                            {meses.filter(m => (conta.meses[m]?.total_tx || 0) > 0).map(m => {
-                              const d = conta.meses[m]
-                              return (
-                                <div key={m} className="bg-zinc-800/60 rounded p-2">
-                                  <div className="text-zinc-300 font-medium mb-1">{fmtMes(m)}</div>
-                                  <div>{d.total_tx} transações</div>
-                                  {d.valor_debito > 0 && <div className="text-red-400">−{fmtBRL(d.valor_debito)}</div>}
-                                  {d.valor_credito > 0 && <div className="text-emerald-400">+{fmtBRL(d.valor_credito)}</div>}
-                                </div>
-                              )
-                            })}
-                          </div>
+                          {meses.filter(m => (conta.meses[m]?.total_tx || 0) > 0).length === 0 ? (
+                            <p className="text-xs text-zinc-500 py-1">Nenhuma transação importada nesta conta nos últimos 13 meses.</p>
+                          ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-zinc-400">
+                              {meses.filter(m => (conta.meses[m]?.total_tx || 0) > 0).map(m => {
+                                const d = conta.meses[m]
+                                return (
+                                  <div key={m} className="bg-zinc-800/60 rounded p-2">
+                                    <div className="text-zinc-300 font-medium mb-1">{fmtMes(m)}</div>
+                                    <div>{d.total_tx} transações</div>
+                                    {d.valor_debito > 0 && <div className="text-red-400">−{fmtBRL(d.valor_debito)}</div>}
+                                    {d.valor_credito > 0 && <div className="text-emerald-400">+{fmtBRL(d.valor_credito)}</div>}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                         </td>
                       </tr>
                     )}
@@ -219,11 +221,11 @@ export default function FaturasPage() {
               <button
                 key={conta.id}
                 onClick={() => toggleExpandido(conta.id)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                  expandidos.has(conta.id)
-                    ? 'bg-indigo-900/50 border-indigo-600/50 text-indigo-300'
-                    : 'bg-zinc-800/40 border-zinc-600/40 text-zinc-400 hover:text-zinc-200'
-                }`}
+                className="text-xs px-2.5 py-1 rounded-full border transition-colors"
+                style={expandidos.has(conta.id)
+                  ? { background: 'rgba(49,46,129,0.5)', border: '1px solid rgba(99,102,241,0.5)', color: '#a5b4fc' }
+                  : { background: 'rgba(39,39,42,0.4)', border: '1px solid rgba(82,82,91,0.4)', color: '#a1a1aa' }
+                }
               >
                 {expandidos.has(conta.id) ? '▾' : '▸'} {conta.nome}
               </button>
@@ -241,7 +243,7 @@ export default function FaturasPage() {
           </h2>
           <div className="space-y-2">
             {transferencias.map(tr => {
-              const contaSaida  = contasMap[tr.conta_saida_id || '']
+              const contaSaida   = contasMap[tr.conta_saida_id || '']
               const contaEntrada = contasMap[tr.conta_entrada_id || '']
               const key = `${tr.tx_saida_id}-${tr.tx_entrada_id}`
               const expandido = expandidos.has(key)
@@ -267,7 +269,6 @@ export default function FaturasPage() {
 
                   {expandido && (
                     <div className="border-t border-zinc-700/40 px-4 py-3 grid grid-cols-2 gap-4 bg-zinc-900/40">
-                      {/* Saída */}
                       <div className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
                         <div>
@@ -275,18 +276,12 @@ export default function FaturasPage() {
                           {contaSaida ? (
                             <>
                               <div className="text-sm text-zinc-200 font-medium">{contaSaida.nome}</div>
-                              {contaSaida.bancos && (
-                                <div className="text-xs text-zinc-500">{contaSaida.bancos.nome_curto}</div>
-                              )}
+                              {contaSaida.bancos && <div className="text-xs text-zinc-500">{contaSaida.bancos.nome_curto}</div>}
                             </>
-                          ) : (
-                            <div className="text-sm text-zinc-400 italic">conta não vinculada</div>
-                          )}
+                          ) : <div className="text-sm text-zinc-400 italic">conta não vinculada</div>}
                           <div className="text-sm text-red-400 font-semibold mt-1">−{fmtBRL(tr.valor)}</div>
                         </div>
                       </div>
-
-                      {/* Entrada */}
                       <div className="flex items-start gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0" />
                         <div>
@@ -294,13 +289,9 @@ export default function FaturasPage() {
                           {contaEntrada ? (
                             <>
                               <div className="text-sm text-zinc-200 font-medium">{contaEntrada.nome}</div>
-                              {contaEntrada.bancos && (
-                                <div className="text-xs text-zinc-500">{contaEntrada.bancos.nome_curto}</div>
-                              )}
+                              {contaEntrada.bancos && <div className="text-xs text-zinc-500">{contaEntrada.bancos.nome_curto}</div>}
                             </>
-                          ) : (
-                            <div className="text-sm text-zinc-400 italic">conta não vinculada</div>
-                          )}
+                          ) : <div className="text-sm text-zinc-400 italic">conta não vinculada</div>}
                           <div className="text-sm text-emerald-400 font-semibold mt-1">+{fmtBRL(tr.valor)}</div>
                         </div>
                       </div>
@@ -315,12 +306,8 @@ export default function FaturasPage() {
 
       {transferencias.length === 0 && (
         <div className="mt-8 rounded-xl border border-zinc-700/30 bg-zinc-800/20 p-6 text-center">
-          <div className="text-zinc-500 text-sm">
-            Nenhuma transferência entre contas detectada no período.
-          </div>
-          <div className="text-zinc-600 text-xs mt-1">
-            Transferências são detectadas automaticamente ao importar faturas de cartão.
-          </div>
+          <div className="text-zinc-500 text-sm">Nenhuma transferência entre contas detectada no período.</div>
+          <div className="text-zinc-600 text-xs mt-1">Transferências são detectadas automaticamente ao importar faturas de cartão.</div>
         </div>
       )}
     </div>
