@@ -723,6 +723,7 @@ useEffect(() => {
         { id: 'inicio',     label: m ? 'Salão do Reino'   : 'Início',      icon: m ? '🏰' : '🏠' },
         { id: 'lancamento', label: m ? 'Livro do Tesouro' : 'Lançamentos', icon: m ? '📜' : '📝', href: '/dashboard/lancamento', tour: 'tour-nav-lancamento' },
         { id: 'gastos',     label: m ? 'Batalhas'         : 'Gastos',      icon: m ? '⚔️' : '💸', href: '/dashboard/gastos',     tour: 'tour-nav-gastos' },
+        { id: 'faturas',    label: m ? 'Controle de Faturas' : 'Faturas',  icon: m ? '🗓️' : '🗓️', href: '/dashboard/faturas' },
       ],
     },
     {
