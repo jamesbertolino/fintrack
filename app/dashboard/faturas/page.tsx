@@ -1,15 +1,26 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
-const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+const MESES_PT   = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
 function fmtMes(yyyymm: string) {
   const [y, m] = yyyymm.split('-')
-  return `${MESES_PT[parseInt(m) - 1]} ${y}`
+  return `${MESES_FULL[parseInt(m) - 1]} de ${y}`
+}
+function fmtMesCurto(yyyymm: string) {
+  const [, m] = yyyymm.split('-')
+  return MESES_PT[parseInt(m) - 1]
+}
+function fmtAno(yyyymm: string) {
+  return yyyymm.slice(2, 4)
 }
 function fmtBRL(v: number) {
+  return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+function fmtBRLCurto(v: number) {
   return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
@@ -20,12 +31,19 @@ type Transferencia = { data: string; descricao: string; valor: number; tx_saida_
 export default function FaturasPage() {
   const router    = useRouter()
   const isMobile  = useIsMobile(640)
-  const [contas, setContas]             = useState<Conta[]>([])
-  const [meses, setMeses]               = useState<string[]>([])
+  const chartRef  = useRef<HTMLDivElement>(null)
+
+  const [contas, setContas]                 = useState<Conta[]>([])
+  const [meses, setMeses]                   = useState<string[]>([])
   const [transferencias, setTransferencias] = useState<Transferencia[]>([])
-  const [contasMap, setContasMap]       = useState<Record<string, Conta>>({})
-  const [loading, setLoading]           = useState(true)
-  const [expandidos, setExpandidos]     = useState<Set<string>>(new Set())
+  const [contasMap, setContasMap]           = useState<Record<string, Conta>>({})
+  const [loading, setLoading]               = useState(true)
+  const [mesSel, setMesSel]                 = useState<string>('')
+  const [showDropdown, setShowDropdown]     = useState(false)
+  const [showGrafico, setShowGrafico]       = useState(true)
+  const [expandidos, setExpandidos]         = useState<Set<string>>(new Set())
+  const [abaAtiva, setAbaAtiva]             = useState<'tudo' | 'cartoes'>('cartoes')
+
   const mesAtual = new Date().toISOString().slice(0, 7)
 
   useEffect(() => {
@@ -34,20 +52,42 @@ export default function FaturasPage() {
       setMeses(d.meses || [])
       setTransferencias(d.transferencias || [])
       setContasMap(d.contasMap || {})
+      const todos: string[] = d.meses || []
+      const passados = [...todos].reverse().filter((m: string) => m <= new Date().toISOString().slice(0, 7))
+      setMesSel(passados[0] || todos[todos.length - 1] || '')
       setLoading(false)
     })
   }, [])
+
+  // Scroll chart para o mês selecionado
+  useEffect(() => {
+    if (!chartRef.current || !mesSel || !meses.length) return
+    const mesesRev = [...meses].reverse()
+    const idx = mesesRev.indexOf(mesSel)
+    if (idx < 0) return
+    const el = chartRef.current.children[idx] as HTMLElement
+    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [mesSel, meses])
 
   function toggle(id: string) {
     setExpandidos(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
   }
 
-  const maxDebito = Math.max(1, ...contas.flatMap(c => meses.map(m => c.meses[m]?.valor_debito || 0)))
+  const mesesRev   = [...meses].reverse()
+  const maxDebito  = Math.max(1, ...contas.flatMap(c => meses.map(m => c.meses[m]?.valor_debito || 0)))
+  const totalMesSel = contas.reduce((s, c) => s + (c.meses[mesSel]?.valor_debito || 0), 0)
+
+  const contasVisiveis = abaAtiva === 'cartoes'
+    ? contas.filter(c => c.tipo === 'credito')
+    : contas
+
+  const PURPLE = '#8b5cf6'
+  const PURPLE_DIM = 'rgba(139,92,246,.22)'
 
   return (
-    <div className="dashboard-page-body" style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 15, color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: 'system-ui, sans-serif', fontSize: 15, color: '#fff' }}>
 
-      {/* Topbar — igual ao padrão das outras páginas */}
+      {/* Topbar */}
       <div style={{ borderBottom: '1px solid #1a1a2e', background: '#0a0a0a' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '.875rem 1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -65,253 +105,407 @@ export default function FaturasPage() {
           </div>
           <button
             onClick={() => router.push('/dashboard/lancamento')}
-            style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
-            + Importar extrato
+            + Importar
           </button>
         </div>
       </div>
 
-      {/* Corpo */}
-      <div style={{ padding: isMobile ? '16px 12px' : '20px 24px', maxWidth: 800, margin: '0 auto', paddingBottom: 96 }}>
+      {loading ? (
+        <div style={{ color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: 64 }}>Carregando...</div>
+      ) : contas.length === 0 ? (
+        <div style={{ color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: 64 }}>
+          <p>Nenhuma conta cadastrada.</p>
+          <button onClick={() => router.push('/dashboard/contas')} style={{ marginTop: 12, background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
+            Cadastrar conta
+          </button>
+        </div>
+      ) : (
+        <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: 48 }}>
 
-        {loading ? (
-          <div style={{ color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: 64 }}>Carregando...</div>
-        ) : contas.length === 0 ? (
-          <div style={{ color: 'rgba(255,255,255,.3)', textAlign: 'center', paddingTop: 64 }}>
-            <p>Nenhuma conta cadastrada.</p>
-            <button onClick={() => router.push('/dashboard/contas')} style={{ marginTop: 12, background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}>
-              Cadastrar conta
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Legenda */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 20, fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
-              {[
-                { bg: '#16a34a', label: 'Importado' },
-                { bg: '#dc2626', label: 'Sem dados — clique para importar' },
-                { bg: '#d97706', label: 'Importado, sem transações' },
-                { bg: '#3f3f46', label: 'Mês futuro' },
-              ].map(({ bg, label }) => (
-                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: bg, display: 'inline-block', flexShrink: 0 }} />
-                  {label}
-                </span>
-              ))}
-            </div>
+          {/* Seletor de mês + toggle gráfico */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 16px 0' }}>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowDropdown(v => !v)}
+                style={{
+                  background: 'rgba(255,255,255,.07)', border: '1.5px solid rgba(255,255,255,.14)',
+                  borderRadius: 20, padding: '7px 14px 7px 16px', color: '#fff',
+                  fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {mesSel ? fmtMes(mesSel) : '—'}
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
 
-            {/* Cards mensais — mais recente primeiro */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[...meses].reverse().map(mes => {
-                const isFuturo  = mes > mesAtual
-                const isAtual   = mes === mesAtual
-                const exp       = expandidos.has(mes)
-                const contasComDados = contas.filter(c => (c.meses[mes]?.total_tx || 0) > 0)
-                const totalGasto = contas.reduce((s, c) => s + (c.meses[mes]?.valor_debito || 0), 0)
-
-                return (
-                  <div
-                    key={mes}
-                    style={{
-                      borderRadius: 12,
-                      border: isAtual ? '1px solid rgba(99,102,241,.45)' : '1px solid rgba(255,255,255,.08)',
-                      background: 'rgba(255,255,255,.03)',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {/* Header clicável */}
+              {showDropdown && (
+                <div
+                  style={{
+                    position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 50,
+                    background: '#161625', border: '1px solid rgba(255,255,255,.1)',
+                    borderRadius: 14, overflow: 'hidden', minWidth: 220,
+                    boxShadow: '0 12px 40px rgba(0,0,0,.7)',
+                  }}
+                >
+                  {mesesRev.map(m => (
                     <button
-                      onClick={() => !isFuturo && toggle(mes)}
+                      key={m}
+                      onClick={() => { setMesSel(m); setShowDropdown(false) }}
                       style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '12px 16px', background: 'transparent', border: 'none',
-                        cursor: isFuturo ? 'default' : 'pointer', color: '#fff', textAlign: 'left', gap: 8,
+                        display: 'block', width: '100%', padding: '11px 18px',
+                        background: m === mesSel ? 'rgba(139,92,246,.18)' : 'transparent',
+                        border: 'none',
+                        color: m === mesSel ? '#c4b5fd' : m > mesAtual ? 'rgba(255,255,255,.3)' : '#fff',
+                        fontSize: 14, cursor: m > mesAtual ? 'default' : 'pointer', textAlign: 'left',
+                        fontWeight: m === mesSel ? 600 : 400,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                        <span style={{ fontWeight: 600, fontSize: 14, color: isAtual ? '#a5b4fc' : isFuturo ? 'rgba(255,255,255,.2)' : '#fff' }}>
-                          {fmtMes(mes)}
-                        </span>
-                        {isAtual && (
-                          <span style={{ fontSize: 10, background: 'rgba(99,102,241,.2)', color: '#a5b4fc', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap' }}>
-                            mês atual
-                          </span>
-                        )}
-                        {!isFuturo && (
-                          <span style={{ fontSize: 12, color: contasComDados.length > 0 ? 'rgba(255,255,255,.35)' : '#f87171' }}>
-                            {contasComDados.length > 0
-                              ? `${contasComDados.length}/${contas.length} conta${contas.length > 1 ? 's' : ''}`
-                              : 'sem dados'}
-                          </span>
+                      {fmtMes(m)}
+                      {m === mesAtual && <span style={{ marginLeft: 8, fontSize: 11, color: '#a78bfa' }}>atual</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowGrafico(v => !v)}
+              style={{
+                background: showGrafico ? 'rgba(139,92,246,.18)' : 'rgba(255,255,255,.06)',
+                border: `1.5px solid ${showGrafico ? 'rgba(139,92,246,.45)' : 'rgba(255,255,255,.12)'}`,
+                borderRadius: 20, padding: '7px 14px', cursor: 'pointer',
+                color: showGrafico ? '#c4b5fd' : 'rgba(255,255,255,.45)',
+                fontSize: 14, display: 'flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              {showGrafico && (
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+              Gráfico
+            </button>
+          </div>
+
+          {/* Gráfico de barras horizontal */}
+          {showGrafico && (
+            <div style={{ padding: '20px 0 0' }}>
+              <div
+                ref={chartRef}
+                style={{
+                  display: 'flex', alignItems: 'flex-end', gap: isMobile ? 4 : 6,
+                  overflowX: 'auto', padding: '0 16px 4px',
+                  scrollbarWidth: 'none',
+                }}
+              >
+                {mesesRev.map(m => {
+                  const total  = contas.reduce((s, c) => s + (c.meses[m]?.valor_debito || 0), 0)
+                  const pct    = total > 0 ? Math.max(12, Math.round((total / maxDebito) * 100)) : 6
+                  const isSel  = m === mesSel
+                  const isFut  = m > mesAtual
+                  const isAtual = m === mesAtual
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => { if (!isFut) setMesSel(m) }}
+                      title={total > 0 ? fmtBRLCurto(total) : undefined}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                        background: 'none', border: 'none',
+                        cursor: isFut ? 'default' : 'pointer', flexShrink: 0, padding: '0 2px',
+                      }}
+                    >
+                      <div style={{ width: isMobile ? 28 : 32, height: 72, display: 'flex', alignItems: 'flex-end' }}>
+                        <div style={{
+                          width: '100%', height: `${pct}%`,
+                          background: isFut ? 'rgba(255,255,255,.05)'
+                            : isSel ? PURPLE
+                            : isAtual ? 'rgba(139,92,246,.45)'
+                            : PURPLE_DIM,
+                          borderRadius: '4px 4px 2px 2px',
+                          transition: 'background .15s, height .2s',
+                        }} />
+                      </div>
+                      <div style={{ textAlign: 'center', lineHeight: 1.3 }}>
+                        <div style={{
+                          fontSize: 10, fontWeight: isSel ? 700 : 400,
+                          color: isSel ? '#c4b5fd' : isFut ? 'rgba(255,255,255,.2)' : 'rgba(255,255,255,.38)',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {fmtMesCurto(m).toUpperCase()}
+                        </div>
+                        <div style={{
+                          fontSize: 9,
+                          color: isSel ? 'rgba(196,181,253,.6)' : 'rgba(255,255,255,.18)',
+                        }}>
+                          {fmtAno(m)}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ height: 1, background: 'rgba(255,255,255,.06)', margin: '0 16px' }} />
+            </div>
+          )}
+
+          {/* Total do mês */}
+          {mesSel && (
+            <div style={{ padding: '20px 16px 0' }}>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: .6, fontWeight: 500 }}>
+                Total em {fmtMes(mesSel)}
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 700, color: totalMesSel > 0 ? '#f87171' : 'rgba(255,255,255,.2)', letterSpacing: -.5 }}>
+                {totalMesSel > 0 ? fmtBRL(totalMesSel) : '—'}
+              </div>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div style={{ display: 'flex', padding: '20px 16px 0', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+            {(['tudo', 'cartoes'] as const).map(aba => (
+              <button
+                key={aba}
+                onClick={() => setAbaAtiva(aba)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '8px 18px 12px', fontSize: 14,
+                  fontWeight: abaAtiva === aba ? 600 : 400,
+                  color: abaAtiva === aba ? '#fff' : 'rgba(255,255,255,.35)',
+                  borderBottom: abaAtiva === aba ? `2px solid ${PURPLE}` : '2px solid transparent',
+                  marginBottom: -1,
+                  transition: 'color .15s',
+                }}
+              >
+                {aba === 'tudo' ? 'Tudo' : 'Cartões'}
+              </button>
+            ))}
+          </div>
+
+          {/* Lista de contas */}
+          <div>
+            {contasVisiveis.length === 0 && (
+              <div style={{ padding: '40px 16px', textAlign: 'center', color: 'rgba(255,255,255,.25)', fontSize: 13 }}>
+                {abaAtiva === 'cartoes' ? 'Nenhuma conta de crédito cadastrada.' : 'Nenhuma conta encontrada.'}
+              </div>
+            )}
+
+            {contasVisiveis.map((conta, i) => {
+              const d      = mesSel ? conta.meses[mesSel] : null
+              const temTx  = (d?.total_tx || 0) > 0
+              const exp    = expandidos.has(conta.id)
+              const cor    = conta.bancos?.cor || PURPLE
+              const isFut  = mesSel > mesAtual
+              const isLast = i === contasVisiveis.length - 1
+
+              return (
+                <div
+                  key={conta.id}
+                  style={{ borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,.05)' }}
+                >
+                  {/* Linha principal */}
+                  <button
+                    onClick={() => temTx && toggle(conta.id)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '14px 16px', background: 'transparent', border: 'none',
+                      cursor: temTx ? 'pointer' : 'default', color: '#fff',
+                      textAlign: 'left', gap: 14,
+                    }}
+                  >
+                    {/* Avatar */}
+                    <div style={{
+                      width: 42, height: 42, borderRadius: 12,
+                      background: `${cor}18`, border: `1.5px solid ${cor}35`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, fontSize: 13, fontWeight: 700, color: cor,
+                      letterSpacing: -.3,
+                    }}>
+                      {(conta.bancos?.nome_curto || conta.nome).slice(0, 3).toUpperCase()}
+                    </div>
+
+                    {/* Nome + banco */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {conta.nome}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,.38)', marginTop: 2 }}>
+                        {conta.bancos?.nome_curto || (conta.tipo === 'credito' ? 'Cartão' : 'Conta')}
+                        {!temTx && !isFut && (
+                          <span style={{ marginLeft: 6, color: '#f87171' }}>· sem dados</span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                        {totalGasto > 0 && (
-                          <span style={{ fontSize: 13, color: 'rgba(255,255,255,.5)' }}>{fmtBRL(totalGasto)}</span>
+                    </div>
+
+                    {/* Valor + chevron */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: temTx ? '#f87171' : 'rgba(255,255,255,.2)' }}>
+                          {temTx ? fmtBRL(d!.valor_debito) : isFut ? '—' : '—'}
+                        </div>
+                        {temTx && (d?.valor_credito || 0) > 0 && (
+                          <div style={{ fontSize: 11, color: '#4ade80', marginTop: 1 }}>
+                            +{fmtBRL(d!.valor_credito)}
+                          </div>
                         )}
-                        {!isFuturo && (
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,.25)' }}>{exp ? '▾' : '▸'}</span>
-                        )}
+                      </div>
+
+                      {temTx ? (
+                        <svg
+                          width="16" height="16" viewBox="0 0 16 16" fill="none"
+                          style={{ opacity: .4, transform: exp ? 'rotate(180deg)' : 'none', transition: 'transform .18s', flexShrink: 0 }}
+                        >
+                          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : !isFut ? (
+                        <button
+                          onClick={e => { e.stopPropagation(); router.push('/dashboard/lancamento') }}
+                          style={{
+                            fontSize: 11, color: '#a78bfa',
+                            background: 'rgba(139,92,246,.12)', border: '1px solid rgba(139,92,246,.3)',
+                            borderRadius: 6, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                          }}
+                        >
+                          Importar
+                        </button>
+                      ) : null}
+                    </div>
+                  </button>
+
+                  {/* Painel expandido */}
+                  {exp && temTx && (
+                    <div style={{ padding: '0 16px 16px' }}>
+                      <div style={{ background: 'rgba(255,255,255,.04)', borderRadius: 12, padding: '14px 16px' }}>
+                        {/* Barra */}
+                        <div style={{ height: 5, background: 'rgba(255,255,255,.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 14 }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${Math.max(3, Math.round((d!.valor_debito / maxDebito) * 100))}%`,
+                            background: cor, borderRadius: 3,
+                          }} />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 24 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Transações</div>
+                            <div style={{ fontSize: 15, fontWeight: 600 }}>{d!.total_tx}</div>
+                          </div>
+                          {d!.valor_debito > 0 && (
+                            <div>
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Débitos</div>
+                              <div style={{ fontSize: 15, fontWeight: 600, color: '#f87171' }}>−{fmtBRL(d!.valor_debito)}</div>
+                            </div>
+                          )}
+                          {d!.valor_credito > 0 && (
+                            <div>
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Créditos</div>
+                              <div style={{ fontSize: 15, fontWeight: 600, color: '#4ade80' }}>+{fmtBRL(d!.valor_credito)}</div>
+                            </div>
+                          )}
+                          {d!.importacoes > 0 && (
+                            <div>
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: .5 }}>Importações</div>
+                              <div style={{ fontSize: 15, fontWeight: 600 }}>{d!.importacoes}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Pagamentos de fatura / Transferências */}
+          {transferencias.length > 0 && (
+            <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,.06)' }}>
+              <div style={{ padding: '20px 16px 8px', fontSize: 11, color: 'rgba(255,255,255,.35)', textTransform: 'uppercase', letterSpacing: .7, fontWeight: 600 }}>
+                Pagamentos detectados
+              </div>
+              {transferencias.map(tr => {
+                const saida   = contasMap[tr.conta_saida_id   || '']
+                const entrada = contasMap[tr.conta_entrada_id || '']
+                const key     = `${tr.tx_saida_id}-${tr.tx_entrada_id}`
+                const exp     = expandidos.has(key)
+                const dtFmt   = `${tr.data.slice(8,10)}/${tr.data.slice(5,7)}/${tr.data.slice(0,4)}`
+                return (
+                  <div key={key} style={{ borderTop: '1px solid rgba(255,255,255,.05)' }}>
+                    <button
+                      onClick={() => toggle(key)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '14px 16px', background: 'transparent', border: 'none',
+                        cursor: 'pointer', color: '#fff', textAlign: 'left', gap: 14,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                        <div style={{
+                          width: 42, height: 42, borderRadius: 12,
+                          background: 'rgba(99,102,241,.1)', border: '1.5px solid rgba(99,102,241,.25)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 18, flexShrink: 0,
+                        }}>
+                          ↔
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {tr.descricao}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{dtFmt}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                        <span style={{ fontSize: 15, fontWeight: 600 }}>{fmtBRL(tr.valor)}</span>
+                        <svg
+                          width="16" height="16" viewBox="0 0 16 16" fill="none"
+                          style={{ opacity: .4, transform: exp ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}
+                        >
+                          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
                       </div>
                     </button>
 
-                    {/* Barras resumo (sempre visível quando não expandido e não futuro) */}
-                    {!exp && !isFuturo && (
-                      <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {contas.map(conta => {
-                          const d      = conta.meses[mes]
-                          const temTx  = (d?.total_tx || 0) > 0
-                          const pct    = temTx ? Math.max(3, Math.round((d.valor_debito / maxDebito) * 100)) : 0
-                          const cor    = conta.bancos?.cor || '#6366f1'
-                          return (
-                            <div key={conta.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', width: isMobile ? 72 : 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                {conta.bancos?.nome_curto || conta.nome}
-                              </span>
-                              <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
-                                {temTx ? (
-                                  <div style={{ height: '100%', width: `${pct}%`, background: cor, borderRadius: 4 }} />
-                                ) : (
-                                  <div style={{ height: '100%', width: '100%', background: 'rgba(220,38,38,.12)', borderRadius: 4 }} />
-                                )}
-                              </div>
-                              <span style={{ fontSize: 11, color: temTx ? 'rgba(255,255,255,.4)' : '#f87171', width: isMobile ? 60 : 80, textAlign: 'right', flexShrink: 0 }}>
-                                {temTx ? fmtBRL(d.valor_debito) : '—'}
-                              </span>
-                              {!temTx && (
-                                <button
-                                  onClick={e => { e.stopPropagation(); router.push('/dashboard/lancamento') }}
-                                  style={{ fontSize: 10, color: '#f87171', background: 'rgba(220,38,38,.12)', border: '1px solid rgba(220,38,38,.3)', borderRadius: 4, padding: '2px 7px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
-                                >
-                                  imp
-                                </button>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {/* Detalhe expandido */}
                     {exp && (
-                      <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {contas.map(conta => {
-                          const d     = conta.meses[mes]
-                          const temTx = (d?.total_tx || 0) > 0
-                          const pct   = temTx ? Math.max(3, Math.round((d.valor_debito / maxDebito) * 100)) : 0
-                          const cor   = conta.bancos?.cor || '#6366f1'
-                          return (
-                            <div key={conta.id} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 8, padding: '10px 12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: temTx ? 8 : 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  {conta.bancos?.cor && <span style={{ width: 8, height: 8, borderRadius: '50%', background: conta.bancos.cor, display: 'inline-block' }} />}
-                                  <span style={{ fontSize: 13, fontWeight: 600 }}>{conta.nome}</span>
-                                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>{conta.bancos?.nome_curto}</span>
-                                </div>
-                                {!temTx && (
-                                  <button
-                                    onClick={() => router.push('/dashboard/lancamento')}
-                                    style={{ fontSize: 11, color: '#f87171', background: 'rgba(220,38,38,.12)', border: '1px solid rgba(220,38,38,.3)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}
-                                  >
-                                    Importar
-                                  </button>
-                                )}
-                              </div>
-                              {temTx ? (
-                                <>
-                                  <div style={{ height: 8, background: 'rgba(255,255,255,.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
-                                    <div style={{ height: '100%', width: `${pct}%`, background: cor, borderRadius: 4 }} />
-                                  </div>
-                                  <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,.4)' }}>
-                                    <span>{d.total_tx} transações</span>
-                                    {d.valor_debito  > 0 && <span style={{ color: '#f87171' }}>−{fmtBRL(d.valor_debito)}</span>}
-                                    {d.valor_credito > 0 && <span style={{ color: '#4ade80' }}>+{fmtBRL(d.valor_credito)}</span>}
-                                  </div>
-                                </>
-                              ) : (
-                                <p style={{ fontSize: 12, color: 'rgba(255,255,255,.2)', margin: 0 }}>Nenhuma importação</p>
-                              )}
+                      <div style={{ padding: '0 16px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        {([
+                          { cor: '#ef4444', label: 'Saiu de', conta: saida, val: `−${fmtBRL(tr.valor)}`, valCor: '#f87171' },
+                          { cor: '#22c55e', label: 'Entrou em', conta: entrada, val: `+${fmtBRL(tr.valor)}`, valCor: '#4ade80' },
+                        ] as const).map(({ cor, label, conta, val, valCor }) => (
+                          <div key={label} style={{ background: 'rgba(255,255,255,.04)', borderRadius: 10, padding: '12px 14px' }}>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {conta?.nome || <em style={{ color: 'rgba(255,255,255,.25)', fontStyle: 'italic' }}>não vinculada</em>}
                             </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {isFuturo && (
-                      <div style={{ padding: '0 16px 10px' }}>
-                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.15)' }}>Mês ainda não disponível</span>
+                            {conta?.bancos && (
+                              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)', marginTop: 2 }}>{conta.bancos.nome_curto}</div>
+                            )}
+                            <div style={{ fontSize: 14, fontWeight: 700, color: valCor, marginTop: 8 }}>{val}</div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
                 )
               })}
             </div>
+          )}
+        </div>
+      )}
 
-            {/* Transferências entre contas */}
-            {transferencias.length > 0 && (
-              <div style={{ marginTop: 32 }}>
-                <h2 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 12px', color: 'rgba(255,255,255,.8)' }}>
-                  Transferências entre contas
-                  <span style={{ fontSize: 12, fontWeight: 400, color: 'rgba(255,255,255,.3)', marginLeft: 8 }}>pagamentos de fatura detectados</span>
-                </h2>
-                {transferencias.map(tr => {
-                  const saida   = contasMap[tr.conta_saida_id   || '']
-                  const entrada = contasMap[tr.conta_entrada_id || '']
-                  const key     = `${tr.tx_saida_id}-${tr.tx_entrada_id}`
-                  const exp     = expandidos.has(key)
-                  const dtFmt   = `${tr.data.slice(8,10)}/${tr.data.slice(5,7)}/${tr.data.slice(0,4)}`
-                  return (
-                    <div key={key} style={{ borderRadius: 10, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(255,255,255,.03)', overflow: 'hidden', marginBottom: 8 }}>
-                      <button
-                        onClick={() => toggle(key)}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff', textAlign: 'left' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 18, lineHeight: 1 }}>↔</span>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 500 }}>{tr.descricao}</div>
-                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{dtFmt}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600 }}>{fmtBRL(tr.valor)}</span>
-                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,.25)' }}>{exp ? '▾' : '▸'}</span>
-                        </div>
-                      </button>
-                      {exp && (
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                          {[
-                            { cor: '#ef4444', label: 'Saiu de',   conta: saida,   val: `-${fmtBRL(tr.valor)}`, valCor: '#f87171' },
-                            { cor: '#22c55e', label: 'Entrou em', conta: entrada, val: `+${fmtBRL(tr.valor)}`, valCor: '#4ade80' },
-                          ].map(({ cor, label, conta, val, valCor }) => (
-                            <div key={label} style={{ display: 'flex', gap: 8 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: '50%', background: cor, marginTop: 5, flexShrink: 0 }} />
-                              <div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginBottom: 2 }}>{label}</div>
-                                <div style={{ fontSize: 13, fontWeight: 500 }}>{conta?.nome || <em style={{ color: 'rgba(255,255,255,.3)', fontStyle: 'italic' }}>não vinculada</em>}</div>
-                                {conta?.bancos && <div style={{ fontSize: 11, color: 'rgba(255,255,255,.3)' }}>{conta.bancos.nome_curto}</div>}
-                                <div style={{ fontSize: 13, fontWeight: 600, color: valCor, marginTop: 4 }}>{val}</div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {transferencias.length === 0 && (
-              <div style={{ marginTop: 32, borderRadius: 10, border: '1px solid rgba(255,255,255,.06)', background: 'rgba(255,255,255,.02)', padding: '20px', textAlign: 'center' }}>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.25)' }}>Nenhuma transferência entre contas detectada.</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.15)', marginTop: 4 }}>Detectadas automaticamente ao importar faturas de cartão.</div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {/* Fecha dropdown ao clicar fora */}
+      {showDropdown && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+          onClick={() => setShowDropdown(false)}
+        />
+      )}
     </div>
   )
 }
