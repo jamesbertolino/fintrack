@@ -78,6 +78,12 @@ export default function ContasPage() {
     saldo_inicial: '',
   })
 
+  const [editando, setEditando]   = useState<Conta | null>(null)
+  const trapEdit = useFocusTrap(!!editando)
+  const [editForm, setEditForm]   = useState({ nome: '', tipo: 'corrente', numero: '', agencia: '' })
+  const [editando_, setSalvandoEdit] = useState(false)
+  const [erroEdit, setErroEdit]   = useState('')
+
   const carregar = useCallback(async () => {
     const [resContas, resBancos] = await Promise.all([
       fetch('/api/contas'),
@@ -131,6 +137,30 @@ export default function ContasPage() {
     const res = await fetch(`/api/contas/${id}`, { method: 'DELETE' })
     if (res.ok) carregar()
     else { const d = await res.json().catch(() => ({})); setErro(d.error || 'Erro ao excluir conta') }
+  }
+
+  function abrirEdicao(conta: Conta) {
+    setEditando(conta)
+    setEditForm({ nome: conta.nome, tipo: conta.tipo, numero: conta.numero || '', agencia: conta.agencia || '' })
+    setErroEdit('')
+  }
+
+  async function salvarEdicao(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editando) return
+    if (!editForm.nome.trim()) { setErroEdit('Nome obrigatório'); return }
+    setSalvandoEdit(true); setErroEdit('')
+    const res = await fetch(`/api/contas/${editando.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome: editForm.nome.trim(), tipo: editForm.tipo, numero: editForm.numero, agencia: editForm.agencia }),
+    })
+    setSalvandoEdit(false)
+    if (!res.ok) { const d = await res.json().catch(() => ({})); setErroEdit(d.error || 'Erro ao salvar'); return }
+    setEditando(null)
+    setSucesso('Conta atualizada!')
+    carregar()
+    setTimeout(() => setSucesso(''), 3000)
   }
 
   async function toggleSaldoVisivel(id: string, atual: boolean) {
@@ -251,6 +281,11 @@ export default function ContasPage() {
                         style={{ background: 'rgba(255,255,255,.06)', border: '1px solid #1a3a1a', borderRadius: 6, padding: '6px 10px', color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer', minHeight: 34 }}>
                         {conta.mostrar_saldo ? '👁' : '🙈'}
                       </button>
+                      <button onClick={() => abrirEdicao(conta)}
+                        title="Editar conta"
+                        style={{ background: 'rgba(99,102,241,.08)', border: '1px solid rgba(99,102,241,.25)', borderRadius: 6, padding: '6px 10px', color: '#a5b4fc', fontSize: 13, cursor: 'pointer', minHeight: 34 }}>
+                        ✏️
+                      </button>
                       <button onClick={() => excluirConta(conta.id)}
                         title="Excluir conta"
                         style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', borderRadius: 6, padding: '6px 10px', color: '#f87171', fontSize: 13, cursor: 'pointer', minHeight: 34 }}>
@@ -272,6 +307,62 @@ export default function ContasPage() {
           </div>
         )}
       </div>
+
+      {/* Modal edição de conta */}
+      {editando && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div ref={trapEdit} role="dialog" aria-modal="true" aria-labelledby="modal-edit-titulo" style={{ background: '#111', border: '1px solid #1a3a1a', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div>
+                <div id="modal-edit-titulo" style={{ fontSize: 16, fontWeight: 600 }}>Editar conta</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.35)', marginTop: 2 }}>{editando.bancos?.nome_curto || editando.nome}</div>
+              </div>
+              <button onClick={() => setEditando(null)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,.4)', fontSize: 18 }}>✕</button>
+            </div>
+
+            {erroEdit && <div style={{ background: 'rgba(239,68,68,.1)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>{erroEdit}</div>}
+
+            <form onSubmit={salvarEdicao}>
+              <div style={{ marginBottom: 14 }}>
+                <label htmlFor="edit-nome" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Nome da conta</label>
+                <input id="edit-nome" value={editForm.nome} onChange={e => setEditForm(p => ({ ...p, nome: e.target.value }))} required style={inputStyle} />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label htmlFor="edit-tipo" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Tipo</label>
+                <select id="edit-tipo" value={editForm.tipo} onChange={e => setEditForm(p => ({ ...p, tipo: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  {TIPOS.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                </select>
+                {editForm.tipo === 'crédito' && (
+                  <div style={{ marginTop: 6, fontSize: 11, color: '#a5b4fc', background: 'rgba(99,102,241,.1)', border: '1px solid rgba(99,102,241,.25)', borderRadius: 6, padding: '6px 10px' }}>
+                    💳 Conta de crédito aparece em <strong>Faturas</strong> com controle mês a mês.
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: '1.25rem' }}>
+                <div>
+                  <label htmlFor="edit-numero" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Últimos 4 dígitos</label>
+                  <input id="edit-numero" value={editForm.numero} onChange={e => setEditForm(p => ({ ...p, numero: e.target.value.slice(0, 4) }))} placeholder="1234" maxLength={4} style={inputStyle} />
+                </div>
+                <div>
+                  <label htmlFor="edit-agencia" style={{ display: 'block', fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,.4)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Agência</label>
+                  <input id="edit-agencia" value={editForm.agencia} onChange={e => setEditForm(p => ({ ...p, agencia: e.target.value }))} placeholder="0001" style={inputStyle} />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => setEditando(null)} style={{ flex: 1, padding: '10px', background: 'transparent', border: '1px solid #1a3a1a', borderRadius: 8, color: 'rgba(255,255,255,.4)', fontSize: 13, cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+                <button type="submit" disabled={editando_} style={{ flex: 2, padding: '10px', background: '#4f46e5', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: editando_ ? 'default' : 'pointer', opacity: editando_ ? 0.7 : 1 }}>
+                  {editando_ ? 'Salvando...' : 'Salvar alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal nova conta */}
       {modalAberto && (
