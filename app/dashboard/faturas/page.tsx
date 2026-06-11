@@ -78,7 +78,7 @@ export default function FaturasPage() {
   const totalMesSel = contas.reduce((s, c) => s + (c.meses[mesSel]?.valor_debito || 0), 0)
 
   const contasVisiveis = abaAtiva === 'cartoes'
-    ? contas.filter(c => c.tipo === 'credito')
+    ? contas.filter(c => c.tipo === 'crédito' || c.tipo === 'credito')
     : contas
 
   const PURPLE = '#8b5cf6'
