@@ -121,5 +121,16 @@ export async function GET() {
   // Mapa de contas para lookup nas transferências
   const contasMap = Object.fromEntries((contas || []).map(c => [c.id, c]))
 
-  return NextResponse.json({ contas: cobertura, transferencias, meses, contasMap })
+  // Debug: mostra o que foi encontrado para a Nubank
+  const nubankId = 'fe825c02-da1a-4dd9-8c20-74ceeb3f814b'
+  const nubankCob = cobertura.find(c => c.id === nubankId)
+  const _debug = {
+    total_txs_na_query: txs?.length ?? 0,
+    nubank_meses: nubankCob ? Object.fromEntries(
+      Object.entries(nubankCob.meses).filter(([, v]) => v.total_tx > 0)
+    ) : 'conta não encontrada na cobertura',
+    txs_nubank_na_query: txs?.filter(t => t.conta_id === nubankId).length ?? 0,
+  }
+
+  return NextResponse.json({ contas: cobertura, transferencias, meses, contasMap, _debug })
 }
