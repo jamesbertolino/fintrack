@@ -46,7 +46,7 @@ export async function GET() {
       nome: c.nome,
       tipo: c.tipo,
       ativo: c.ativo,
-      banco: (c.bancos as { nome_curto: string } | null)?.nome_curto,
+      banco: (c.bancos as unknown as { nome_curto: string } | null)?.nome_curto,
       tx_nas_ultimas_50: txPorConta[c.id] || 0,
     })),
     importacoes_recentes: (importacoes || []).map(i => ({
