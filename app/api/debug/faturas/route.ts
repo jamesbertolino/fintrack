@@ -8,56 +8,46 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
-  // Todas as contas
-  const { data: contas } = await supabase
-    .from('contas')
-    .select('id, nome, tipo, ativo, bancos(nome_curto)')
-    .eq('user_id', user.id)
-    .order('created_at')
+  const NUBANK_ID = 'fe825c02-da1a-4dd9-8c20-74ceeb3f814b'
 
-  // Todas as importações
-  const { data: importacoes } = await supabase
-    .from('importacoes')
-    .select('id, conta_id, arquivo_nome, created_at, total_inseridas, total_duplicatas')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(20)
+  const inicio13meses = (() => {
+    const hoje = new Date()
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - 12, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01T00:00:00`
+  })()
 
-  // Transações agrupadas por conta_id (conta quantas há por conta)
-  const { data: txSample } = await supabase
+  const { data: txsNubank, count: totalNubank } = await supabase
     .from('transactions')
-    .select('id, conta_id, data_hora, tipo, valor, origem')
+    .select('data_hora, tipo, valor, origem', { count: 'exact' })
+    .eq('user_id', user.id)
+    .eq('conta_id', NUBANK_ID)
+    .order('data_hora', { ascending: false })
+    .limit(30)
+
+  const { count: noPeriodo } = await supabase
+    .from('transactions')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('conta_id', NUBANK_ID)
+    .gte('data_hora', inicio13meses)
+    .neq('origem', 'saldo_inicial')
+
+  const { count: totalUsuario } = await supabase
+    .from('transactions')
+    .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .neq('origem', 'saldo_inicial')
-    .order('data_hora', { ascending: false })
-    .limit(50)
-
-  const txPorConta: Record<string, number> = {}
-  const txSemConta = txSample?.filter(t => !t.conta_id).length || 0
-  for (const tx of txSample || []) {
-    if (!tx.conta_id) continue
-    txPorConta[tx.conta_id] = (txPorConta[tx.conta_id] || 0) + 1
-  }
 
   return NextResponse.json({
-    user_id: user.id,
-    contas: (contas || []).map(c => ({
-      id: c.id,
-      nome: c.nome,
-      tipo: c.tipo,
-      ativo: c.ativo,
-      banco: (c.bancos as unknown as { nome_curto: string } | null)?.nome_curto,
-      tx_nas_ultimas_50: txPorConta[c.id] || 0,
+    inicio_periodo_13meses: inicio13meses,
+    total_tx_usuario: totalUsuario,
+    total_tx_nubank: totalNubank,
+    tx_nubank_no_periodo_13meses: noPeriodo,
+    ultimas_30_tx_nubank: (txsNubank || []).map(t => ({
+      data_hora: t.data_hora,
+      tipo: t.tipo,
+      valor: t.valor,
+      origem: t.origem,
     })),
-    importacoes_recentes: (importacoes || []).map(i => ({
-      id: i.id,
-      conta_id: i.conta_id,
-      arquivo: i.arquivo_nome,
-      data: i.created_at?.slice(0, 10),
-      inseridas: i.total_inseridas,
-      duplicatas: i.total_duplicatas,
-      conta_nome: contas?.find(c => c.id === i.conta_id)?.nome || (i.conta_id ? '(não encontrada)' : 'SEM CONTA'),
-    })),
-    tx_sem_conta_vinculada: txSemConta,
   })
 }
