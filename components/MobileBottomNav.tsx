@@ -18,6 +18,7 @@ const MAIS_ITEMS = [
   { label: 'Perfil',      icon: '👤', href: '/dashboard/perfil' },
   { label: 'Score',       icon: '⭐', href: '/dashboard/score' },
   { label: 'Conquistas',  icon: '🏆', href: '/dashboard/conquistas' },
+  { label: 'Faturas',     icon: '🗓️', href: '/dashboard/faturas' },
   { label: 'Contas',      icon: '🏦', href: '/dashboard/contas' },
   { label: 'Orçamento',   icon: '📊', href: '/dashboard/orcamento' },
   { label: 'Dívidas',     icon: '💳', href: '/dashboard/dividas' },
