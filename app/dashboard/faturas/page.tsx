@@ -302,6 +302,10 @@ export default function FaturasPage() {
               const isFut  = mesSel > mesAtual
               const isLast = i === contasVisiveis.length - 1
 
+              // Meses com dados para esta conta (fora do selecionado)
+              const mesesComDados = meses.filter(m => m !== mesSel && (conta.meses[m]?.total_tx || 0) > 0)
+              const temDadosOutroMes = !temTx && !isFut && mesesComDados.length > 0
+
               return (
                 <div
                   key={conta.id}
@@ -335,9 +339,14 @@ export default function FaturasPage() {
                         {conta.nome}
                       </div>
                       <div style={{ fontSize: 12, color: 'rgba(255,255,255,.38)', marginTop: 2 }}>
-                        {conta.bancos?.nome_curto || (conta.tipo === 'credito' ? 'Cartão' : 'Conta')}
-                        {!temTx && !isFut && (
-                          <span style={{ marginLeft: 6, color: '#f87171' }}>· sem dados</span>
+                        {conta.bancos?.nome_curto || (conta.tipo === 'crédito' || conta.tipo === 'credito' ? 'Cartão' : 'Conta')}
+                        {temDadosOutroMes && (
+                          <span style={{ marginLeft: 6, color: '#a78bfa' }}>
+                            · dados em {fmtMesCurto([...mesesComDados].reverse()[0])} — selecione no gráfico
+                          </span>
+                        )}
+                        {!temTx && !isFut && !temDadosOutroMes && (
+                          <span style={{ marginLeft: 6, color: '#f87171' }}>· sem dados neste mês</span>
                         )}
                       </div>
                     </div>
@@ -362,6 +371,17 @@ export default function FaturasPage() {
                         >
                           <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
+                      ) : temDadosOutroMes ? (
+                        <button
+                          onClick={e => { e.stopPropagation(); setMesSel([...mesesComDados].reverse()[0]) }}
+                          style={{
+                            fontSize: 11, color: '#a78bfa',
+                            background: 'rgba(139,92,246,.12)', border: '1px solid rgba(139,92,246,.3)',
+                            borderRadius: 6, padding: '4px 10px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                          }}
+                        >
+                          Ver mês
+                        </button>
                       ) : !isFut ? (
                         <button
                           onClick={e => { e.stopPropagation(); router.push('/dashboard/lancamento') }}
